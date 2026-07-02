@@ -1,2 +1,5 @@
 # Local structure design documents
 .design/
+
+# Environment files
+.env

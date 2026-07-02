@@ -1,0 +1,24 @@
+name: bough
+
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    container_name: bough_db
+    restart: unless-stopped
+    environment:
+      # Hardcoded for simplicity. Only password is overrideable.
+      POSTGRES_USER: bough_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bough_pwd}
+      POSTGRES_DB: bough_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bough_user -d bough_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
