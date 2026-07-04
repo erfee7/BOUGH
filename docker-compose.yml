@@ -6,12 +6,10 @@ services:
     container_name: bough_db
     restart: unless-stopped
     environment:
-      # Hardcoded for simplicity. Only password is overrideable.
       POSTGRES_USER: bough_user
+      # Uses the password from env, falls back to bough_pwd if missing
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bough_pwd}
       POSTGRES_DB: bough_db
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
@@ -19,6 +17,25 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  api:
+    build:
+      context: ./api
+    container_name: bough_api
+    restart: unless-stopped
+    environment:
+      # Pass DB credentials so the API can build the connection string
+      POSTGRES_USER: bough_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bough_pwd}
+      POSTGRES_DB: bough_db
+      POSTGRES_HOST: db  # Docker's internal DNS name for the db service
+      # Pass LLM configuration
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-openai/gpt-4o-mini}
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

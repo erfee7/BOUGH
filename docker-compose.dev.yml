@@ -1,0 +1,30 @@
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  api:
+    ports:
+      - "8000:8000"
+    environment:
+      # Prevent Python from writing .pyc files to disk in dev mode.
+      # This stops host/container __pycache__ architecture conflicts entirely.
+      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      - ./api:/app:z
+      # Protect the virtual environment from host overwrite
+      - /app/.venv
+    command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    container_name: bough_web
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/app:z
+      - /app/node_modules
+    depends_on:
+      - api
