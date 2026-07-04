@@ -17,14 +17,14 @@ services:
     command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   web:
+    # Override the build context and dockerfile from the base file
     build:
       context: ./web
       dockerfile: Dockerfile.dev
-    container_name: bough_web
+    # Override the ports so we don't map port 80 in dev
     ports:
       - "5173:5173"
+    # Add the dev volumes
     volumes:
       - ./web:/app:z
       - /app/node_modules
-    depends_on:
-      - api
