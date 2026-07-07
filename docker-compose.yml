@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: bough_db
     volumes:
       - postgres_data:/var/lib/postgresql
+      # Mount init.sql to run automatically on fresh volume creation
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:z
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bough_user -d bough_db"]
       interval: 5s
