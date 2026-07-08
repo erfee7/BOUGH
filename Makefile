@@ -1,4 +1,4 @@
-.PHONY: dev dev-build dev-down prod prod-build prod-down
+.PHONY: dev dev-d dev-down dev-purge prod prod-build prod-down test
 
 # Start dev environment
 dev:
@@ -27,3 +27,7 @@ prod:
 # Tear down prod environment
 prod-down:
 	docker compose down
+
+# Run automated tests (api)
+test:
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm api uv run pytest -v

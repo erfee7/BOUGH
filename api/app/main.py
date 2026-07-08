@@ -1,8 +1,29 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-app = FastAPI()
+from app.db import init_pool, close_pool
 
+# Configure root logger for radical transparency
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Runs before the server starts accepting requests
+    logger.info("Application starting up...")
+    await init_pool()
+    yield
+    # Runs after the server stops accepting requests
+    logger.info("Application shutting down...")
+    await close_pool()
+
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/api/health")
-async def health():
-    return {"status": "ok"}
+async def health_check():
+    return {"status": "healthy"}
