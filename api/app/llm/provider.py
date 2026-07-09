@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional, List, Dict, Any, AsyncGenerator
+from typing import Optional, Any, AsyncGenerator
 
 from openai import AsyncOpenAI
 
@@ -27,10 +27,10 @@ def _get_client() -> AsyncOpenAI:
     return _client
 
 async def generate_stream(
-    messages_history: List[Dict[str, Any]], 
+    messages_history: list[dict[str, Any]], 
     model: Optional[str] = None, 
     client: Optional[AsyncOpenAI] = None
-) -> AsyncGenerator[Dict[str, Any], None]:
+) -> AsyncGenerator[dict[str, Any], None]:
     """
     Calls the LLM provider and yields structured events.
     
