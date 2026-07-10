@@ -1,6 +1,6 @@
+import json
 import logging
 import os
-import uuid
 import asyncpg
 
 logger = logging.getLogger(__name__)
@@ -16,8 +16,32 @@ def _get_dsn() -> str:
     host = os.getenv("POSTGRES_HOST", "db")
     return f"postgresql://{user}:{password}@{host}:5432/{db}"
 
+async def _init_connection(conn: asyncpg.Connection) -> None:
+    """
+    Sets up custom codecs for every database connection created in the pool.
+    This automatically translates Python dictionaries/lists to JSONB, and vice-versa.
+    """
+    try:
+        # Register standard library json encoder/decoder for json and jsonb types
+        await conn.set_type_codec(
+            "jsonb",
+            encoder=json.dumps,
+            decoder=json.loads,
+            schema="pg_catalog"
+        )
+        await conn.set_type_codec(
+            "json",
+            encoder=json.dumps,
+            decoder=json.loads,
+            schema="pg_catalog"
+        )
+        logger.debug("Database connection custom codecs successfully registered.")
+    except Exception as e:
+        logger.error("Failed to register custom codecs on database connection: %s", e)
+        raise
+
 async def init_pool() -> None:
-    """Initializes the database connection pool."""
+    """Initializes the database connection pool with automatic connection initialization."""
     global _pool
     if _pool is not None:
         logger.warning("Database pool is already initialized.")
@@ -30,6 +54,7 @@ async def init_pool() -> None:
             dsn=dsn,
             min_size=1,
             max_size=5,
+            init=_init_connection  # Runs our codec setup for every connection
         )
         logger.info("Database connection pool initialized successfully.")
     except Exception as e:
@@ -53,38 +78,3 @@ def get_pool() -> asyncpg.Pool:
     if _pool is None:
         raise RuntimeError("Database pool is not initialized. Call init_pool() first.")
     return _pool
-
-# --- Basic Query Functions ---
-
-async def create_conversation(title: str | None, conn: asyncpg.Connection | None = None) -> uuid.UUID:
-    """
-    Creates a new conversation in the database.
-    If conn is provided, uses it; otherwise, acquires a connection from the pool.
-    """
-    if conn:
-        return await _create_conversation(conn, title)
-    
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        return await _create_conversation(conn, title)
-
-async def _create_conversation(conn: asyncpg.Connection, title: str | None) -> uuid.UUID:
-    query = "INSERT INTO conversations (title) VALUES ($1) RETURNING id;"
-    row = await conn.fetchrow(query, title)
-    logger.info("Created new conversation with ID: %s", row['id'])
-    return row['id']
-
-async def fetch_conversation(conv_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> asyncpg.Record | None:
-    """
-    Fetches a single conversation by its ID.
-    """
-    if conn:
-        return await _fetch_conversation(conn, conv_id)
-    
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        return await _fetch_conversation(conn, conv_id)
-
-async def _fetch_conversation(conn: asyncpg.Connection, conv_id: uuid.UUID) -> asyncpg.Record | None:
-    query = "SELECT id, title, created_at FROM conversations WHERE id = $1;"
-    return await conn.fetchrow(query, conv_id)

@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.db import init_pool, close_pool
+from app.db.connection import init_pool, close_pool
 
 # Configure root logger for radical transparency
 logging.basicConfig(

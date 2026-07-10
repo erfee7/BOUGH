@@ -1,6 +1,6 @@
 import pytest_asyncio
 import asyncpg
-from app.db import init_pool, close_pool, get_pool
+from app.db.connection import init_pool, close_pool, get_pool
 
 @pytest_asyncio.fixture(scope="session")
 async def db_pool():
