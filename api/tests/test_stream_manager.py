@@ -73,7 +73,7 @@ async def test_get_stream_catch_up_and_live():
                 
             # Assert we got the catch-up "AB", the live "C", and the done event
             assert len(events) == 3
-            assert events[0] == {"type": "token", "content": "AB"}
+            assert events[0] == {"type": "catch_up", "content": "AB"}
             assert events[1] == {"type": "token", "content": "C"}
             assert events[2] == {"type": "done", "metadata": MOCK_METADATA}
 
@@ -111,3 +111,54 @@ async def test_run_generation_error_db_update():
                 content = 'Partial', 
                 error_data = MOCK_ERROR_DATA
             )
+
+async def collect_events(stream_gen):
+    """Helper to consume an async generator into a list."""
+    events = []
+    async for event in stream_gen:
+        events.append(event)
+    return events
+
+@pytest.mark.asyncio
+async def test_multiple_clients_receive_stream():
+    """Tests that multiple concurrent listeners (e.g., multiple tabs) all get catch-up and live tokens."""
+    message_id = uuid.uuid4()
+    
+    with patch('app.core.stream_manager.db_messages.update_message', new_callable = AsyncMock):
+        with patch('app.core.stream_manager.generate_stream', new = mock_generate_stream_success):
+            start_stream(message_id, [{"role": "user", "content": "Hi"}])
+            
+            # Wait for "Hello" to be accumulated
+            await asyncio.sleep(0.03)
+            
+            # Connect two clients at the same time
+            gen1 = get_stream(message_id)
+            gen2 = get_stream(message_id)
+
+            # Connect a third client after some time
+            await asyncio.sleep(0.03)
+            gen3 = get_stream(message_id)
+            
+            events1, events2, events3 = await asyncio.gather(
+                collect_events(gen1),
+                collect_events(gen2),
+                collect_events(gen3)
+            )
+            
+            # Assert both clients got the exact same stream
+            assert len(events1) == 3
+            assert len(events2) == 3
+            assert len(events3) == 3
+
+            assert events1[0] == {"type": "catch_up", "content": "AB"}
+            assert events2[0] == {"type": "catch_up", "content": "AB"}
+            assert events3[0] == {"type": "catch_up", "content": "AB"}
+    
+            assert events1[1] == {"type": "token", "content": "C"}
+            assert events2[1] == {"type": "token", "content": "C"}
+            assert events3[1] == {"type": "token", "content": "C"}
+
+            assert events1[2] == {"type": "done", "metadata": MOCK_METADATA}
+            assert events2[2] == {"type": "done", "metadata": MOCK_METADATA}
+            assert events3[2] == {"type": "done", "metadata": MOCK_METADATA}
+

@@ -54,7 +54,7 @@ async def get_stream(message_id: uuid.UUID) -> AsyncGenerator[dict[str, Any], No
 
     # 1. Yield accumulated content as a single chunk if any exists
     if catch_up_content:
-        yield {"type": "token", "content": catch_up_content}
+        yield {"type": "catch_up", "content": catch_up_content}
 
     # 2. listen for live tokens
     while True:
