@@ -30,7 +30,7 @@ async def fetch_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connectio
         return await _fetch_conversation(conn, conversation_id)
 
 async def _fetch_conversation(conn: asyncpg.Connection, conversation_id: uuid.UUID) -> asyncpg.Record | None:
-    query = "SELECT id, title, created_at FROM conversations WHERE id = $1;"
+    query = "SELECT id, title, active_leaf_id, created_at FROM conversations WHERE id = $1;"
     return await conn.fetchrow(query, conversation_id)
 
 async def update_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None, **kwargs) -> None:

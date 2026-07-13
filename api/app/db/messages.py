@@ -32,10 +32,10 @@ async def _create_message(
     generation_config: dict | None
 ) -> uuid.UUID:
     query = """
-        INSERT INTO messages (conversation_id, parent_id, role, content, status, generation_config) 
+        INSERT INTO messages (conversation_id, role, parent_id, content, status, generation_config) 
         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;
     """
-    row = await conn.fetchrow(query, conversation_id, parent_id, role, content, status, generation_config)
+    row = await conn.fetchrow(query, conversation_id, role, parent_id, content, status, generation_config)
     logger.info("Created new message with ID: %s (Role: %s)", row['id'], role)
     return row['id']
 
@@ -49,7 +49,7 @@ async def fetch_message(message_id: uuid.UUID, conn: asyncpg.Connection | None =
         return await _fetch_message(conn, message_id)
 
 async def _fetch_message(conn: asyncpg.Connection, message_id: uuid.UUID) -> asyncpg.Record | None:
-    query = "SELECT id, conversation_id, parent_id, role, content, status, error_data, metadata, created_at FROM messages WHERE id = $1;"
+    query = "SELECT id, conversation_id, role, parent_id, content, status, error_data, metadata, generation_config, created_at FROM messages WHERE id = $1;"
     return await conn.fetchrow(query, message_id)
 
 async def update_message(message_id: uuid.UUID, conn: asyncpg.Connection | None = None, **kwargs) -> None:
@@ -116,15 +116,15 @@ async def _fetch_message_history(conn: asyncpg.Connection, message_id: uuid.UUID
     # Recursive CTE to walk up the parent_id chain tracking depth
     query = """
         WITH RECURSIVE history AS (
-            SELECT id, conversation_id, parent_id, role, content, status, error_data, metadata, created_at, 1 as depth
+            SELECT id, conversation_id, role, parent_id, content, status, error_data, metadata, generation_config, created_at, 1 as depth
             FROM messages
             WHERE id = $1
             UNION ALL
-            SELECT m.id, m.conversation_id, m.parent_id, m.role, m.content, m.status, m.error_data, m.metadata, m.created_at, h.depth + 1
+            SELECT m.id, m.conversation_id, m.role, m.parent_id, m.content, m.status, m.error_data, m.metadata, m.generation_config, m.created_at, h.depth + 1
             FROM messages m
             JOIN history h ON m.id = h.parent_id
         )
-        SELECT id, role, content, status, error_data, metadata, created_at FROM history ORDER BY depth DESC;
+        SELECT id, role, content, status, error_data, metadata, generation_config, created_at FROM history ORDER BY depth DESC;
     """
     records = await conn.fetch(query, message_id)
     logger.info("Fetched history for message ID: %s (Length: %d)", message_id, len(records))
@@ -141,7 +141,7 @@ async def fetch_conversation_messages(conversation_id: uuid.UUID, conn: asyncpg.
 
 async def _fetch_conversation_messages(conn: asyncpg.Connection, conversation_id: uuid.UUID) -> list[asyncpg.Record]:
     query = """
-        SELECT id, conversation_id, parent_id, role, content, status, error_data, metadata, created_at 
+        SELECT id, conversation_id, role, parent_id, content, status, error_data, metadata, generation_config, created_at 
         FROM messages 
         WHERE conversation_id = $1 
         ORDER BY created_at ASC;

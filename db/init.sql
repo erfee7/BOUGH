@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS conversations (
 CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-    parent_id UUID REFERENCES messages(id) ON DELETE CASCADE, -- Nullable, null means it's a root message
     role TEXT NOT NULL CHECK (role IN ('system', 'developer', 'user', 'assistant', 'tool')),
+    parent_id UUID REFERENCES messages(id) ON DELETE CASCADE, -- Nullable, null means it's a root message
     content TEXT,
     status TEXT NOT NULL CHECK (status IN ('pending', 'streaming', 'complete', 'error')),
     error_data JSONB,   -- Stores raw provider error if status = 'error'
