@@ -10,16 +10,17 @@ async def create_message(
     role: str, 
     parent_id: uuid.UUID | None = None, 
     content: str | None = None, 
-    status: str = 'pending', 
+    status: str = 'pending',
+    generation_config: dict | None = None,
     conn: asyncpg.Connection | None = None
 ) -> uuid.UUID:
     """Creates a new message in the database."""
     if conn:
-        return await _create_message(conn, conversation_id, role, parent_id, content, status)
+        return await _create_message(conn, conversation_id, role, parent_id, content, status, generation_config)
     
     pool = get_pool()
     async with pool.acquire() as conn:
-        return await _create_message(conn, conversation_id, role, parent_id, content, status)
+        return await _create_message(conn, conversation_id, role, parent_id, content, status, generation_config)
 
 async def _create_message(
     conn: asyncpg.Connection, 
@@ -27,13 +28,14 @@ async def _create_message(
     role: str, 
     parent_id: uuid.UUID | None, 
     content: str | None, 
-    status: str
+    status: str,
+    generation_config: dict | None
 ) -> uuid.UUID:
     query = """
-        INSERT INTO messages (conversation_id, parent_id, role, content, status) 
-        VALUES ($1, $2, $3, $4, $5) RETURNING id;
+        INSERT INTO messages (conversation_id, parent_id, role, content, status, generation_config) 
+        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;
     """
-    row = await conn.fetchrow(query, conversation_id, parent_id, role, content, status)
+    row = await conn.fetchrow(query, conversation_id, parent_id, role, content, status, generation_config)
     logger.info("Created new message with ID: %s (Role: %s)", row['id'], role)
     return row['id']
 
@@ -64,7 +66,7 @@ async def _update_message(conn: asyncpg.Connection, message_id: uuid.UUID, updat
         logger.warning("update_message called with no columns to update for ID: %s", message_id)
         return
     
-    valid_columns = {"parent_id", "role", "content", "status", "error_data", "metadata"}
+    valid_columns = {"parent_id", "role", "content", "status", "error_data", "metadata", "generation_config"}
     set_clauses = []
     args = []
     idx = 1

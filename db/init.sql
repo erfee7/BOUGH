@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT, -- Nullable, represents an untitled conversation
+    active_leaf_id UUID, -- Tracks the currently visible end of the chat tree
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -12,11 +13,12 @@ CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
     parent_id UUID REFERENCES messages(id) ON DELETE CASCADE, -- Nullable, null means it's a root message
-    role TEXT NOT NULL CHECK (role IN ('system', 'user', 'assistant')),
+    role TEXT NOT NULL CHECK (role IN ('system', 'developer', 'user', 'assistant', 'tool')),
     content TEXT,
     status TEXT NOT NULL CHECK (status IN ('pending', 'streaming', 'complete', 'error')),
     error_data JSONB,   -- Stores raw provider error if status = 'error'
     metadata JSONB,     -- Stores generation stats/costs if status = 'complete'
+    generation_config JSONB,    -- Stores the generation config used for this message
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

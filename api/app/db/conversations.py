@@ -47,7 +47,7 @@ async def _update_conversation(conn: asyncpg.Connection, conversation_id: uuid.U
         logger.warning("update_conversation called with no columns to update for ID: %s", conversation_id)
         return
     
-    valid_columns = {"title"}
+    valid_columns = {"title", "active_leaf_id"}
     set_clauses = []
     args = []
     idx = 1
