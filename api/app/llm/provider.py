@@ -26,6 +26,20 @@ def _get_client() -> AsyncOpenAI:
     logger.info("AsyncOpenAI client initialized.")
     return _client
 
+def _format_history(messages_history: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """
+    Strips database metadata and formats the history into the strict 
+    [{"role": "...", "content": "..."}] format required by the OpenAI SDK.
+    """
+    formatted = []
+    for msg in messages_history:
+        # Only include role and content. We also ensure content is a string (handles None)
+        formatted.append({
+            "role": msg["role"],
+            "content": msg["content"] or ""
+        })
+    return formatted
+
 async def generate_stream(
     messages_history: list[dict[str, Any]], 
     model: Optional[str] = None, 
@@ -42,13 +56,16 @@ async def generate_stream(
     active_client = client or _get_client()
     target_model = model or os.getenv("DEFAULT_MODEL", "openai/gpt-4o-mini")
     
-    logger.info("Dispatching request to LLM provider (Model: %s, Messages: %d)", target_model, len(messages_history))
+    # Format the history right before sending to the provider
+    formatted_history = _format_history(messages_history)
+    
+    logger.info("Dispatching request to LLM provider (Model: %s, Messages: %d)", target_model, len(formatted_history))
     
     try:
         # stream_options={"include_usage": True} is critical to get the final cost chunk
         stream = await active_client.chat.completions.create(
             model=target_model,
-            messages=messages_history,
+            messages=formatted_history,
             stream=True,
             stream_options={"include_usage": True}
         )
