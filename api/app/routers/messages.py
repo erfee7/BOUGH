@@ -1,0 +1,128 @@
+import json
+import logging
+import os
+import uuid
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
+
+from app.db.connection import get_pool
+from app.db import conversations as db_conversations
+from app.db import messages as db_messages
+from app.core import stream_manager
+from app.schemas.chat import (
+    MessageAppend,
+    MessageGenerate,
+    MessageIdResponse
+)
+
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix = "/api/chat", tags = ["messages"])
+
+def _format_sse(data: dict) -> str:
+    """Formats a dictionary into a standard Server-Sent Event string."""
+    return f"data: {json.dumps(data)}\n\n"
+
+@router.post("/messages/{parent_id}/append", response_model = MessageIdResponse)
+async def append_message(parent_id: uuid.UUID, payload: MessageAppend):
+    """Appends a new message (e.g., user message) to a parent node."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            parent_message = await db_messages.fetch_message(parent_id, conn = conn)
+            if not parent_message:
+                raise HTTPException(status_code = 404, detail = "Parent message not found")
+                
+            conversation_id = parent_message['conversation_id']
+
+            role = payload.role or "user"
+            creation_data = payload.creation_data or {"source": "user_edit"}
+            
+            new_msg_id = await db_messages.create_message(
+                conversation_id = conversation_id,
+                role = role,
+                parent_id = parent_id,
+                content = payload.content,
+                status = "complete",
+                creation_data = creation_data,
+                conn = conn
+            )
+            
+            await db_conversations.update_conversation(conversation_id, active_leaf_id = new_msg_id, conn = conn)
+            
+            return MessageIdResponse(message_id = new_msg_id)
+
+@router.post("/messages/{parent_id}/generate", response_model = MessageIdResponse)
+async def generate_message(parent_id: uuid.UUID, payload: MessageGenerate):
+    """Triggers LLM generation for an assistant message based on the parent's history."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            parent_message = await db_messages.fetch_message(parent_id, conn = conn)
+            if not parent_message:
+                raise HTTPException(status_code = 404, detail = "Parent message not found")
+                
+            conversation_id = parent_message['conversation_id']
+            target_model = payload.model or os.getenv("DEFAULT_MODEL", "openai/gpt-4o-mini")
+            
+            creation_data = {
+                "source": "model_response",
+                "model": target_model,
+                "parameters": payload.parameters or {}
+            }
+            
+            # Create the empty assistant message
+            assistant_msg_id = await db_messages.create_message(
+                conversation_id = conversation_id,
+                role = "assistant",
+                parent_id = parent_id,
+                content = None,
+                status = "pending",
+                creation_data = creation_data,
+                conn = conn
+            )
+            
+            # Update active leaf
+            await db_conversations.update_conversation(conversation_id, active_leaf_id = assistant_msg_id, conn = conn)
+            
+            # Fetch history from the new assistant message (walks up to root)
+            history = await db_messages.fetch_message_history(parent_id, conn = conn)
+            
+            # Trigger background stream
+            stream_manager.start_stream(assistant_msg_id, history)
+            
+            return MessageIdResponse(message_id = assistant_msg_id)
+
+@router.get("/messages/{message_id}/stream")
+async def stream_message(message_id: uuid.UUID):
+    """SSE endpoint for streaming message generation. Handles reconnections."""
+    
+    async def event_generator():
+        # Check DB first for current status
+        msg = await db_messages.fetch_message(message_id)
+        if not msg:
+            raise HTTPException(status_code = 404, detail = "Message not found")
+            
+        if msg['status'] == 'complete':
+            yield _format_sse({"type": "done", "content": msg['content'], "metadata": msg['metadata']})
+            yield "data: [DONE]\n\n"
+            return
+            
+        if msg['status'] == 'error':
+            yield _format_sse({"type": "error", "content": msg['content'], "error_data": msg['error_data']})
+            yield "data: [DONE]\n\n"
+            return
+        
+        # If pending or streaming, hook into the stream manager
+        async for event in stream_manager.get_stream(message_id):
+            if event is None:
+                break
+            yield _format_sse(event)
+            if event.get("type") in ["done", "error"]:
+                break
+                
+        # Stream manager finished, send final terminator
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

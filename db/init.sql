@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS messages (
     status TEXT NOT NULL CHECK (status IN ('pending', 'streaming', 'complete', 'error')),
     error_data JSONB,   -- Stores raw provider error if status = 'error'
     metadata JSONB,     -- Stores generation stats/costs if status = 'complete'
-    generation_config JSONB,    -- Stores the generation config used for this message
+    creation_data JSONB,    -- Stores the generation config used for this message
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

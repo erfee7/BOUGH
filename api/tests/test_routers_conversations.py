@@ -8,33 +8,8 @@ from app.main import app
 from app.db import conversations as db_conversations
 from app.db import messages as db_messages
 
-TEST_CONVERSATION_TITLE = "My API Test"
+TEST_CONVERSATION_TITLE = "Conv API Test"
 TEST_SYSTEM_PROMPT = "You are a test assistant."
-
-# --- Test Utilities ---
-
-class FakePool:
-    """A fake connection pool that simply yields the active test transaction connection."""
-    def __init__(self, conn):
-        self.conn = conn
-
-    class ConnectionContextManager:
-        def __init__(self, conn):
-            self.conn = conn
-        async def __aenter__(self):
-            return self.conn
-        async def __aexit__(self, exc_type, exc, tb):
-            pass
-
-    def acquire(self):
-        return self.ConnectionContextManager(self.conn)
-
-@pytest.fixture
-def mock_pool(db_transaction):
-    """Provides a FakePool instance bound to the current test's transactional connection."""
-    return FakePool(db_transaction)
-
-# --- Tests ---
 
 @pytest.mark.asyncio
 async def test_create_conversation_endpoint(mock_pool):
@@ -69,7 +44,7 @@ async def test_create_conversation_endpoint(mock_pool):
             assert msg is not None
             assert msg['role'] == "system"
             assert msg['content'] == TEST_SYSTEM_PROMPT
-            assert msg['generation_config'] == {"source": "system_init"}
+            assert msg['creation_data'] == {"source": "system_setup"}
 
 @pytest.mark.asyncio
 async def test_get_conversation_endpoint(mock_pool):
@@ -81,7 +56,7 @@ async def test_get_conversation_endpoint(mock_pool):
         role = "system",
         content = TEST_SYSTEM_PROMPT,
         status = "complete",
-        generation_config = {"source": "system_init"},
+        creation_data = {"source": "system_setup"},
         conn = mock_pool.conn
     )
     await db_conversations.update_conversation(conv_id, active_leaf_id = msg_id, conn = mock_pool.conn)

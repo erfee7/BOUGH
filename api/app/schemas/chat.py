@@ -9,6 +9,15 @@ class ConversationCreate(BaseModel):
     title: Optional[str] = None
     system_prompt: Optional[str] = None
 
+class MessageAppend(BaseModel):
+    content: str
+    role: Optional[str] = None
+    creation_data: Optional[dict] = None
+
+class MessageGenerate(BaseModel):
+    model: Optional[str] = None
+    parameters: Optional[dict] = None
+
 # --- Response Models ---
 
 class MessageResponse(BaseModel):
@@ -17,7 +26,7 @@ class MessageResponse(BaseModel):
     role: str
     content: Optional[str] = None
     status: str
-    generation_config: Optional[dict] = None
+    creation_data: Optional[dict] = None
     metadata: Optional[dict]= None
     created_at: datetime
 
@@ -35,3 +44,5 @@ class ConversationDetailResponse(BaseModel):
     conversation: ConversationResponse
     messages: list[MessageResponse]
 
+class MessageIdResponse(BaseModel):
+    message_id: uuid.UUID

@@ -28,7 +28,7 @@ async def create_conversation(payload: ConversationCreate):
     async with pool.acquire() as conn:
         async with conn.transaction():
             # 1. Create the conversation
-            conversation_id = await db_conversations.create_conversation(title = payload.title, conn=conn)
+            conversation_id = await db_conversations.create_conversation(title = payload.title, conn = conn)
             
             # 2. Create the root system message
             root_prompt = payload.system_prompt
@@ -37,7 +37,7 @@ async def create_conversation(payload: ConversationCreate):
                 role = "system",
                 content = root_prompt,
                 status = "complete",
-                generation_config = {"source": "system_init"},
+                creation_data = {"source": "system_setup"},
                 conn = conn
             )
             
@@ -46,7 +46,7 @@ async def create_conversation(payload: ConversationCreate):
             
             logger.info("Created conversation %s with root message %s", conversation_id, message_id)
 
-            conv_record = await db_conversations.fetch_conversation(conversation_id, conn=conn)
+            conv_record = await db_conversations.fetch_conversation(conversation_id, conn = conn)
             
             return ConversationCreateResponse(
                 conversation = ConversationResponse.model_validate(dict(conv_record)),
@@ -54,7 +54,7 @@ async def create_conversation(payload: ConversationCreate):
             )
 
 
-@router.get("/conversations/{conversation_id}", response_model=ConversationDetailResponse)
+@router.get("/conversations/{conversation_id}", response_model = ConversationDetailResponse)
 async def get_conversation(conversation_id: uuid.UUID):
     """Fetches a conversation and all its messages as a flat list."""
     # No explicit connection acquisition needed. Let the db layer handle it.
@@ -65,6 +65,6 @@ async def get_conversation(conversation_id: uuid.UUID):
     message_records = await db_messages.fetch_conversation_messages(conversation_id)
       
     return ConversationDetailResponse(
-        conversation=ConversationResponse.model_validate(dict(conv_record)),
-        messages=[MessageResponse.model_validate(dict(msg)) for msg in message_records]
+        conversation = ConversationResponse.model_validate(dict(conv_record)),
+        messages = [MessageResponse.model_validate(dict(msg)) for msg in message_records]
     )
