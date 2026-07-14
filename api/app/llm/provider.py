@@ -54,7 +54,7 @@ async def generate_stream(
         {"type": "error", "error_data": {...}} if an exception occurs.
     """
     active_client = client or _get_client()
-    target_model = model or os.getenv("DEFAULT_MODEL", "openai/gpt-4o-mini")
+    target_model = model or os.getenv("DEFAULT_MODEL", "openrouter/free")
     
     # Format the history right before sending to the provider
     formatted_history = _format_history(messages_history)

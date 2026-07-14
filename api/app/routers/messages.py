@@ -64,7 +64,7 @@ async def generate_message(parent_id: uuid.UUID, payload: MessageGenerate):
                 raise HTTPException(status_code = 404, detail = "Parent message not found")
                 
             conversation_id = parent_message['conversation_id']
-            target_model = payload.model or os.getenv("DEFAULT_MODEL", "openai/gpt-4o-mini")
+            target_model = payload.model or os.getenv("DEFAULT_MODEL", "openrouter/free")
             
             creation_data = {
                 "source": "model_response",
