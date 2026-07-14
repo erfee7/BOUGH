@@ -49,7 +49,7 @@ async def create_conversation(payload: ConversationCreate):
             conv_record = await db_conversations.fetch_conversation(conversation_id, conn = conn)
             
             return ConversationCreateResponse(
-                conversation = ConversationResponse.model_validate(dict(conv_record)),
+                conversation = ConversationResponse.model_validate(conv_record),
                 root_message_id = message_id
             )
 
@@ -65,6 +65,6 @@ async def get_conversation(conversation_id: uuid.UUID):
     message_records = await db_messages.fetch_conversation_messages(conversation_id)
       
     return ConversationDetailResponse(
-        conversation = ConversationResponse.model_validate(dict(conv_record)),
-        messages = [MessageResponse.model_validate(dict(msg)) for msg in message_records]
+        conversation = ConversationResponse.model_validate(conv_record),
+        messages = [MessageResponse.model_validate(msg) for msg in message_records]
     )

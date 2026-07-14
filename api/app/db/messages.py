@@ -39,7 +39,7 @@ async def _create_message(
     logger.info("Created new message with ID: %s (Role: %s)", row['id'], role)
     return row['id']
 
-async def fetch_message(message_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> asyncpg.Record | None:
+async def fetch_message(message_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> dict | None:
     """Fetches a single message by its ID."""
     if conn:
         return await _fetch_message(conn, message_id)
@@ -48,9 +48,10 @@ async def fetch_message(message_id: uuid.UUID, conn: asyncpg.Connection | None =
     async with pool.acquire() as conn:
         return await _fetch_message(conn, message_id)
 
-async def _fetch_message(conn: asyncpg.Connection, message_id: uuid.UUID) -> asyncpg.Record | None:
+async def _fetch_message(conn: asyncpg.Connection, message_id: uuid.UUID) -> dict | None:
     query = "SELECT id, conversation_id, role, parent_id, content, status, error_data, metadata, creation_data, created_at FROM messages WHERE id = $1;"
-    return await conn.fetchrow(query, message_id)
+    record = await conn.fetchrow(query, message_id)
+    return dict(record) if record else None
 
 async def update_message(message_id: uuid.UUID, conn: asyncpg.Connection | None = None, **kwargs) -> None:
     """Updates a message. Pass columns to update as keyword arguments (e.g., content='...', status='complete')."""
@@ -100,7 +101,7 @@ async def _delete_message(conn: asyncpg.Connection, message_id: uuid.UUID) -> No
     await conn.execute(query, message_id)
     logger.info("Deleted message with ID: %s", message_id)
 
-async def fetch_message_history(message_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> list[asyncpg.Record]:
+async def fetch_message_history(message_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> list[dict]:
     """
     Traverses the tree upwards from the given message ID to the root.
     Returns an ordered list of messages (root first, target last).
@@ -112,7 +113,7 @@ async def fetch_message_history(message_id: uuid.UUID, conn: asyncpg.Connection 
     async with pool.acquire() as conn:
         return await _fetch_message_history(conn, message_id)
 
-async def _fetch_message_history(conn: asyncpg.Connection, message_id: uuid.UUID) -> list[asyncpg.Record]:
+async def _fetch_message_history(conn: asyncpg.Connection, message_id: uuid.UUID) -> list[dict]:
     # Recursive CTE to walk up the parent_id chain tracking depth
     query = """
         WITH RECURSIVE history AS (
@@ -128,9 +129,9 @@ async def _fetch_message_history(conn: asyncpg.Connection, message_id: uuid.UUID
     """
     records = await conn.fetch(query, message_id)
     logger.info("Fetched history for message ID: %s (Length: %d)", message_id, len(records))
-    return records
+    return [dict(r) for r in records]
 
-async def fetch_conversation_messages(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> list[asyncpg.Record]:
+async def fetch_conversation_messages(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> list[dict]:
     """Fetches all messages for a conversation as a flat list, ordered by creation time."""
     if conn:
         return await _fetch_conversation_messages(conn, conversation_id)
@@ -139,7 +140,7 @@ async def fetch_conversation_messages(conversation_id: uuid.UUID, conn: asyncpg.
     async with pool.acquire() as conn:
         return await _fetch_conversation_messages(conn, conversation_id)
 
-async def _fetch_conversation_messages(conn: asyncpg.Connection, conversation_id: uuid.UUID) -> list[asyncpg.Record]:
+async def _fetch_conversation_messages(conn: asyncpg.Connection, conversation_id: uuid.UUID) -> list[dict]:
     query = """
         SELECT id, conversation_id, role, parent_id, content, status, error_data, metadata, creation_data, created_at 
         FROM messages 
@@ -148,4 +149,4 @@ async def _fetch_conversation_messages(conn: asyncpg.Connection, conversation_id
     """
     records = await conn.fetch(query, conversation_id)
     logger.info("Fetched %d messages for conversation ID: %s", len(records), conversation_id)
-    return records
+    return [dict(r) for r in records]

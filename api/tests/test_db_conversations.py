@@ -12,6 +12,7 @@ async def test_create_and_fetch_conversation(db_transaction: asyncpg.Connection)
     result = await fetch_conversation(conversation_id=conversation_id, conn=db_transaction)
     
     assert result is not None
+    assert isinstance(result, dict)  # Enforces no Record type is returned
     assert result['id'] == conversation_id
     assert result['title'] == test_title
 

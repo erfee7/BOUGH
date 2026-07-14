@@ -20,7 +20,7 @@ async def _create_conversation(conn: asyncpg.Connection, title: str | None) -> u
     logger.info("Created new conversation with ID: %s", row['id'])
     return row['id']
 
-async def fetch_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> asyncpg.Record | None:
+async def fetch_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> dict | None:
     """Fetches a single conversation by its ID."""
     if conn:
         return await _fetch_conversation(conn, conversation_id)
@@ -29,9 +29,10 @@ async def fetch_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connectio
     async with pool.acquire() as conn:
         return await _fetch_conversation(conn, conversation_id)
 
-async def _fetch_conversation(conn: asyncpg.Connection, conversation_id: uuid.UUID) -> asyncpg.Record | None:
+async def _fetch_conversation(conn: asyncpg.Connection, conversation_id: uuid.UUID) -> dict | None:
     query = "SELECT id, title, active_leaf_id, created_at FROM conversations WHERE id = $1;"
-    return await conn.fetchrow(query, conversation_id)
+    record = await conn.fetchrow(query, conversation_id)
+    return dict(record) if record else None
 
 async def update_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None, **kwargs) -> None:
     """Updates a conversation. Pass columns to update as keyword arguments (e.g., title='New')."""

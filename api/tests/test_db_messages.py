@@ -13,6 +13,7 @@ async def test_create_and_fetch_message(db_transaction: asyncpg.Connection):
     
     result = await fetch_message(message_id=message_id, conn=db_transaction)
     assert result is not None
+    assert isinstance(result, dict)  # Enforces no Record type is returned
     assert result['id'] == message_id
     assert result['role'] == "user"
     assert result['content'] == "I need a Bough"
@@ -53,6 +54,9 @@ async def test_fetch_message_history_recursive(db_transaction: asyncpg.Connectio
     
     # Fetch history from the grandchild
     history = await fetch_message_history(message_id=grandchild_id, conn=db_transaction)
+
+    assert isinstance(history, list)  # Enforces no Record type is returned
+    assert all(isinstance(item, dict) for item in history)
     
     assert len(history) == 3
     # Ordered chronologically (root first)
@@ -69,6 +73,10 @@ async def test_fetch_conversation_messages_flat_list(db_transaction: asyncpg.Con
     await create_message(conversation_id=conversation_id, role="assistant", content="Msg 2", conn=db_transaction)
     
     messages = await fetch_conversation_messages(conversation_id=conversation_id, conn=db_transaction)
+    
+    assert isinstance(messages, list)  # Enforces no Record type is returned
+    assert all(isinstance(item, dict) for item in messages)
+
     assert len(messages) == 2
     assert messages[0]['content'] == "Msg 1"
     assert messages[1]['content'] == "Msg 2"
