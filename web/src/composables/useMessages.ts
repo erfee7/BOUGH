@@ -29,6 +29,11 @@ export function useMessages() {
         }
     }
 
+    function clearMessages() {
+        messages.value = [];
+        activeLeafId.value = null;
+    }
+
     // 2. User sends a new message
     async function sendMessage(content: string) {
         if (!activeLeafId.value || isStreaming.value) return;
@@ -177,6 +182,7 @@ export function useMessages() {
         isStreaming,
         loadConversation,
         sendMessage,
-        generateMessage
+        generateMessage,
+        clearMessages
     };
 }

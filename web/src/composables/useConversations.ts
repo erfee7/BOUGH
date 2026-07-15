@@ -17,7 +17,7 @@ export function useConversations() {
         }
     }
 
-    async function createConversation(title: string | null = null, systemPrompt: string | null = null) {
+    async function createConversation(title: string | null = null, systemPrompt: string | null = null): Promise<{ conversationId: string, rootMessageId: string } | null> {
         try {
             const response = await fetch('/api/chat/conversations', {
                 method: 'POST',
@@ -36,14 +36,20 @@ export function useConversations() {
             
             // Add to top of list and select it
             conversations.value.unshift(newConv);
-            selectConversation(newConv.id);
+            // We no longer call selectConversation here. 
+            // App.vue will handle the state transition to avoid race conditions.
             
+            return { 
+                conversationId: data.conversation.id, 
+                rootMessageId: data.root_message_id 
+            };
         } catch (error) {
             console.error("Error creating conversation:", error);
+            return null;
         }
     }
 
-    function selectConversation(id: string) {
+    function selectConversation(id: string | null) {
         currentConversationId.value = id;
     }
 

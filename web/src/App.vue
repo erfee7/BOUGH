@@ -19,11 +19,15 @@
 
         <!-- Main Chat Area -->
         <main class="main-area">
-            <div v-if="currentConversationId" class="chat-container">
+            <div class="chat-container">
                 <div class="messages-container" ref="messagesContainer">
                     <template v-for="msg in messages" :key="msg.id">
                         <ChatMessage v-if="msg.role !== 'system'" :message="msg" />
                     </template>
+                    <!-- Show placeholder if empty (New Chat state) -->
+                    <div v-if="messages.length === 0" class="empty-state">
+                        <h2>Start a new chat</h2>
+                    </div>
                 </div>
                 
                 <div class="input-container">
@@ -38,9 +42,6 @@
                     </button>
                 </div>
             </div>
-            <div v-else class="empty-state">
-                <h2>Select or create a chat</h2>
-            </div>
         </main>
     </div>
 </template>
@@ -52,10 +53,14 @@ import { useMessages } from './composables/useMessages';
 import ChatMessage from './components/ChatMessage.vue';
 
 const { conversations, currentConversationId, fetchAllConversations, createConversation, selectConversation } = useConversations();
-const { messages, isStreaming, loadConversation, sendMessage } = useMessages();
+const { messages, activeLeafId, isStreaming, loadConversation, sendMessage, clearMessages } = useMessages();
 
 const inputText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
+
+// Used to bypass the watcher when transitioning from "new chat" to "chat created"
+// to prevent the watcher from fetching the DB and wiping the in-flight user message.
+let skipWatch = false;
 
 // On startup, fetch the sidebar list
 onMounted(() => {
@@ -64,8 +69,15 @@ onMounted(() => {
 
 // Watch for sidebar selection changes
 watch(currentConversationId, (newId) => {
+    if (skipWatch) {
+        skipWatch = false;
+        return;
+    }
     if (newId) {
         loadConversation(newId);
+    } else {
+        // If selected conversation is set to null, clear the chat area
+        clearMessages();
     }
 });
 
@@ -81,12 +93,29 @@ async function handleSend() {
     if (!inputText.value.trim() || isStreaming.value) return;
     const text = inputText.value;
     inputText.value = '';
+    
+    // If currentConversationId is null, we are in the "New Chat" state
+    if (!currentConversationId.value) {
+        // 1. Create the conversation first
+        const result = await createConversation(null, "You are BOUGH, a helpful assistant.");
+        if (!result) return; // creation failed
+        
+        // 2. Prevent the watcher from firing loadConversation and wiping our pending send
+        skipWatch = true; 
+        
+        // 3. Update states manually
+        selectConversation(result.conversationId);
+        activeLeafId.value = result.rootMessageId;
+    }
+    
+    // 4. Now that conversation exists and activeLeafId is set, send the message
     await sendMessage(text);
 }
 
-async function handleNewChat() {
+function handleNewChat() {
     if (isStreaming.value) return;
-    await createConversation();
+    // Setting this to null triggers the watcher which calls clearMessages()
+    selectConversation(null);
 }
 </script>
 
