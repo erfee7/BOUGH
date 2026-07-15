@@ -1,8 +1,9 @@
 import uuid
 import pytest
 import asyncpg
+import asyncio
 
-from app.db.conversations import create_conversation, fetch_conversation, update_conversation, delete_conversation
+from app.db.conversations import create_conversation, fetch_conversation, fetch_all_conversations, update_conversation, delete_conversation
 
 @pytest.mark.asyncio
 async def test_create_and_fetch_conversation(db_transaction: asyncpg.Connection):
@@ -22,6 +23,24 @@ async def test_fetch_missing_conversation(db_transaction: asyncpg.Connection):
     random_uuid = uuid.uuid4()
     result = await fetch_conversation(conversation_id=random_uuid, conn=db_transaction)
     assert result is None
+
+@pytest.mark.asyncio
+async def test_fetch_all_conversations(db_transaction: asyncpg.Connection):
+    """Tests fetching all conversations ordered by newest first."""
+    # Create a few conversations
+    conv_id1 = await create_conversation(title="First", conn=db_transaction)
+    await asyncio.sleep(1)
+    conv_id2 = await create_conversation(title="Second", conn=db_transaction)
+    
+    conversations = await fetch_all_conversations(conn=db_transaction)
+    
+    assert len(conversations) == 2
+    assert isinstance(conversations, list)
+    assert all(isinstance(item, dict) for item in conversations)  # Enforces no Record type is returned
+    
+    titles = [c['title'] for c in conversations]
+    assert "First" in titles
+    assert "Second" in titles
 
 @pytest.mark.asyncio
 async def test_update_conversation(db_transaction: asyncpg.Connection):

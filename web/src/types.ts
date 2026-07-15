@@ -1,3 +1,9 @@
+export interface ConversationSummary {
+    id: string;
+    title: string | null;
+    created_at: string;
+}
+
 export interface Message {
     id: string;
     parent_id: string | null;

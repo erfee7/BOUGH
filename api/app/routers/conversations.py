@@ -19,6 +19,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix = "/api/chat", tags=["chat"])
 
+@router.get("/conversations", response_model=list[ConversationResponse])
+async def list_conversations():
+    """Fetches a list of all conversations for the sidebar."""
+    records = await db_conversations.fetch_all_conversations()
+    return [ConversationResponse.model_validate(rec) for rec in records]
+
 @router.post("/conversations", response_model=ConversationCreateResponse)
 async def create_conversation(payload: ConversationCreate):
     """Creates a new conversation and its root system message."""

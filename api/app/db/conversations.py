@@ -34,6 +34,20 @@ async def _fetch_conversation(conn: asyncpg.Connection, conversation_id: uuid.UU
     record = await conn.fetchrow(query, conversation_id)
     return dict(record) if record else None
 
+async def fetch_all_conversations(conn: asyncpg.Connection | None = None) -> list[dict]:
+    """Fetches all conversations, ordered by newest first."""
+    if conn:
+        return await _fetch_all_conversations(conn)
+    
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        return await _fetch_all_conversations(conn)
+
+async def _fetch_all_conversations(conn: asyncpg.Connection) -> list[dict]:
+    query = "SELECT id, title, created_at FROM conversations ORDER BY created_at DESC;"
+    records = await conn.fetch(query)
+    return [dict(r) for r in records]
+
 async def update_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None, **kwargs) -> None:
     """Updates a conversation. Pass columns to update as keyword arguments (e.g., title='New')."""
     if conn:

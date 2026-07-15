@@ -3,6 +3,7 @@ import pytest
 import httpx
 from httpx import ASGITransport
 from unittest.mock import patch
+import asyncio
 
 from app.main import app
 from app.db import conversations as db_conversations
@@ -95,3 +96,28 @@ async def test_get_conversation_not_found(mock_pool):
             
             assert response.status_code == 404
             assert response.json()["detail"] == "Conversation not found"
+
+@pytest.mark.asyncio
+async def test_list_conversations_endpoint(mock_pool):
+    """Tests the GET /api/chat/conversations endpoint."""
+    # Setup: Insert directly into DB using the mock_pool's connection
+    await db_conversations.create_conversation(title="First", conn=mock_pool.conn)
+    await db_conversations.create_conversation(title="Second", conn=mock_pool.conn)
+    
+    # Action: Call the API
+    with patch('app.db.conversations.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/api/chat/conversations")
+            
+            assert response.status_code == 200
+            data = response.json()
+            
+            assert isinstance(data, list)
+            assert all(isinstance(item, dict) for item in data)  # Enforces no Record type is returned
+
+            assert len(data) == 2
+
+            titles = [c['title'] for c in data]
+            assert "First" in titles
+            assert "Second" in titles
+

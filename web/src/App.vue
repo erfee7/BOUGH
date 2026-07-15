@@ -1,40 +1,75 @@
 <template>
-    <div class="chat-container">
-        <div class="header">
-            <h1>BOUGH Chat</h1>
-            <button @click="handleNewChat" :disabled="isStreaming">New Chat</button>
-        </div>
-        
-        <div class="messages-container" ref="messagesContainer">
-            <template v-for="msg in messages" :key="msg.id">
-                <ChatMessage v-if="msg.role !== 'system'" :message="msg" />
-            </template>
-        </div>
-        
-        <div class="input-container">
-            <textarea 
-                v-model="inputText" 
-                @keydown.enter.exact.prevent="handleSend"
-                placeholder="Type a message... (Enter to send)"
-                :disabled="isStreaming"
-            ></textarea>
-            <button @click="handleSend" :disabled="isStreaming || !inputText.trim()">
-                Send
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <button class="new-chat-btn" @click="handleNewChat" :disabled="isStreaming">
+                + New Chat
             </button>
-        </div>
+            <ul class="conversation-list">
+                <li 
+                    v-for="conv in conversations" 
+                    :key="conv.id" 
+                    @click="selectConversation(conv.id)"
+                    :class="{ 'active': conv.id === currentConversationId }"
+                >
+                    {{ conv.title || 'Untitled' }}
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="main-area">
+            <div v-if="currentConversationId" class="chat-container">
+                <div class="messages-container" ref="messagesContainer">
+                    <template v-for="msg in messages" :key="msg.id">
+                        <ChatMessage v-if="msg.role !== 'system'" :message="msg" />
+                    </template>
+                </div>
+                
+                <div class="input-container">
+                    <textarea 
+                        v-model="inputText" 
+                        @keydown.enter.exact.prevent="handleSend"
+                        placeholder="Type a message... (Enter to send)"
+                        :disabled="isStreaming"
+                    ></textarea>
+                    <button @click="handleSend" :disabled="isStreaming || !inputText.trim()">
+                        Send
+                    </button>
+                </div>
+            </div>
+            <div v-else class="empty-state">
+                <h2>Select or create a chat</h2>
+            </div>
+        </main>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
-import { useChat } from './composables/useChat';
+import { ref, watch, nextTick, onMounted } from 'vue';
+import { useConversations } from './composables/useConversations';
+import { useMessages } from './composables/useMessages';
 import ChatMessage from './components/ChatMessage.vue';
 
-const { messages, isStreaming, sendMessage, createConversation } = useChat();
+const { conversations, currentConversationId, fetchAllConversations, createConversation, selectConversation } = useConversations();
+const { messages, isStreaming, loadConversation, sendMessage } = useMessages();
+
 const inputText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
 
-// Auto-scroll to bottom when messages array changes or content updates
+// On startup, fetch the sidebar list
+onMounted(() => {
+    fetchAllConversations();
+});
+
+// Watch for sidebar selection changes
+watch(currentConversationId, (newId) => {
+    if (newId) {
+        loadConversation(newId);
+    }
+});
+
+// Watch for new messages to auto-scroll
 watch(messages, async () => {
     await nextTick();
     if (messagesContainer.value) {
@@ -56,58 +91,89 @@ async function handleNewChat() {
 </script>
 
 <style scoped>
-.chat-container {
+.app-layout {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+}
+
+.sidebar {
+    width: 260px;
+    background: #f7f7f8;
+    border-right: 1px solid #ddd;
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    max-width: 800px;
-    margin: 0 auto;
-    border-left: 1px solid #ddd;
-    border-right: 1px solid #ddd;
 }
 
-.header {
-    padding: 10px 20px;
-    background: #fff;
-    border-bottom: 1px solid #ddd;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.header h1 {
-    margin: 0;
-    font-size: 1.2rem;
-    color: #333;
-}
-
-.header button {
-    padding: 8px 16px;
-    cursor: pointer;
+.new-chat-btn {
+    margin: 15px;
+    padding: 10px;
     background: #28a745;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
+    cursor: pointer;
     font-weight: bold;
 }
 
-.header button:disabled {
+.new-chat-btn:disabled {
     background: #ccc;
     cursor: not-allowed;
+}
+
+.conversation-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.conversation-list li {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.conversation-list li:hover {
+    background: #ececf1;
+}
+
+.conversation-list li.active {
+    background: #dcdce5;
+    font-weight: bold;
+}
+
+.main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+}
+
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
 }
 
 .messages-container {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    background: #fafafa;
 }
 
 .input-container {
     display: flex;
     padding: 15px;
     border-top: 1px solid #ddd;
-    background: #fff;
 }
 
 .input-container textarea {
@@ -135,5 +201,13 @@ async function handleNewChat() {
 .input-container button:disabled {
     background: #ccc;
     cursor: not-allowed;
+}
+
+.empty-state {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #888;
 }
 </style>
