@@ -22,7 +22,17 @@ def _get_client() -> AsyncOpenAI:
         logger.error("PROVIDER_API_KEY is missing from environment variables.")
         raise ValueError("PROVIDER_API_KEY is not set.")
         
-    _client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+    # Define the OpenRouter attribution headers
+    default_headers = {
+        "X-Title": "BOUGH",
+        "HTTP-Referer": "https://github.com/erfee7/BOUGH", 
+    }
+        
+    _client = AsyncOpenAI(
+        api_key=api_key, 
+        base_url=base_url,
+        default_headers=default_headers
+    )
     logger.info("AsyncOpenAI client initialized.")
     return _client
 
