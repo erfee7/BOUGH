@@ -8,6 +8,7 @@ from app.db import messages as db_messages
 
 from app.schemas.chat import (
     ConversationCreate,
+    ConversationTitling,
     ConversationCreateResponse,
     ConversationDetailResponse,
     ConversationResponse,
@@ -74,3 +75,21 @@ async def get_conversation(conversation_id: uuid.UUID):
         conversation = ConversationResponse.model_validate(conv_record),
         messages = [MessageResponse.model_validate(msg) for msg in message_records]
     )
+
+@router.patch("/conversations/{conversation_id}", response_model = ConversationResponse)
+async def patch_conversation(conversation_id: uuid.UUID, payload: ConversationTitling):
+    """Updates the information of a conversation."""
+    conv = await db_conversations.fetch_conversation(conversation_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    # Extract only the fields that were actually provided in the request
+    update_data = payload.model_dump(exclude_unset=True)
+    
+    # If there are fields to update, call the DB layer
+    if update_data:
+        await db_conversations.update_conversation(conversation_id, **update_data)
+    
+    # Fetch the updated record and return it
+    updated_conv = await db_conversations.fetch_conversation(conversation_id)
+    return ConversationResponse.model_validate(updated_conv)

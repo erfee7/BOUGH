@@ -53,11 +53,33 @@ export function useConversations() {
         currentConversationId.value = id;
     }
 
+    async function updateTitle(id: string, title: string) {
+        try {
+            const response = await fetch(`/api/chat/conversations/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
+            
+            if (!response.ok) throw new Error('Failed to update title');
+            
+            // Update the local reactive state immediately
+            const conv = conversations.value.find(c => c.id === id);
+            if (conv) {
+                // Normalize empty string to null for local state consistency
+                conv.title = title.trim() === '' ? null : title;
+            }
+        } catch (error) {
+            console.error("Error updating title:", error);
+        }
+    }
+
     return {
         conversations,
         currentConversationId,
         fetchAllConversations,
         createConversation,
-        selectConversation
+        selectConversation,
+        updateTitle
     };
 }

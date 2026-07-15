@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
 import uuid
@@ -8,6 +8,22 @@ import uuid
 class ConversationCreate(BaseModel):
     title: Optional[str] = None
     system_prompt: Optional[str] = None
+
+class ConversationTitling(BaseModel):
+    title: str | None = None
+    active_leaf_id: uuid.UUID | None = None
+
+    @field_validator('title')
+    @classmethod
+    def normalize_title(cls, v: str | None) -> str | None:
+        if v is not None:
+            v = v.strip()
+            if v == "":
+                return None
+            max_length = 137
+            if len(v) > max_length:
+                raise ValueError(f"Title must be {max_length} characters or less")
+        return v
 
 class MessageAppend(BaseModel):
     content: str

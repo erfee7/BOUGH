@@ -1,21 +1,7 @@
 <template>
     <div class="app-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <button class="new-chat-btn" @click="handleNewChat" :disabled="isStreaming">
-                + New Chat
-            </button>
-            <ul class="conversation-list">
-                <li 
-                    v-for="conv in conversations" 
-                    :key="conv.id" 
-                    @click="selectConversation(conv.id)"
-                    :class="{ 'active': conv.id === currentConversationId }"
-                >
-                    {{ conv.title || 'Untitled' }}
-                </li>
-            </ul>
-        </aside>
+        <!-- Sidebar Component -->
+        <Sidebar :isStreaming="isStreaming" />
 
         <!-- Main Chat Area -->
         <main class="main-area">
@@ -24,7 +10,6 @@
                     <template v-for="msg in messages" :key="msg.id">
                         <ChatMessage v-if="msg.role !== 'system'" :message="msg" />
                     </template>
-                    <!-- Show placeholder if empty (New Chat state) -->
                     <div v-if="messages.length === 0" class="empty-state">
                         <h2>Start a new chat</h2>
                     </div>
@@ -51,8 +36,9 @@ import { ref, watch, nextTick, onMounted } from 'vue';
 import { useConversations } from './composables/useConversations';
 import { useMessages } from './composables/useMessages';
 import ChatMessage from './components/ChatMessage.vue';
+import Sidebar from './components/Sidebar.vue';
 
-const { conversations, currentConversationId, fetchAllConversations, createConversation, selectConversation } = useConversations();
+const { currentConversationId, fetchAllConversations, createConversation, selectConversation } = useConversations();
 const { messages, activeLeafId, isStreaming, loadConversation, sendMessage, clearMessages, stopStreaming } = useMessages();
 
 const inputText = ref('');
@@ -69,7 +55,8 @@ onMounted(() => {
 
 // Watch for sidebar selection changes
 watch(currentConversationId, (newId) => {
-    stopStreaming(); // Immediately kill the background stream on navigation
+    stopStreaming(); // Kill any active stream before switching
+    
     if (skipWatch) {
         skipWatch = false;
         return;
@@ -98,8 +85,8 @@ async function handleSend() {
     // If currentConversationId is null, we are in the "New Chat" state
     if (!currentConversationId.value) {
         // 1. Create the conversation first
-        const result = await createConversation(null, "You are BOUGH, a helpful assistant.");
-        if (!result) return; // creation failed
+        const result = await createConversation(null, "You are a helpful assistant.");
+        if (!result) return;
         
         // 2. Prevent the watcher from firing loadConversation and wiping our pending send
         skipWatch = true; 
@@ -112,12 +99,6 @@ async function handleSend() {
     // 4. Now that conversation exists and activeLeafId is set, send the message
     await sendMessage(text);
 }
-
-function handleNewChat() {
-    if (isStreaming.value) return;
-    // Setting this to null triggers the watcher which calls clearMessages()
-    selectConversation(null);
-}
 </script>
 
 <style scoped>
@@ -127,56 +108,6 @@ function handleNewChat() {
     width: 100%;
 }
 
-.sidebar {
-    width: 260px;
-    background: #f7f7f8;
-    border-right: 1px solid #ddd;
-    display: flex;
-    flex-direction: column;
-}
-
-.new-chat-btn {
-    margin: 15px;
-    padding: 10px;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.new-chat-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-}
-
-.conversation-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    overflow-y: auto;
-    flex: 1;
-}
-
-.conversation-list li {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.conversation-list li:hover {
-    background: #ececf1;
-}
-
-.conversation-list li.active {
-    background: #dcdce5;
-    font-weight: bold;
-}
 
 .main-area {
     flex: 1;
