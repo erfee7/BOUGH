@@ -29,7 +29,7 @@ __pycache__/
 .ruff_cache/
 
 # ==========================================
-# Node / Web (Prepared for Task 1.2)
+# Node / Web
 # ==========================================
 node_modules/
 dist/

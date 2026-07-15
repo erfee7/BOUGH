@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: bough_db
     volumes:
       - postgres_data:/var/lib/postgresql
+      # Mount init.sql to run automatically on fresh volume creation
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:z
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bough_user -d bough_db"]
       interval: 5s
@@ -30,9 +32,9 @@ services:
       POSTGRES_DB: bough_db
       POSTGRES_HOST: db  # Docker's internal DNS name for the db service
       # Pass LLM configuration
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
-      DEFAULT_MODEL: ${DEFAULT_MODEL:-openai/gpt-4o-mini}
+      PROVIDER_API_KEY: ${PROVIDER_API_KEY}
+      PROVIDER_BASE_URL: ${PROVIDER_BASE_URL:-https://openrouter.ai/api/v1}
+      DEFAULT_MODEL: ${DEFAULT_MODEL:-openrouter/free}
     depends_on:
       db:
         condition: service_healthy
