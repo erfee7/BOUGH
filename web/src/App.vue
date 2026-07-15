@@ -53,7 +53,7 @@ import { useMessages } from './composables/useMessages';
 import ChatMessage from './components/ChatMessage.vue';
 
 const { conversations, currentConversationId, fetchAllConversations, createConversation, selectConversation } = useConversations();
-const { messages, activeLeafId, isStreaming, loadConversation, sendMessage, clearMessages } = useMessages();
+const { messages, activeLeafId, isStreaming, loadConversation, sendMessage, clearMessages, stopStreaming } = useMessages();
 
 const inputText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
@@ -69,6 +69,7 @@ onMounted(() => {
 
 // Watch for sidebar selection changes
 watch(currentConversationId, (newId) => {
+    stopStreaming(); // Immediately kill the background stream on navigation
     if (skipWatch) {
         skipWatch = false;
         return;
