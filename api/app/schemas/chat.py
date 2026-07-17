@@ -5,11 +5,11 @@ import uuid
 
 # --- Request Models ---
 
-class ConversationCreate(BaseModel):
+class ConversationCreateRequest(BaseModel):
     title: Optional[str] = None
     system_prompt: Optional[str] = None
 
-class ConversationTitling(BaseModel):
+class ConversationPatchRequest(BaseModel):
     title: str | None = None
     active_leaf_id: uuid.UUID | None = None
 
@@ -24,13 +24,16 @@ class ConversationTitling(BaseModel):
             if len(v) > max_length:
                 raise ValueError(f"Title must be {max_length} characters or less")
         return v
+    
+class TitleGenerateRequest(BaseModel):
+    force: bool = False
 
-class MessageAppend(BaseModel):
+class MessageAppendRequest(BaseModel):
     content: str
     role: Optional[str] = None
     creation_data: Optional[dict] = None
 
-class MessageGenerate(BaseModel):
+class MessageGenerateRequest(BaseModel):
     model: Optional[str] = None
     parameters: Optional[dict] = None
 
@@ -52,7 +55,7 @@ class ConversationResponse(BaseModel):
     active_leaf_id: Optional[uuid.UUID] = None
     created_at: datetime
 
-class ConversationCreateResponse(BaseModel):
+class ConversationCreateRequestResponse(BaseModel):
     conversation: ConversationResponse
     root_message_id: uuid.UUID
 

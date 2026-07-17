@@ -6,10 +6,13 @@ from app.db.connection import get_pool
 from app.db import conversations as db_conversations
 from app.db import messages as db_messages
 
+from app.core import titler
+
 from app.schemas.chat import (
-    ConversationCreate,
-    ConversationTitling,
-    ConversationCreateResponse,
+    ConversationCreateRequest,
+    ConversationPatchRequest,
+    TitleGenerateRequest,
+    ConversationCreateRequestResponse,
     ConversationDetailResponse,
     ConversationResponse,
     MessageResponse
@@ -26,8 +29,8 @@ async def list_conversations():
     records = await db_conversations.fetch_all_conversations()
     return [ConversationResponse.model_validate(rec) for rec in records]
 
-@router.post("/conversations", response_model=ConversationCreateResponse)
-async def create_conversation(payload: ConversationCreate):
+@router.post("/conversations", response_model=ConversationCreateRequestResponse)
+async def create_conversation(payload: ConversationCreateRequest):
     """Creates a new conversation and its root system message."""
     # We explicitly acquire a connection here because we need a transaction
     # to ensure the conversation, message, and active_leaf are all created atomically.
@@ -55,7 +58,7 @@ async def create_conversation(payload: ConversationCreate):
 
             conv_record = await db_conversations.fetch_conversation(conversation_id, conn = conn)
             
-            return ConversationCreateResponse(
+            return ConversationCreateRequestResponse(
                 conversation = ConversationResponse.model_validate(conv_record),
                 root_message_id = message_id
             )
@@ -77,7 +80,7 @@ async def get_conversation(conversation_id: uuid.UUID):
     )
 
 @router.patch("/conversations/{conversation_id}", response_model = ConversationResponse)
-async def patch_conversation(conversation_id: uuid.UUID, payload: ConversationTitling):
+async def patch_conversation(conversation_id: uuid.UUID, payload: ConversationPatchRequest):
     """Updates the information of a conversation."""
     conv = await db_conversations.fetch_conversation(conversation_id)
     if not conv:
@@ -91,5 +94,18 @@ async def patch_conversation(conversation_id: uuid.UUID, payload: ConversationTi
         await db_conversations.update_conversation(conversation_id, **update_data)
     
     # Fetch the updated record and return it
+    updated_conv = await db_conversations.fetch_conversation(conversation_id)
+    return ConversationResponse.model_validate(updated_conv)
+
+@router.post("/conversations/{conversation_id}/generate-title", response_model=ConversationResponse)
+async def generate_conversation_title(conversation_id: uuid.UUID, payload: TitleGenerateRequest):
+    """Triggers LLM title generation for a conversation."""
+    conv = await db_conversations.fetch_conversation(conversation_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+        
+    new_title = await titler.generate_title(conversation_id, force=payload.force)
+    
+    # Fetch the updated record to return canonical truth
     updated_conv = await db_conversations.fetch_conversation(conversation_id)
     return ConversationResponse.model_validate(updated_conv)

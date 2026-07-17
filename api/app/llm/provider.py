@@ -106,3 +106,42 @@ async def generate_stream(
                 "type": type(e).__name__
             }
         }
+
+async def generate_completion(
+    messages_history: list[dict[str, Any]], 
+    model: Optional[str] = None, 
+    client: Optional[AsyncOpenAI] = None
+) -> dict[str, Any]:
+    """
+    Calls the LLM provider with a non-streaming request.
+    Returns a dict: {"content": str, "usage": dict}.
+    """
+    active_client = client or _get_client()
+    target_model = model or os.getenv("TITLER_MODEL", os.getenv("DEFAULT_MODEL", "openrouter/free"))
+    
+    formatted_history = _format_history(messages_history)
+    
+    logger.info("Dispatching non-streaming request to LLM provider (Model: %s, Messages: %d)", target_model, len(formatted_history))
+    
+    try:
+        response = await active_client.chat.completions.create(
+            model=target_model,
+            messages=formatted_history,
+            stream=False
+        )
+        
+        content = response.choices[0].message.content or ""
+        usage = response.usage.model_dump() if response.usage else {}
+        
+        return {
+            "content": content,
+            "usage": usage
+        }
+        
+    except Exception as e:
+        logger.error("LLM provider completion failed: %s", e)
+        return {
+            "content": "",
+            "usage": {},
+            "error": str(e)
+        }

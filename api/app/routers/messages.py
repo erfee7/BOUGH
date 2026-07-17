@@ -10,8 +10,8 @@ from app.db import conversations as db_conversations
 from app.db import messages as db_messages
 from app.core import stream_manager
 from app.schemas.chat import (
-    MessageAppend,
-    MessageGenerate,
+    MessageAppendRequest,
+    MessageGenerateRequest,
     MessageIdResponse
 )
 
@@ -25,7 +25,7 @@ def _format_sse(data: dict) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
 @router.post("/messages/{parent_id}/append", response_model = MessageIdResponse)
-async def append_message(parent_id: uuid.UUID, payload: MessageAppend):
+async def append_message(parent_id: uuid.UUID, payload: MessageAppendRequest):
     """Appends a new message (e.g., user message) to a parent node."""
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -54,7 +54,7 @@ async def append_message(parent_id: uuid.UUID, payload: MessageAppend):
             return MessageIdResponse(message_id = new_msg_id)
 
 @router.post("/messages/{parent_id}/generate", response_model = MessageIdResponse)
-async def generate_message(parent_id: uuid.UUID, payload: MessageGenerate):
+async def generate_message(parent_id: uuid.UUID, payload: MessageGenerateRequest):
     """Triggers LLM generation for an assistant message based on the parent's history."""
     pool = get_pool()
     async with pool.acquire() as conn:
