@@ -17,10 +17,10 @@
                     <input 
                         v-if="editingId === conv.id"
                         v-model="editText"
+                        v-focus
                         @keydown.enter.exact.prevent="saveEdit"
                         @keydown.esc.exact="cancelEdit"
                         @blur="saveEdit"
-                        ref="editInput"
                         class="edit-input"
                     />
                     <div v-else class="conv-item-content">
@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue';
+import { ref } from 'vue';
 import { useConversations } from '../composables/useConversations';
 import { ConversationSummary } from '../types';
 
@@ -50,22 +50,19 @@ const { conversations, currentConversationId, selectConversation, updateTitle, g
 
 const editingId = ref<string | null>(null);
 const editText = ref<string>('');
-const editInput = ref<HTMLInputElement | null>(null);
 
-async function startEditing(conv: ConversationSummary) {
+// Custom directive to auto-focus and select text when the input is mounted
+const vFocus = {
+    mounted: (el: HTMLInputElement) => {
+        el.focus();
+        el.select();
+    }
+};
+
+function startEditing(conv: ConversationSummary) {
     editingId.value = conv.id;
     editText.value = conv.title || '';
-    
-    // Wait for Vue to render the input
-    await nextTick();
-    
-    // Give the browser a tiny moment to register the new DOM element
-    setTimeout(() => {
-        if (editInput.value) {
-            editInput.value.focus();
-            editInput.value.select();
-        }
-    }, 10);
+    // The v-focus directive will handle focusing and selecting automatically!
 }
 
 function saveEdit() {
