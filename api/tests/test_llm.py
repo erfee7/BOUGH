@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from app.llm.provider import generate_stream
+from app.llm.provider import generate_stream, generate_completion
 
 # --- Helper Functions to Mock OpenAI SDK Chunks ---
 
@@ -95,3 +95,36 @@ async def test_generate_stream_error():
     assert events[0]["type"] == "error"
     assert "Simulated API Error" in events[0]["error_data"]["message"]
     assert events[0]["error_data"]["type"] == "Exception"
+
+@pytest.mark.asyncio
+async def test_generate_completion_success():
+    """Tests that non-streaming completion returns content and usage."""
+    # Arrange
+    mock_client = AsyncMock()
+    
+    # Setup mock response
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock(message=MagicMock(content="Test Title"))]
+    mock_response.usage = MagicMock()
+    mock_response.usage.model_dump.return_value = {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}
+    
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+    
+    messages_payload = [{"role": "developer", "content": "prompt"}, {"role": "user", "content": "hi"}]
+    
+    # Act
+    result = await generate_completion(
+        messages_history=messages_payload,
+        model="test-model",
+        client=mock_client
+    )
+    
+    # Assert
+    assert result["content"] == "Test Title"
+    assert result["usage"]["total_tokens"] == 12
+    
+    mock_client.chat.completions.create.assert_called_once_with(
+        model="test-model",
+        messages=messages_payload,
+        stream=False
+    )

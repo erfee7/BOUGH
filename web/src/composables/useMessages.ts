@@ -5,7 +5,18 @@ const messages = ref<Message[]>([]);
 const activeLeafId = ref<string | null>(null);
 const isStreaming = ref(false);
 
+let abortController: AbortController | null = null;
+
 export function useMessages() {
+
+    // 0. Stop the ongoing streaming for switching conversations or canceling a generation
+    function stopStreaming() {
+    if (abortController) {
+        abortController.abort();
+        abortController = null;
+    }
+    isStreaming.value = false;
+    }
 
     // 1. Load an existing conversation and its history
     async function loadConversation(conversationId: string) {
@@ -29,9 +40,14 @@ export function useMessages() {
         }
     }
 
+    function clearMessages() {
+        messages.value = [];
+        activeLeafId.value = null;
+    }
+
     // 2. User sends a new message
-    async function sendMessage(content: string) {
-        if (!activeLeafId.value || isStreaming.value) return;
+    async function sendMessage(content: string): Promise<string | null> {
+        if (!activeLeafId.value || isStreaming.value) return null;
         
         try {
             // Step A: Append the user message
@@ -60,9 +76,12 @@ export function useMessages() {
             // Step B: Trigger generation
             await generateMessage(newMsgId);
             
+            return newMsgId;
+            
         }
         catch (error) {
             console.error("Error sending message:", error);
+            return null;
         }
     }
 
@@ -102,9 +121,14 @@ export function useMessages() {
 
     // 4. The SSE Engine: Read the stream
     async function startStreaming(messageId: string) {
+        stopStreaming(); // Kill any existing stream before starting a new one
         isStreaming.value = true;
+
+        abortController = new AbortController();
         
-        const response = await fetch(`/api/chat/messages/${messageId}/stream`);
+        const response = await fetch(`/api/chat/messages/${messageId}/stream`, {
+            signal: abortController.signal // Pass the signal to fetch
+        });
         
         if (!response.body) throw new Error('No response body');
         
@@ -148,8 +172,8 @@ export function useMessages() {
                     const msgIndex = messages.value.findIndex(m => m.id === messageId);
                     if (msgIndex !== -1) {
                         if (event.type === 'token' || event.type === 'catch_up') {
-                            // Append the token to the message content.
-                            messages.value[msgIndex].content += event.content;
+                            // Append the token to the message content safely handling null
+                            messages.value[msgIndex].content = (messages.value[msgIndex].content || '') + event.content;
                             messages.value[msgIndex].status = 'streaming';
                         } else if (event.type === 'done') {
                             messages.value[msgIndex].status = 'complete';
@@ -163,6 +187,10 @@ export function useMessages() {
             }
         }
         catch (error) {
+            if (error instanceof Error && error.name === 'AbortError') {
+                // This is expected when switching conversations, exit quietly.
+                return;
+            }
             console.error("Streaming error:", error);
         }
         finally {
@@ -177,6 +205,8 @@ export function useMessages() {
         isStreaming,
         loadConversation,
         sendMessage,
-        generateMessage
+        generateMessage,
+        clearMessages,
+        stopStreaming
     };
 }

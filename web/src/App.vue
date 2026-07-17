@@ -1,45 +1,35 @@
 <template>
     <div class="app-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <button class="new-chat-btn" @click="handleNewChat" :disabled="isStreaming">
-                + New Chat
-            </button>
-            <ul class="conversation-list">
-                <li 
-                    v-for="conv in conversations" 
-                    :key="conv.id" 
-                    @click="selectConversation(conv.id)"
-                    :class="{ 'active': conv.id === currentConversationId }"
-                >
-                    {{ conv.title || 'Untitled' }}
-                </li>
-            </ul>
-        </aside>
+        <!-- Sidebar Component -->
+        <Sidebar :isStreaming="isStreaming" />
 
         <!-- Main Chat Area -->
         <main class="main-area">
-            <div v-if="currentConversationId" class="chat-container">
+            <div class="chat-container">
                 <div class="messages-container" ref="messagesContainer">
                     <template v-for="msg in messages" :key="msg.id">
                         <ChatMessage v-if="msg.role !== 'system'" :message="msg" />
                     </template>
+                    <div v-if="messages.length === 0" class="empty-state">
+                        <div class="empty-icon">💬</div>
+                        <h2>Start a new chat</h2>
+                        <p>Type a message below to begin</p>
+                    </div>
                 </div>
                 
-                <div class="input-container">
-                    <textarea 
-                        v-model="inputText" 
-                        @keydown.enter.exact.prevent="handleSend"
-                        placeholder="Type a message... (Enter to send)"
-                        :disabled="isStreaming"
-                    ></textarea>
-                    <button @click="handleSend" :disabled="isStreaming || !inputText.trim()">
-                        Send
-                    </button>
+                <div class="input-area">
+                    <div class="input-container">
+                        <textarea 
+                            v-model="inputText" 
+                            @keydown.enter.exact.prevent="handleSend"
+                            placeholder="Type a message... (Enter to send)"
+                            :disabled="isStreaming"
+                        ></textarea>
+                        <button @click="handleSend" :disabled="isStreaming || !inputText.trim()">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div v-else class="empty-state">
-                <h2>Select or create a chat</h2>
             </div>
         </main>
     </div>
@@ -50,12 +40,17 @@ import { ref, watch, nextTick, onMounted } from 'vue';
 import { useConversations } from './composables/useConversations';
 import { useMessages } from './composables/useMessages';
 import ChatMessage from './components/ChatMessage.vue';
+import Sidebar from './components/Sidebar.vue';
 
-const { conversations, currentConversationId, fetchAllConversations, createConversation, selectConversation } = useConversations();
-const { messages, isStreaming, loadConversation, sendMessage } = useMessages();
+const { currentConversationId, fetchAllConversations, createConversation, selectConversation, generateTitle } = useConversations();
+const { messages, activeLeafId, isStreaming, loadConversation, sendMessage, clearMessages, stopStreaming } = useMessages();
 
 const inputText = ref('');
 const messagesContainer = ref<HTMLElement | null>(null);
+
+// Used to bypass the watcher when transitioning from "new chat" to "chat created"
+// to prevent the watcher from fetching the DB and wiping the in-flight user message.
+let skipWatch = false;
 
 // On startup, fetch the sidebar list
 onMounted(() => {
@@ -64,8 +59,17 @@ onMounted(() => {
 
 // Watch for sidebar selection changes
 watch(currentConversationId, (newId) => {
+    stopStreaming(); // Kill any active stream before switching
+    
+    if (skipWatch) {
+        skipWatch = false;
+        return;
+    }
     if (newId) {
         loadConversation(newId);
+    } else {
+        // If selected conversation is set to null, clear the chat area
+        clearMessages();
     }
 });
 
@@ -81,12 +85,30 @@ async function handleSend() {
     if (!inputText.value.trim() || isStreaming.value) return;
     const text = inputText.value;
     inputText.value = '';
-    await sendMessage(text);
-}
-
-async function handleNewChat() {
-    if (isStreaming.value) return;
-    await createConversation();
+    
+    // If currentConversationId is null, we are in the "New Chat" state
+    if (!currentConversationId.value) {
+        // Create the conversation first
+        const result = await createConversation(null, "You are a helpful assistant.");
+        if (!result) return;
+        
+        // Prevent the watcher from firing loadConversation and wiping our pending send
+        skipWatch = true; 
+        
+        // Update states manually
+        selectConversation(result.conversationId);
+        activeLeafId.value = result.rootMessageId;
+        
+        // Wait for the user message to be appended
+        const userMsgId = await sendMessage(text);
+        
+        // Auto-generate title in the background (force=false)
+        if (userMsgId && currentConversationId.value) {
+            generateTitle(currentConversationId.value, false);
+        }
+    } else {
+        await sendMessage(text);
+    }
 }
 </script>
 
@@ -95,119 +117,139 @@ async function handleNewChat() {
     display: flex;
     height: 100vh;
     width: 100%;
-}
-
-.sidebar {
-    width: 260px;
-    background: #f7f7f8;
-    border-right: 1px solid #ddd;
-    display: flex;
-    flex-direction: column;
-}
-
-.new-chat-btn {
-    margin: 15px;
-    padding: 10px;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.new-chat-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-}
-
-.conversation-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    overflow-y: auto;
-    flex: 1;
-}
-
-.conversation-list li {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.conversation-list li:hover {
-    background: #ececf1;
-}
-
-.conversation-list li.active {
-    background: #dcdce5;
-    font-weight: bold;
+    background: #0f172a;
+    color: #f8fafc;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .main-area {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: #fff;
+    position: relative;
 }
 
 .chat-container {
     display: flex;
     flex-direction: column;
     height: 100%;
-    max-width: 900px;
-    margin: 0 auto;
     width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
 }
 
-.input-container {
-    display: flex;
-    padding: 15px;
-    border-top: 1px solid #ddd;
+.messages-container::-webkit-scrollbar {
+    width: 6px;
 }
 
-.input-container textarea {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    resize: none;
-    height: 50px;
-    font-family: inherit;
-    font-size: 14px;
-}
-
-.input-container button {
-    margin-left: 10px;
-    padding: 0 20px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.input-container button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
+.messages-container::-webkit-scrollbar-thumb {
+    background-color: #334155;
+    border-radius: 3px;
 }
 
 .empty-state {
     flex: 1;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    color: #888;
+    color: #64748b;
+    margin-top: 10vh;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.empty-state p {
+    font-size: 14px;
+    margin: 0;
+}
+
+.input-area {
+    padding: 20px 24px 32px;
+}
+
+.input-container {
+    display: flex;
+    align-items: flex-end;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 12px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-container:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.input-container textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #f8fafc;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.5;
+    max-height: 150px;
+    min-height: 24px;
+    padding: 0 8px;
+    resize: none;
+    outline: none;
+}
+
+.input-container button {
+    background: #3b82f6;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    width: 36px;
+    margin-left: 8px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.input-container button:hover:not(:disabled) {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.input-container button:disabled {
+    background: #475569;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+</style>
+
+<style>
+/* Global styles to strip browser defaults */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background-color: #0f172a; /* Matches our dark theme */
+    overflow: hidden; /* Prevents the "shaking" bounce effect */
 }
 </style>

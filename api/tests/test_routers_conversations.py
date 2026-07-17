@@ -2,8 +2,7 @@ import uuid
 import pytest
 import httpx
 from httpx import ASGITransport
-from unittest.mock import patch
-import asyncio
+from unittest.mock import patch, AsyncMock
 
 from app.main import app
 from app.db import conversations as db_conversations
@@ -121,3 +120,89 @@ async def test_list_conversations_endpoint(mock_pool):
             assert "First" in titles
             assert "Second" in titles
 
+
+@pytest.mark.asyncio
+async def test_update_conversation_title_endpoint(mock_pool):
+    """Tests the PATCH /api/chat/conversations/{id} endpoint for title updates."""
+    # Setup: Create a conversation to update
+    conv_id = await db_conversations.create_conversation(title="Old Title", conn=mock_pool.conn)
+    
+    # Patch the get_pool in database layer to use our transactional FakePool
+    with patch('app.db.conversations.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"title": TEST_CONVERSATION_TITLE}
+            response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
+            
+            assert response.status_code == 200
+            data = response.json()
+            
+            # Validate response structure
+            assert data["id"] == str(conv_id)
+            assert data["title"] == TEST_CONVERSATION_TITLE
+            
+            # Verify it actually wrote to the DB
+            conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
+            assert conv is not None
+            assert conv['title'] == TEST_CONVERSATION_TITLE
+
+@pytest.mark.asyncio
+async def test_update_conversation_title_empty_string(mock_pool):
+    """Tests that PATCHing an empty string normalizes to None (Untitled)."""
+    conv_id = await db_conversations.create_conversation(title="Old Title", conn=mock_pool.conn)
+    
+    with patch('app.db.conversations.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"title": ""}
+            response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
+            
+            assert response.status_code == 200
+            data = response.json()
+            
+            # Should be null in the response
+            assert data["title"] is None
+            
+            # Should be None in the DB
+            conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
+            assert conv['title'] is None
+
+@pytest.mark.asyncio
+async def test_update_conversation_not_found(mock_pool):
+    """Tests that PATCHing a non-existent conversation returns 404."""
+    with patch('app.db.conversations.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            random_id = uuid.uuid4()
+            payload = {"title": "Doesn't matter"}
+            response = await client.patch(f"/api/chat/conversations/{random_id}", json=payload)
+            
+            assert response.status_code == 404
+            assert response.json()["detail"] == "Conversation not found"
+
+@pytest.mark.asyncio
+async def test_update_conversation_title_too_long(mock_pool):
+    """Tests that PATCHing a title too long chars returns 422 Validation Error."""
+    conv_id = await db_conversations.create_conversation(title="Old Title", conn=mock_pool.conn)
+    
+    with patch('app.db.conversations.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"title": "a" * 1729}
+            response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
+            
+            assert response.status_code == 422
+
+@pytest.mark.asyncio
+async def test_generate_title_endpoint(mock_pool):
+    """Tests the POST /api/chat/conversations/{id}/generate-title endpoint."""
+    conv_id = await db_conversations.create_conversation(title=None, conn=mock_pool.conn)
+    
+    # Mock the titler engine so we don't hit the real LLM in router tests
+    with patch('app.routers.conversations.titler.generate_title', return_value="Generated Title") as mock_titler:
+        with patch('app.db.conversations.get_pool', return_value=mock_pool):
+            async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                payload = {"force": False}
+                response = await client.post(f"/api/chat/conversations/{conv_id}/generate-title", json=payload)
+                
+                # Assert endpoint responds successfully
+                assert response.status_code == 200
+                
+                # Verify the titler engine was called correctly
+                mock_titler.assert_called_once_with(conv_id, force=False)
