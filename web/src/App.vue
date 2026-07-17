@@ -11,20 +11,24 @@
                         <ChatMessage v-if="msg.role !== 'system'" :message="msg" />
                     </template>
                     <div v-if="messages.length === 0" class="empty-state">
+                        <div class="empty-icon">💬</div>
                         <h2>Start a new chat</h2>
+                        <p>Type a message below to begin</p>
                     </div>
                 </div>
                 
-                <div class="input-container">
-                    <textarea 
-                        v-model="inputText" 
-                        @keydown.enter.exact.prevent="handleSend"
-                        placeholder="Type a message... (Enter to send)"
-                        :disabled="isStreaming"
-                    ></textarea>
-                    <button @click="handleSend" :disabled="isStreaming || !inputText.trim()">
-                        Send
-                    </button>
+                <div class="input-area">
+                    <div class="input-container">
+                        <textarea 
+                            v-model="inputText" 
+                            @keydown.enter.exact.prevent="handleSend"
+                            placeholder="Type a message... (Enter to send)"
+                            :disabled="isStreaming"
+                        ></textarea>
+                        <button @click="handleSend" :disabled="isStreaming || !inputText.trim()">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </main>
@@ -113,69 +117,139 @@ async function handleSend() {
     display: flex;
     height: 100vh;
     width: 100%;
+    background: #0f172a;
+    color: #f8fafc;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
-
 
 .main-area {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: #fff;
+    position: relative;
 }
 
 .chat-container {
     display: flex;
     flex-direction: column;
     height: 100%;
-    max-width: 900px;
-    margin: 0 auto;
     width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
 }
 
-.input-container {
-    display: flex;
-    padding: 15px;
-    border-top: 1px solid #ddd;
+.messages-container::-webkit-scrollbar {
+    width: 6px;
 }
 
-.input-container textarea {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    resize: none;
-    height: 50px;
-    font-family: inherit;
-    font-size: 14px;
-}
-
-.input-container button {
-    margin-left: 10px;
-    padding: 0 20px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.input-container button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
+.messages-container::-webkit-scrollbar-thumb {
+    background-color: #334155;
+    border-radius: 3px;
 }
 
 .empty-state {
     flex: 1;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    color: #888;
+    color: #64748b;
+    margin-top: 10vh;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.empty-state p {
+    font-size: 14px;
+    margin: 0;
+}
+
+.input-area {
+    padding: 20px 24px 32px;
+}
+
+.input-container {
+    display: flex;
+    align-items: flex-end;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 12px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-container:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.input-container textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #f8fafc;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.5;
+    max-height: 150px;
+    min-height: 24px;
+    padding: 0 8px;
+    resize: none;
+    outline: none;
+}
+
+.input-container button {
+    background: #3b82f6;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    width: 36px;
+    margin-left: 8px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.input-container button:hover:not(:disabled) {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.input-container button:disabled {
+    background: #475569;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+</style>
+
+<style>
+/* Global styles to strip browser defaults */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background-color: #0f172a; /* Matches our dark theme */
+    overflow: hidden; /* Prevents the "shaking" bounce effect */
 }
 </style>

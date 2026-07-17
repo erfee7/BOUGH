@@ -1,37 +1,41 @@
 <template>
     <aside class="sidebar">
-        <button class="new-chat-btn" @click="handleNewChat" :disabled="props.isStreaming">
-            + New Chat
-        </button>
-        <ul class="conversation-list">
-            <li 
-                v-for="conv in conversations" 
-                :key="conv.id" 
-                @click="selectConversation(conv.id)"
-                @dblclick="startEditing(conv)"
-                :class="{ 'active': conv.id === currentConversationId }"
-            >
-                <input 
-                    v-if="editingId === conv.id"
-                    v-model="editText"
-                    @keydown.enter.exact.prevent="saveEdit"
-                    @keydown.esc.exact="cancelEdit"
-                    @blur="saveEdit"
-                    ref="editInput"
-                    class="edit-input"
-                />
-                <div v-else class="conv-item-content">
-                    <span class="conv-title">{{ conv.title || 'Untitled' }}</span>
-                    <button 
-                        v-if="!isGenerating(conv.id)"
-                        @click.stop="handleGenerateTitle(conv.id)" 
-                        class="title-action-btn"
-                        title="Generate Title"
-                    >✨</button>
-                    <span v-else class="spinner">⏳</span>
-                </div>
-            </li>
-        </ul>
+        <div class="sidebar-header">
+            <button class="new-chat-btn" @click="handleNewChat" :disabled="props.isStreaming">
+                <span>+</span> New Chat
+            </button>
+        </div>
+        <div class="conversation-list-container">
+            <ul class="conversation-list">
+                <li 
+                    v-for="conv in conversations" 
+                    :key="conv.id" 
+                    @click="selectConversation(conv.id)"
+                    @dblclick="startEditing(conv)"
+                    :class="{ 'active': conv.id === currentConversationId }"
+                >
+                    <input 
+                        v-if="editingId === conv.id"
+                        v-model="editText"
+                        @keydown.enter.exact.prevent="saveEdit"
+                        @keydown.esc.exact="cancelEdit"
+                        @blur="saveEdit"
+                        ref="editInput"
+                        class="edit-input"
+                    />
+                    <div v-else class="conv-item-content">
+                        <span class="conv-title">{{ conv.title || 'Untitled' }}</span>
+                        <button 
+                            v-if="!isGenerating(conv.id)"
+                            @click.stop="handleGenerateTitle(conv.id)" 
+                            class="title-action-btn"
+                            title="Generate Title"
+                        >✨</button>
+                        <span v-else class="spinner">⏳</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
     </aside>
 </template>
 
@@ -51,11 +55,17 @@ const editInput = ref<HTMLInputElement | null>(null);
 async function startEditing(conv: ConversationSummary) {
     editingId.value = conv.id;
     editText.value = conv.title || '';
+    
+    // Wait for Vue to render the input
     await nextTick();
-    if (editInput.value) {
-        editInput.value.focus();
-        editInput.value.select();
-    }
+    
+    // Give the browser a tiny moment to register the new DOM element
+    setTimeout(() => {
+        if (editInput.value) {
+            editInput.value.focus();
+            editInput.value.select();
+        }
+    }, 10);
 }
 
 function saveEdit() {
@@ -90,59 +100,99 @@ function handleGenerateTitle(id: string) {
 
 <style scoped>
 .sidebar {
-    width: 260px;
-    background: #f7f7f8;
-    border-right: 1px solid #ddd;
+    width: 280px;
+    background: #0b0f19;
+    border-right: 1px solid #1e293b;
     display: flex;
     flex-direction: column;
 }
 
+.sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid #1e293b;
+}
+
 .new-chat-btn {
-    margin: 15px;
+    width: 100%;
     padding: 10px;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 6px;
+    background: transparent;
+    color: #f8fafc;
+    border: 1px dashed #334155;
+    border-radius: 8px;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 500;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.new-chat-btn span {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.new-chat-btn:hover:not(:disabled) {
+    background: #1e293b;
+    border-color: #475569;
 }
 
 .new-chat-btn:disabled {
-    background: #ccc;
+    opacity: 0.5;
     cursor: not-allowed;
+}
+
+.conversation-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
+}
+
+.conversation-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.conversation-list-container::-webkit-scrollbar-thumb {
+    background-color: #334155;
+    border-radius: 3px;
 }
 
 .conversation-list {
     list-style: none;
     padding: 0;
     margin: 0;
-    overflow-y: auto;
-    flex: 1;
 }
 
 .conversation-list li {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
+    color: #cbd5e1;
+    transition: background-color 0.15s, color 0.15s;
 }
 
 .conversation-list li:hover {
-    background: #ececf1;
+    background: #1e293b;
+    color: #f8fafc;
 }
 
 .conversation-list li.active {
-    background: #dcdce5;
-    font-weight: bold;
+    background: #1e293b;
+    color: #f8fafc;
+    font-weight: 500;
 }
 
-/* NEW CSS for flex layout and button */
 .conv-item-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
 }
 
 .conv-title {
@@ -154,13 +204,14 @@ function handleGenerateTitle(id: string) {
 
 .edit-input {
     width: 100%;
-    padding: 2px 4px;
-    margin: -2px -4px;
-    border: 1px solid #007bff;
+    background: #0f172a;
+    color: #f8fafc;
+    border: 1px solid #3b82f6;
     border-radius: 4px;
     font-size: 14px;
     font-family: inherit;
-    /* Prevent text from breaking out of the li container */
+    padding: 4px 8px;
+    outline: none;
     box-sizing: border-box;
 }
 
@@ -170,21 +221,29 @@ function handleGenerateTitle(id: string) {
     cursor: pointer;
     font-size: 14px;
     opacity: 0;
-    transition: opacity 0.2s;
-    padding: 0 4px;
+    transition: opacity 0.15s, transform 0.15s;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Show button on hover of the list item */
 li:hover .title-action-btn {
     opacity: 1;
 }
 
 .title-action-btn:hover {
-    transform: scale(1.2);
+    transform: scale(1.15);
 }
 
 .spinner {
     font-size: 14px;
     opacity: 1;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 </style>
