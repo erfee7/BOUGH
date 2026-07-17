@@ -38,7 +38,7 @@ import { useMessages } from './composables/useMessages';
 import ChatMessage from './components/ChatMessage.vue';
 import Sidebar from './components/Sidebar.vue';
 
-const { currentConversationId, fetchAllConversations, createConversation, selectConversation } = useConversations();
+const { currentConversationId, fetchAllConversations, createConversation, selectConversation, generateTitle } = useConversations();
 const { messages, activeLeafId, isStreaming, loadConversation, sendMessage, clearMessages, stopStreaming } = useMessages();
 
 const inputText = ref('');
@@ -84,20 +84,27 @@ async function handleSend() {
     
     // If currentConversationId is null, we are in the "New Chat" state
     if (!currentConversationId.value) {
-        // 1. Create the conversation first
+        // Create the conversation first
         const result = await createConversation(null, "You are a helpful assistant.");
         if (!result) return;
         
-        // 2. Prevent the watcher from firing loadConversation and wiping our pending send
+        // Prevent the watcher from firing loadConversation and wiping our pending send
         skipWatch = true; 
         
-        // 3. Update states manually
+        // Update states manually
         selectConversation(result.conversationId);
         activeLeafId.value = result.rootMessageId;
+        
+        // Wait for the user message to be appended
+        const userMsgId = await sendMessage(text);
+        
+        // Auto-generate title in the background (force=false)
+        if (userMsgId && currentConversationId.value) {
+            generateTitle(currentConversationId.value, false);
+        }
+    } else {
+        await sendMessage(text);
     }
-    
-    // 4. Now that conversation exists and activeLeafId is set, send the message
-    await sendMessage(text);
 }
 </script>
 

@@ -46,8 +46,8 @@ export function useMessages() {
     }
 
     // 2. User sends a new message
-    async function sendMessage(content: string) {
-        if (!activeLeafId.value || isStreaming.value) return;
+    async function sendMessage(content: string): Promise<string | null> {
+        if (!activeLeafId.value || isStreaming.value) return null;
         
         try {
             // Step A: Append the user message
@@ -76,9 +76,12 @@ export function useMessages() {
             // Step B: Trigger generation
             await generateMessage(newMsgId);
             
+            return newMsgId;
+            
         }
         catch (error) {
             console.error("Error sending message:", error);
+            return null;
         }
     }
 

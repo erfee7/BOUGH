@@ -1,6 +1,6 @@
 <template>
     <aside class="sidebar">
-        <button class="new-chat-btn" @click="handleNewChat" :disabled="isStreaming">
+        <button class="new-chat-btn" @click="handleNewChat" :disabled="props.isStreaming">
             + New Chat
         </button>
         <ul class="conversation-list">
@@ -20,7 +20,16 @@
                     ref="editInput"
                     class="edit-input"
                 />
-                <span v-else>{{ conv.title || 'Untitled' }}</span>
+                <div v-else class="conv-item-content">
+                    <span class="conv-title">{{ conv.title || 'Untitled' }}</span>
+                    <button 
+                        v-if="!isGenerating(conv.id)"
+                        @click.stop="handleGenerateTitle(conv.id)" 
+                        class="title-action-btn"
+                        title="Generate Title"
+                    >✨</button>
+                    <span v-else class="spinner">⏳</span>
+                </div>
             </li>
         </ul>
     </aside>
@@ -31,10 +40,9 @@ import { ref, nextTick } from 'vue';
 import { useConversations } from '../composables/useConversations';
 import { ConversationSummary } from '../types';
 
-// Assign defineProps to a variable to access it in the script
 const props = defineProps<{ isStreaming: boolean }>();
 
-const { conversations, currentConversationId, selectConversation, updateTitle } = useConversations();
+const { conversations, currentConversationId, selectConversation, updateTitle, generatingTitleIds, generateTitle } = useConversations();
 
 const editingId = ref<string | null>(null);
 const editText = ref<string>('');
@@ -69,6 +77,14 @@ function cancelEdit() {
 function handleNewChat() {
     if (props.isStreaming) return;
     selectConversation(null);
+}
+
+function isGenerating(id: string) {
+    return generatingTitleIds.value.includes(id);
+}
+
+function handleGenerateTitle(id: string) {
+    generateTitle(id, true);
 }
 </script>
 
@@ -110,9 +126,6 @@ function handleNewChat() {
     border-bottom: 1px solid #eee;
     cursor: pointer;
     font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .conversation-list li:hover {
@@ -122,6 +135,21 @@ function handleNewChat() {
 .conversation-list li.active {
     background: #dcdce5;
     font-weight: bold;
+}
+
+/* NEW CSS for flex layout and button */
+.conv-item-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
+}
+
+.conv-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .edit-input {
@@ -134,5 +162,29 @@ function handleNewChat() {
     font-family: inherit;
     /* Prevent text from breaking out of the li container */
     box-sizing: border-box;
+}
+
+.title-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    padding: 0 4px;
+}
+
+/* Show button on hover of the list item */
+li:hover .title-action-btn {
+    opacity: 1;
+}
+
+.title-action-btn:hover {
+    transform: scale(1.2);
+}
+
+.spinner {
+    font-size: 14px;
+    opacity: 1;
 }
 </style>

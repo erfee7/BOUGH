@@ -3,6 +3,7 @@ import { ConversationSummary } from '../types';
 
 const conversations = ref<ConversationSummary[]>([]);
 const currentConversationId = ref<string | null>(null);
+const generatingTitleIds = ref<string[]>([]);
 
 export function useConversations() {
     
@@ -74,12 +75,38 @@ export function useConversations() {
         }
     }
 
+    async function generateTitle(id: string, force: boolean = false) {
+        if (generatingTitleIds.value.includes(id)) return;
+        generatingTitleIds.value = [...generatingTitleIds.value, id];
+        
+        try {
+            const response = await fetch(`/api/chat/conversations/${id}/generate-title`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ force })
+            });
+            if (!response.ok) throw new Error('Failed to generate title');
+            
+            const data = await response.json();
+            const conv = conversations.value.find(c => c.id === id);
+            if (conv) {
+                conv.title = data.title;
+            }
+        } catch (error) {
+            console.error("Error generating title:", error);
+        } finally {
+            generatingTitleIds.value = generatingTitleIds.value.filter(i => i !== id);
+        }
+    }
+
     return {
         conversations,
         currentConversationId,
         fetchAllConversations,
         createConversation,
         selectConversation,
-        updateTitle
+        updateTitle,
+        generatingTitleIds,
+        generateTitle
     };
 }
