@@ -98,12 +98,12 @@ async def generate_message(parent_id: uuid.UUID, payload: MessageGenerateRequest
 async def stream_message(message_id: uuid.UUID):
     """SSE endpoint for streaming message generation. Handles reconnections."""
     
+    # Check DB first for current status - do this BEFORE creating StreamingResponse
+    msg = await db_messages.fetch_message(message_id)
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
     async def event_generator():
-        # Check DB first for current status
-        msg = await db_messages.fetch_message(message_id)
-        if not msg:
-            raise HTTPException(status_code = 404, detail = "Message not found")
-            
         if msg['status'] == 'complete':
             yield _format_sse({"type": "done", "content": msg['content'], "metadata": msg['metadata']})
             yield "data: [DONE]\n\n"
