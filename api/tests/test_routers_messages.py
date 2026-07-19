@@ -11,7 +11,6 @@ from app.db import messages as db_messages
 TEST_CONVERSATION_TITLE = "Msg API Test"
 TEST_SYSTEM_PROMPT = "You are a test assistant."
 TEST_USER_MESSAGE = "User input"
-TEST_FINISHED_MESSAGE = "Assistant response"
 
 @pytest.mark.asyncio
 async def test_append_message_endpoint(mock_pool):
@@ -43,6 +42,18 @@ async def test_append_message_endpoint(mock_pool):
             
             conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
             assert conv['active_leaf_id'] == new_msg_id
+
+@pytest.mark.asyncio
+async def test_append_message_parent_not_found(mock_pool):
+    """Tests that appending to a non-existent parent message returns 404."""
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            random_parent_id = uuid.uuid4()
+            payload = {"content": "Test", "role": "user"}
+            response = await client.post(f"/api/chat/messages/{random_parent_id}/append", json=payload)
+            
+            assert response.status_code == 404
+            assert response.json()["detail"] == "Parent message not found"
 
 @pytest.mark.asyncio
 async def test_generate_message_endpoint(mock_pool):
@@ -95,10 +106,23 @@ async def test_generate_message_endpoint(mock_pool):
                 assert history[1]['role'] == 'user'
 
 @pytest.mark.asyncio
+async def test_generate_message_parent_not_found(mock_pool):
+    """Tests that generating from a non-existent parent message returns 404."""
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            random_parent_id = uuid.uuid4()
+            payload = {"model": "test-model"}
+            response = await client.post(f"/api/chat/messages/{random_parent_id}/generate", json=payload)
+            
+            assert response.status_code == 404
+            assert response.json()["detail"] == "Parent message not found"
+
+@pytest.mark.asyncio
 async def test_stream_message_endpoint_complete():
     """Tests GET /api/chat/messages/{id}/stream when message is already complete."""
+    finished_msg = "Assistant response"
     mock_msg = {
-        'id': uuid.uuid4(), 'status': 'complete', 'content': TEST_FINISHED_MESSAGE,
+        'id': uuid.uuid4(), 'status': 'complete', 'content': finished_msg,
         'metadata': {'tokens': 5}, 'error_data': None
     }
     with patch('app.routers.messages.db_messages.fetch_message', new_callable=AsyncMock, return_value=mock_msg):
@@ -111,7 +135,7 @@ async def test_stream_message_endpoint_complete():
             # Parse the SSE chunks
             lines = response.text.strip().split("\n\n")
             assert len(lines) == 2
-            assert lines[0] == f'data: {json.dumps({"type": "done", "content": TEST_FINISHED_MESSAGE, "metadata": {"tokens": 5}})}'
+            assert lines[0] == f'data: {json.dumps({"type": "done", "content": finished_msg, "metadata": {"tokens": 5}})}'
             assert lines[1] == "data: [DONE]"
 
 @pytest.mark.asyncio
@@ -138,3 +162,14 @@ async def test_stream_message_endpoint_live():
                 assert lines[0] == f'data: {json.dumps({"type": "token", "content": "Live"})}'
                 assert lines[1] == f'data: {json.dumps({"type": "done", "metadata": {"tokens": 1}})}'
                 assert lines[2] == "data: [DONE]"
+
+@pytest.mark.asyncio
+async def test_stream_message_not_found(mock_pool):
+    """Tests that streaming a non-existent message returns 404."""
+    with patch('app.routers.messages.db_messages.fetch_message', new_callable=AsyncMock, return_value=None):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            random_msg_id = uuid.uuid4()
+            response = await client.get(f"/api/chat/messages/{random_msg_id}/stream")
+            
+            assert response.status_code == 404
+            assert response.json()["detail"] == "Message not found"

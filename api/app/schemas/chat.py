@@ -36,6 +36,18 @@ class MessageGenerateRequest(BaseModel):
     model: str | None = None
     parameters: dict | None = None
 
+class PromptCreateRequest(BaseModel):
+    name: str
+    content: str
+    role: str
+    description: str | None = None
+
+class PromptUpdateRequest(BaseModel):
+    name: str | None = None
+    content: str | None = None
+    role: str | None = None
+    description: str | None = None
+
 # --- Response Models ---
 
 class MessageResponse(BaseModel):
@@ -53,6 +65,15 @@ class ConversationResponse(BaseModel):
     title: str | None = None
     active_leaf_id: uuid.UUID | None = None
     created_at: datetime
+
+class PromptResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    content: str
+    role: str
+    description: str | None = None
+    created_at: datetime
+    updated_at: datetime
 
 class ConversationCreateRequestResponse(BaseModel):
     conversation: ConversationResponse

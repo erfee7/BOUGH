@@ -204,3 +204,15 @@ async def test_generate_title_endpoint(mock_pool):
                 
                 # Verify the titler engine was called correctly
                 mock_titler.assert_called_once_with(conv_id, force=False)
+
+@pytest.mark.asyncio
+async def test_generate_title_conversation_not_found(mock_pool):
+    """Tests that generating title for a non-existent conversation returns 404."""
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            random_conv_id = uuid.uuid4()
+            payload = {"force": False}
+            response = await client.post(f"/api/chat/conversations/{random_conv_id}/generate-title", json=payload)
+            
+            assert response.status_code == 404
+            assert response.json()["detail"] == "Conversation not found"

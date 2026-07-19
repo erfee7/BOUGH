@@ -30,11 +30,11 @@ async def append_message(parent_id: uuid.UUID, payload: MessageAppendRequest):
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            parent_message = await db_messages.fetch_message(parent_id, conn = conn)
-            if not parent_message:
+            p_msg_record = await db_messages.fetch_message(parent_id, conn = conn)
+            if not p_msg_record:
                 raise HTTPException(status_code = 404, detail = "Parent message not found")
                 
-            conversation_id = parent_message['conversation_id']
+            conversation_id = p_msg_record['conversation_id']
 
             role = payload.role or "user"
             creation_data = payload.creation_data or {"source": "user_edit"}
@@ -59,11 +59,11 @@ async def generate_message(parent_id: uuid.UUID, payload: MessageGenerateRequest
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            parent_message = await db_messages.fetch_message(parent_id, conn = conn)
-            if not parent_message:
+            p_msg_record = await db_messages.fetch_message(parent_id, conn = conn)
+            if not p_msg_record:
                 raise HTTPException(status_code = 404, detail = "Parent message not found")
                 
-            conversation_id = parent_message['conversation_id']
+            conversation_id = p_msg_record['conversation_id']
             target_model = payload.model or os.getenv("DEFAULT_MODEL", "openrouter/free")
             
             creation_data = {

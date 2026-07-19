@@ -22,6 +22,19 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Prompts Table
+CREATE TABLE prompts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    content TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('system', 'developer')),
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
 -- Indexes for fast traversal
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages (conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages (parent_id);
+CREATE INDEX IF NOT EXISTS idx_prompts_role ON prompts (role);
