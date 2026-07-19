@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional, Any, AsyncGenerator
+from typing import Any, AsyncGenerator
 
 from openai import AsyncOpenAI
 
@@ -52,8 +52,8 @@ def _format_history(messages_history: list[dict[str, Any]]) -> list[dict[str, st
 
 async def generate_stream(
     messages_history: list[dict[str, Any]], 
-    model: Optional[str] = None, 
-    client: Optional[AsyncOpenAI] = None
+    model: str | None = None, 
+    client: AsyncOpenAI | None = None
 ) -> AsyncGenerator[dict[str, Any], None]:
     """
     Calls the LLM provider and yields structured events.
@@ -109,8 +109,8 @@ async def generate_stream(
 
 async def generate_completion(
     messages_history: list[dict[str, Any]], 
-    model: Optional[str] = None, 
-    client: Optional[AsyncOpenAI] = None
+    model: str | None = None, 
+    client: AsyncOpenAI | None = None
 ) -> dict[str, Any]:
     """
     Calls the LLM provider with a non-streaming request.

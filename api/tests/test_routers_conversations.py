@@ -62,8 +62,7 @@ async def test_get_conversation_endpoint(mock_pool):
     await db_conversations.update_conversation(conv_id, active_leaf_id = msg_id, conn = mock_pool.conn)
     
     # Patch the get_pool in database layer to use our transactional FakePool
-    with patch('app.db.conversations.get_pool', return_value = mock_pool), \
-         patch('app.db.messages.get_pool', return_value = mock_pool):
+    with patch('app.db.connection.get_pool', return_value = mock_pool):
         async with httpx.AsyncClient(transport = ASGITransport(app = app), base_url = "http://test") as client:
             response = await client.get(f"/api/chat/conversations/{conv_id}")
             
@@ -87,8 +86,7 @@ async def test_get_conversation_endpoint(mock_pool):
 async def test_get_conversation_not_found(mock_pool):
     """Tests that fetching a non-existent conversation returns 404."""
     # Patch the get_pool in database layer to use our transactional FakePool
-    with patch('app.db.conversations.get_pool', return_value = mock_pool), \
-         patch('app.db.messages.get_pool', return_value = mock_pool):
+    with patch('app.db.connection.get_pool', return_value = mock_pool):
         async with httpx.AsyncClient(transport = ASGITransport(app = app), base_url = "http://test") as client:
             random_id = uuid.uuid4()
             response = await client.get(f"/api/chat/conversations/{random_id}")
@@ -104,7 +102,7 @@ async def test_list_conversations_endpoint(mock_pool):
     await db_conversations.create_conversation(title="Second", conn=mock_pool.conn)
     
     # Action: Call the API
-    with patch('app.db.conversations.get_pool', return_value=mock_pool):
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/api/chat/conversations")
             
@@ -128,7 +126,7 @@ async def test_update_conversation_title_endpoint(mock_pool):
     conv_id = await db_conversations.create_conversation(title="Old Title", conn=mock_pool.conn)
     
     # Patch the get_pool in database layer to use our transactional FakePool
-    with patch('app.db.conversations.get_pool', return_value=mock_pool):
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             payload = {"title": TEST_CONVERSATION_TITLE}
             response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
@@ -150,7 +148,7 @@ async def test_update_conversation_title_empty_string(mock_pool):
     """Tests that PATCHing an empty string normalizes to None (Untitled)."""
     conv_id = await db_conversations.create_conversation(title="Old Title", conn=mock_pool.conn)
     
-    with patch('app.db.conversations.get_pool', return_value=mock_pool):
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             payload = {"title": ""}
             response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
@@ -168,7 +166,7 @@ async def test_update_conversation_title_empty_string(mock_pool):
 @pytest.mark.asyncio
 async def test_update_conversation_not_found(mock_pool):
     """Tests that PATCHing a non-existent conversation returns 404."""
-    with patch('app.db.conversations.get_pool', return_value=mock_pool):
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             random_id = uuid.uuid4()
             payload = {"title": "Doesn't matter"}
@@ -182,7 +180,7 @@ async def test_update_conversation_title_too_long(mock_pool):
     """Tests that PATCHing a title too long chars returns 422 Validation Error."""
     conv_id = await db_conversations.create_conversation(title="Old Title", conn=mock_pool.conn)
     
-    with patch('app.db.conversations.get_pool', return_value=mock_pool):
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             payload = {"title": "a" * 1729}
             response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
@@ -196,7 +194,7 @@ async def test_generate_title_endpoint(mock_pool):
     
     # Mock the titler engine so we don't hit the real LLM in router tests
     with patch('app.routers.conversations.titler.generate_title', return_value="Generated Title") as mock_titler:
-        with patch('app.db.conversations.get_pool', return_value=mock_pool):
+        with patch('app.db.connection.get_pool', return_value=mock_pool):
             async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 payload = {"force": False}
                 response = await client.post(f"/api/chat/conversations/{conv_id}/generate-title", json=payload)
