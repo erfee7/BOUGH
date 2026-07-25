@@ -40,16 +40,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import { useConversations } from '../composables/useConversations';
+import { useTitleEdit } from '../composables/useTitleEdit';
 import { ConversationSummary } from '../types';
 
 const props = defineProps<{ isStreaming: boolean }>();
 
-const { conversations, currentConversationId, selectConversation, updateTitle, generatingTitleIds, generateTitle } = useConversations();
-
-const editingId = ref<string | null>(null);
-const editText = ref<string>('');
+const { conversations, currentConversationId, selectConversation, generatingTitleIds, generateTitle } = useConversations();
+const { editingId, editText, startEditing, saveEdit, cancelEdit } = useTitleEdit();
 
 // Custom directive to auto-focus and select text when the input is mounted
 const vFocus = {
@@ -58,28 +56,6 @@ const vFocus = {
         el.select();
     }
 };
-
-function startEditing(conv: ConversationSummary) {
-    editingId.value = conv.id;
-    editText.value = conv.title || '';
-    // The v-focus directive will handle focusing and selecting automatically!
-}
-
-function saveEdit() {
-    if (editingId.value) {
-        // Only save if changed
-        const conv = conversations.value.find(c => c.id === editingId.value);
-        if (conv && (conv.title || '') !== editText.value.trim()) {
-            updateTitle(editingId.value, editText.value);
-        }
-        editingId.value = null;
-    }
-}
-
-function cancelEdit() {
-    editingId.value = null;
-    editText.value = '';
-}
 
 function handleNewChat() {
     if (props.isStreaming) return;
