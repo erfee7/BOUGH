@@ -36,6 +36,11 @@
                 </li>
             </ul>
         </div>
+        <div class="sidebar-footer">
+            <button class="library-btn" @click="emit('openPromptLibrary')">
+                ⚙️ Prompt Library
+            </button>
+        </div>
     </aside>
 </template>
 
@@ -45,6 +50,7 @@ import { useTitleEdit } from '../composables/useTitleEdit';
 import { ConversationSummary } from '../types';
 
 const props = defineProps<{ isStreaming: boolean }>();
+const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>(); // Add emit
 
 const { conversations, currentConversationId, selectConversation, generatingTitleIds, generateTitle } = useConversations();
 const { editingId, editText, startEditing, saveEdit, cancelEdit } = useTitleEdit();
@@ -218,5 +224,33 @@ li:hover .title-action-btn {
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+.sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid #1e293b;
+}
+
+.library-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    color: #cbd5e1;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.library-btn:hover {
+    background: #1e293b;
+    color: #f8fafc;
+    border-color: #475569;
 }
 </style>

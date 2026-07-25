@@ -4,7 +4,10 @@
         <InputArea 
             :modelValue="modelValue" 
             @update:modelValue="emit('update:modelValue', $event)"
+            :developerPrompt="developerPrompt"
+            @update:developerPrompt="emit('update:developerPrompt', $event)"
             @send="emit('send')"
+            @openLibrary="emit('openLibrary')"
             :isStreaming="isStreaming"
         />
     </div>
@@ -18,11 +21,15 @@ import { Message } from '../types';
 const props = defineProps<{ 
     messages: Message[], 
     modelValue: string, 
-    isStreaming: boolean 
+    isStreaming: boolean,
+    developerPrompt: string
 }>();
+
 const emit = defineEmits<{ 
     (e: 'update:modelValue', value: string): void, 
-    (e: 'send'): void 
+    (e: 'update:developerPrompt', value: string): void,
+    (e: 'send'): void,
+    (e: 'openLibrary'): void
 }>();
 </script>
 

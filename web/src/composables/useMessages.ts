@@ -46,17 +46,41 @@ export function useMessages() {
     }
 
     // 2. User sends a new message
-    async function sendMessage(content: string): Promise<string | null> {
+    async function sendMessage(content: string, developerContent: string | null = null): Promise<string | null> {
         if (!activeLeafId.value || isStreaming.value) return null;
         
         try {
-            // Step A: Append the user message
-            const response = await fetch(`/api/chat/messages/${activeLeafId.value}/append`, {
+            let currentParentId = activeLeafId.value;
+            
+            // Step A: If developer prompt exists, append it first
+            if (developerContent && developerContent.trim()) {
+                const devResponse = await fetch(`/api/chat/messages/${currentParentId}/append`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: developerContent, role: 'developer' })
+                });
+                if (!devResponse.ok) throw new Error('Failed to append developer message');
+                const devData = await devResponse.json();
+                const devMsgId = devData.message_id;
+                
+                messages.value.push({
+                    id: devMsgId,
+                    parent_id: currentParentId,
+                    role: 'developer',
+                    content: developerContent,
+                    status: 'complete',
+                    created_at: new Date().toISOString()
+                });
+                currentParentId = devMsgId;
+                activeLeafId.value = devMsgId;
+            }
+            
+            // Step B: Append the user message
+            const response = await fetch(`/api/chat/messages/${currentParentId}/append`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content, role: 'user' })
             });
-            
             if (!response.ok) throw new Error('Failed to append message');
             const data = await response.json();
             const newMsgId = data.message_id;
@@ -64,7 +88,7 @@ export function useMessages() {
             // Add the new user message to our local UI state immediately
             messages.value.push({
                 id: newMsgId,
-                parent_id: activeLeafId.value,
+                parent_id: currentParentId,
                 role: 'user',
                 content: content,
                 status: 'complete',
@@ -73,11 +97,10 @@ export function useMessages() {
             
             activeLeafId.value = newMsgId;
             
-            // Step B: Trigger generation
+            // Step C: Trigger generation
             await generateMessage(newMsgId);
             
             return newMsgId;
-            
         }
         catch (error) {
             console.error("Error sending message:", error);

@@ -1,5 +1,20 @@
 <template>
     <div class="input-area">
+        <div v-if="showDevPrompt" class="dev-prompt-panel">
+            <PromptSelector 
+                role="developer" 
+                :modelValue="developerPrompt" 
+                @update:modelValue="emit('update:developerPrompt', $event)"
+                @openLibrary="emit('openLibrary')"
+            />
+        </div>
+        
+        <div class="action-bar">
+            <button @click="showDevPrompt = !showDevPrompt" class="toggle-dev-btn" :class="{ 'active': showDevPrompt }" title="Toggle Developer Prompt">
+                &lt;/&gt;
+            </button>
+        </div>
+
         <div class="input-container">
             <textarea 
                 :value="modelValue" 
@@ -16,16 +31,60 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ modelValue: string, isStreaming: boolean }>();
+import { ref } from 'vue';
+import PromptSelector from './PromptSelector.vue';
+
+const props = defineProps<{ 
+    modelValue: string, 
+    isStreaming: boolean,
+    developerPrompt: string 
+}>();
+
 const emit = defineEmits<{ 
     (e: 'update:modelValue', value: string): void, 
-    (e: 'send'): void 
+    (e: 'update:developerPrompt', value: string): void,
+    (e: 'send'): void,
+    (e: 'openLibrary'): void 
 }>();
+
+const showDevPrompt = ref(false);
 </script>
 
 <style scoped>
 .input-area {
     padding: 20px 24px 32px;
+}
+
+.dev-prompt-panel {
+    margin-bottom: 12px;
+}
+
+.action-bar {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 8px;
+}
+
+.toggle-dev-btn {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.toggle-dev-btn:hover {
+    color: #f8fafc;
+    border-color: #475569;
+}
+
+.toggle-dev-btn.active {
+    background: #334155;
+    color: #3b82f6;
+    border-color: #3b82f6;
 }
 
 .input-container {

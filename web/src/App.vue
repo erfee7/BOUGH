@@ -1,12 +1,20 @@
 <template>
     <div class="app-layout">
-        <Sidebar :isStreaming="isStreaming" />
+        <Sidebar 
+            :isStreaming="isStreaming" 
+            @openPromptLibrary="isPromptLibraryVisible = true" 
+        />
         <main class="main-area">
             <NewChatArea 
                 v-if="!currentConversationId" 
                 :modelValue="inputText" 
                 @update:modelValue="inputText = $event"
+                :systemPrompt="systemPrompt"
+                @update:systemPrompt="systemPrompt = $event"
+                :developerPrompt="developerPrompt"
+                @update:developerPrompt="developerPrompt = $event"
                 @send="send"
+                @openLibrary="isPromptLibraryVisible = true"
                 :isStreaming="isStreaming"
             />
             <ChatArea 
@@ -14,10 +22,17 @@
                 :messages="messages" 
                 :modelValue="inputText" 
                 @update:modelValue="inputText = $event"
+                :developerPrompt="developerPrompt"
+                @update:developerPrompt="developerPrompt = $event"
                 @send="send"
+                @openLibrary="isPromptLibraryVisible = true"
                 :isStreaming="isStreaming"
             />
         </main>
+        <PromptLibraryModal 
+            :isVisible="isPromptLibraryVisible" 
+            @close="isPromptLibraryVisible = false" 
+        />
     </div>
 </template>
 
@@ -26,6 +41,7 @@ import { onMounted, watch } from 'vue';
 import Sidebar from './components/Sidebar.vue';
 import NewChatArea from './components/NewChatArea.vue';
 import ChatArea from './components/ChatArea.vue';
+import PromptLibraryModal from './components/PromptLibraryModal.vue';
 import { useChatEngine } from './composables/useChatEngine';
 
 const { 
@@ -33,6 +49,9 @@ const {
     messages, 
     isStreaming, 
     inputText, 
+    systemPrompt,
+    developerPrompt,
+    isPromptLibraryVisible,
     initialize, 
     handleNavigation, 
     send 
@@ -71,7 +90,7 @@ html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    background-color: #0f172a; /* Matches our dark theme */
-    overflow: hidden; /* Prevents the "shaking" bounce effect */
+    background-color: #0f172a;
+    overflow: hidden;
 }
 </style>
