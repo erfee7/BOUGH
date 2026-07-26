@@ -6,11 +6,10 @@ const isLoading = ref(false);
 
 export function usePrompts() {
     
-    async function fetchPrompts(role?: 'system' | 'developer') {
+    async function fetchPrompts() {
         isLoading.value = true;
         try {
-            const url = role ? `/api/chat/prompts?role=${role}` : '/api/chat/prompts';
-            const response = await fetch(url);
+            const response = await fetch('/api/chat/prompts');
             if (!response.ok) throw new Error('Failed to fetch prompts');
             prompts.value = await response.json();
         } catch (error) {

@@ -9,8 +9,11 @@ export function usePromptSelection(
 ) {
     const { prompts, fetchPrompts } = usePrompts();
 
+    // Fetch all prompts if the store is empty on mount
     onMounted(() => {
-        fetchPrompts(role);
+        if (prompts.value.length === 0) {
+            fetchPrompts();
+        }
     });
 
     const filteredPrompts = computed(() => {
