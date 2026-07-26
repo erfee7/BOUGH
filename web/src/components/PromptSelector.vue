@@ -1,23 +1,32 @@
 <template>
     <div class="prompt-selector">
         <div class="selector-header">
-            <select v-model="selectedPromptId" @change="onSelectChange" class="prompt-select">
-                <option value="">-- Custom --</option>
+            <select v-model="selectedMode" @change="onSelectChange" class="prompt-select">
+                <option value="none">No Prompt</option>
+                <option value="custom">Custom</option>
                 <option v-for="p in filteredPrompts" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>
             <button @click="emit('openLibrary')" class="manage-btn" title="Manage Prompts">⚙️</button>
         </div>
+        
+        <!-- Only show textarea if Custom is selected -->
         <textarea 
+            v-if="selectedMode === 'custom'"
             :value="modelValue" 
             @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
             class="prompt-textarea"
-            placeholder="Write a custom prompt or select one..."
+            placeholder="Write a custom prompt..."
         ></textarea>
+        
+        <!-- Show read-only preview if a preset is selected -->
+        <div v-else-if="selectedMode !== 'none'" class="prompt-preview">
+            {{ modelValue }}
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { usePrompts } from '../composables/usePrompts';
 import { Prompt } from '../types';
 
@@ -40,12 +49,26 @@ const filteredPrompts = computed(() => {
     return prompts.value.filter((p: Prompt) => p.role === props.role);
 });
 
-const selectedPromptId = ref<string>('');
+const selectedMode = ref<string>('none');
+
+// If parent clears the modelValue (e.g. after send), reset to 'none'
+watch(() => props.modelValue, (newVal) => {
+    if (!newVal && selectedMode.value !== 'custom') {
+        selectedMode.value = 'none';
+    }
+});
 
 function onSelectChange() {
-    const selected = filteredPrompts.value.find(p => p.id === selectedPromptId.value);
-    if (selected) {
-        emit('update:modelValue', selected.content);
+    if (selectedMode.value === 'none') {
+        emit('update:modelValue', '');
+    } else if (selectedMode.value === 'custom') {
+        // Emit empty string to let user start typing fresh
+        emit('update:modelValue', '');
+    } else {
+        const selected = filteredPrompts.value.find(p => p.id === selectedMode.value);
+        if (selected) {
+            emit('update:modelValue', selected.content);
+        }
     }
 }
 </script>
@@ -104,9 +127,25 @@ function onSelectChange() {
     min-height: 60px;
     max-height: 120px;
     outline: none;
+    box-sizing: border-box;
 }
 
 .prompt-textarea:focus {
     border-color: #3b82f6;
+}
+
+.prompt-preview {
+    width: 100%;
+    background: #1e293b;
+    color: #cbd5e1;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 13px;
+    min-height: 60px;
+    max-height: 120px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    box-sizing: border-box;
 }
 </style>

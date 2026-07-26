@@ -8,16 +8,16 @@
                 @update:modelValue="emit('update:systemPrompt', $event)"
                 @openLibrary="emit('openLibrary')"
             />
-            <InputArea 
-                :modelValue="modelValue" 
-                @update:modelValue="emit('update:modelValue', $event)"
-                :developerPrompt="developerPrompt"
-                @update:developerPrompt="emit('update:developerPrompt', $event)"
-                @send="emit('send')"
-                @openLibrary="emit('openLibrary')"
-                :isStreaming="isStreaming"
-            />
         </div>
+        <InputArea 
+            :modelValue="modelValue" 
+            @update:modelValue="emit('update:modelValue', $event)"
+            :developerPrompt="developerPrompt"
+            @update:developerPrompt="emit('update:developerPrompt', $event)"
+            @send="emit('send')"
+            @openLibrary="emit('openLibrary')"
+            :isStreaming="isStreaming"
+        />
     </div>
 </template>
 
@@ -29,7 +29,7 @@ const props = defineProps<{
     modelValue: string, 
     isStreaming: boolean,
     systemPrompt: string,
-    developerPrompt: string
+    developerPrompt: string 
 }>();
 
 const emit = defineEmits<{ 
@@ -43,16 +43,19 @@ const emit = defineEmits<{
 
 <style scoped>
 .welcome-container {
-    flex: 1;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    overflow-y: auto;
-}
-.welcome-content {
+    flex-direction: column;
+    height: 100%;
     width: 100%;
     max-width: 800px;
+    margin: 0 auto;
+}
+.welcome-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 24px 24px 0;
 }
 .welcome-content h2 {
     font-size: 20px;
