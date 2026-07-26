@@ -43,25 +43,30 @@ const emit = defineEmits<{
 
 <style scoped>
 .welcome-container {
-    display: flex;
-    flex-direction: column;
+    position: relative;
     height: 100%;
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
-}
-.welcome-content {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 24px 24px 0;
+    justify-content: flex-end; /* Keeps InputArea at the bottom */
 }
+
+.welcome-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 48px); /* 24px padding on each side to align with input area */
+    text-align: center;
+    box-sizing: border-box;
+}
+
 .welcome-content h2 {
     font-size: 20px;
     font-weight: 600;
     margin: 0 0 16px 0;
     color: #f8fafc;
-    text-align: center;
 }
 </style>

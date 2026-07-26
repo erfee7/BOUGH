@@ -9,17 +9,17 @@
             <button @click="emit('openLibrary')" class="manage-btn" title="Manage Prompts">⚙️</button>
         </div>
         
-        <!-- Only show textarea if Custom is selected -->
+        <!-- Textarea is always available for none/custom -->
         <textarea 
-            v-if="selectedMode === 'custom'"
+            v-if="selectedMode === 'none' || selectedMode === 'custom'"
             :value="modelValue" 
-            @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+            @input="handleInput"
             class="prompt-textarea"
-            placeholder="Write a custom prompt..."
+            :placeholder="placeholderText"
         ></textarea>
         
-        <!-- Show read-only preview if a preset is selected -->
-        <div v-else-if="selectedMode !== 'none'" class="prompt-preview">
+        <!-- Read-only preview for selected presets -->
+        <div v-else class="prompt-preview">
             {{ modelValue }}
         </div>
     </div>
@@ -51,7 +51,13 @@ const filteredPrompts = computed(() => {
 
 const selectedMode = ref<string>('none');
 
-// If parent clears the modelValue (e.g. after send), reset to 'none'
+const placeholderText = computed(() => {
+    return selectedMode.value === 'none' 
+        ? 'No prompt selected. Start typing to use a custom prompt...' 
+        : 'Write a custom prompt...';
+});
+
+// If parent clears the modelValue (e.g., after send), reset to 'none'
 watch(() => props.modelValue, (newVal) => {
     if (!newVal && selectedMode.value !== 'custom') {
         selectedMode.value = 'none';
@@ -62,14 +68,23 @@ function onSelectChange() {
     if (selectedMode.value === 'none') {
         emit('update:modelValue', '');
     } else if (selectedMode.value === 'custom') {
-        // Emit empty string to let user start typing fresh
-        emit('update:modelValue', '');
+        // Do nothing! Keep the existing modelValue so the user can edit the previous prompt.
+        return; 
     } else {
         const selected = filteredPrompts.value.find(p => p.id === selectedMode.value);
         if (selected) {
             emit('update:modelValue', selected.content);
         }
     }
+}
+
+function handleInput(event: Event) {
+    const value = (event.target as HTMLTextAreaElement).value;
+    // If user starts typing in 'none' mode, seamlessly switch to 'custom'
+    if (selectedMode.value === 'none' && value.length > 0) {
+        selectedMode.value = 'custom';
+    }
+    emit('update:modelValue', value);
 }
 </script>
 
@@ -147,5 +162,6 @@ function onSelectChange() {
     overflow-y: auto;
     white-space: pre-wrap;
     box-sizing: border-box;
+    text-align: left;
 }
 </style>
