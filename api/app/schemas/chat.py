@@ -1,13 +1,12 @@
 from pydantic import BaseModel, field_validator
-from typing import Optional
 from datetime import datetime
 import uuid
 
 # --- Request Models ---
 
 class ConversationCreateRequest(BaseModel):
-    title: Optional[str] = None
-    system_prompt: Optional[str] = None
+    title: str | None = None
+    system_prompt: str | None = None
 
 class ConversationPatchRequest(BaseModel):
     title: str | None = None
@@ -30,30 +29,51 @@ class TitleGenerateRequest(BaseModel):
 
 class MessageAppendRequest(BaseModel):
     content: str
-    role: Optional[str] = None
-    creation_data: Optional[dict] = None
+    role: str | None = None
+    creation_data: dict | None = None
 
 class MessageGenerateRequest(BaseModel):
-    model: Optional[str] = None
-    parameters: Optional[dict] = None
+    model: str | None = None
+    parameters: dict | None = None
+
+class PromptCreateRequest(BaseModel):
+    name: str
+    content: str
+    role: str
+    description: str | None = None
+
+class PromptUpdateRequest(BaseModel):
+    name: str | None = None
+    content: str | None = None
+    role: str | None = None
+    description: str | None = None
 
 # --- Response Models ---
 
 class MessageResponse(BaseModel):
     id: uuid.UUID
-    parent_id: Optional[uuid.UUID] = None
+    parent_id: uuid.UUID | None = None
     role: str
-    content: Optional[str] = None
+    content: str | None = None
     status: str
-    creation_data: Optional[dict] = None
-    metadata: Optional[dict]= None
+    creation_data: dict | None = None
+    metadata: dict | None = None
     created_at: datetime
 
 class ConversationResponse(BaseModel):
     id: uuid.UUID
-    title: Optional[str] = None
-    active_leaf_id: Optional[uuid.UUID] = None
+    title: str | None = None
+    active_leaf_id: uuid.UUID | None = None
     created_at: datetime
+
+class PromptResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    content: str
+    role: str
+    description: str | None = None
+    created_at: datetime
+    updated_at: datetime
 
 class ConversationCreateRequestResponse(BaseModel):
     conversation: ConversationResponse

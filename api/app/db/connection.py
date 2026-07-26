@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import asyncpg
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -78,3 +79,18 @@ def get_pool() -> asyncpg.Pool:
     if _pool is None:
         raise RuntimeError("Database pool is not initialized. Call init_pool() first.")
     return _pool
+
+def with_connection(func):
+    """Decorator that handles connection acquisition for DB functions."""
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        # Extract conn from kwargs if present
+        conn = kwargs.pop('conn', None)
+
+        if conn:
+            return await func(conn=conn, *args, **kwargs)
+        
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            return await func(conn=conn, *args, **kwargs)
+    return wrapper

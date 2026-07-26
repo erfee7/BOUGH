@@ -1,63 +1,36 @@
 import logging
 import uuid
 import asyncpg
-from app.db.connection import get_pool
+from app.db.connection import with_connection
 
 logger = logging.getLogger(__name__)
 
+@with_connection
 async def create_conversation(title: str | None, conn: asyncpg.Connection | None = None) -> uuid.UUID:
     """Creates a new conversation in the database."""
-    if conn:
-        return await _create_conversation(conn, title)
-    
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        return await _create_conversation(conn, title)
-
-async def _create_conversation(conn: asyncpg.Connection, title: str | None) -> uuid.UUID:
     query = "INSERT INTO conversations (title) VALUES ($1) RETURNING id;"
     row = await conn.fetchrow(query, title)
     logger.info("Created new conversation with ID: %s", row['id'])
     return row['id']
 
+@with_connection
 async def fetch_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> dict | None:
     """Fetches a single conversation by its ID."""
-    if conn:
-        return await _fetch_conversation(conn, conversation_id)
-    
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        return await _fetch_conversation(conn, conversation_id)
-
-async def _fetch_conversation(conn: asyncpg.Connection, conversation_id: uuid.UUID) -> dict | None:
     query = "SELECT id, title, active_leaf_id, created_at FROM conversations WHERE id = $1;"
     record = await conn.fetchrow(query, conversation_id)
     return dict(record) if record else None
 
+@with_connection
 async def fetch_all_conversations(conn: asyncpg.Connection | None = None) -> list[dict]:
     """Fetches all conversations, ordered by newest first."""
-    if conn:
-        return await _fetch_all_conversations(conn)
-    
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        return await _fetch_all_conversations(conn)
-
-async def _fetch_all_conversations(conn: asyncpg.Connection) -> list[dict]:
     query = "SELECT id, title, created_at FROM conversations ORDER BY created_at DESC;"
     records = await conn.fetch(query)
     return [dict(r) for r in records]
 
+@with_connection
 async def update_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None, **kwargs) -> None:
     """Updates a conversation. Pass columns to update as keyword arguments (e.g., title='New')."""
-    if conn:
-        return await _update_conversation(conn, conversation_id, kwargs)
-    
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        return await _update_conversation(conn, conversation_id, kwargs)
-
-async def _update_conversation(conn: asyncpg.Connection, conversation_id: uuid.UUID, updates: dict) -> None:
+    updates = kwargs
     if not updates:
         logger.warning("update_conversation called with no columns to update for ID: %s", conversation_id)
         return
@@ -82,16 +55,9 @@ async def _update_conversation(conn: asyncpg.Connection, conversation_id: uuid.U
     await conn.execute(query, *args)
     logger.info("Updated conversation ID: %s with fields: %s", conversation_id, list(updates.keys()))
 
+@with_connection
 async def delete_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> None:
     """Deletes a conversation and all its messages (via ON DELETE CASCADE)."""
-    if conn:
-        return await _delete_conversation(conn, conversation_id)
-    
-    pool = get_pool()
-    async with pool.acquire() as conn:
-        return await _delete_conversation(conn, conversation_id)
-
-async def _delete_conversation(conn: asyncpg.Connection, conversation_id: uuid.UUID) -> None:
     query = "DELETE FROM conversations WHERE id = $1;"
     await conn.execute(query, conversation_id)
     logger.info("Deleted conversation with ID: %s", conversation_id)

@@ -72,18 +72,18 @@ async def get_conversation(conversation_id: uuid.UUID):
     if not conv_record:
         raise HTTPException(status_code = 404, detail = "Conversation not found")
         
-    message_records = await db_messages.fetch_conversation_messages(conversation_id)
+    msg_records = await db_messages.fetch_conversation_messages(conversation_id)
       
     return ConversationDetailResponse(
         conversation = ConversationResponse.model_validate(conv_record),
-        messages = [MessageResponse.model_validate(msg) for msg in message_records]
+        messages = [MessageResponse.model_validate(msg) for msg in msg_records]
     )
 
 @router.patch("/conversations/{conversation_id}", response_model = ConversationResponse)
-async def patch_conversation(conversation_id: uuid.UUID, payload: ConversationPatchRequest):
+async def update_conversation(conversation_id: uuid.UUID, payload: ConversationPatchRequest):
     """Updates the information of a conversation."""
-    conv = await db_conversations.fetch_conversation(conversation_id)
-    if not conv:
+    record = await db_conversations.fetch_conversation(conversation_id)
+    if not record:
         raise HTTPException(status_code=404, detail="Conversation not found")
     
     # Extract only the fields that were actually provided in the request
@@ -100,8 +100,8 @@ async def patch_conversation(conversation_id: uuid.UUID, payload: ConversationPa
 @router.post("/conversations/{conversation_id}/generate-title", response_model=ConversationResponse)
 async def generate_conversation_title(conversation_id: uuid.UUID, payload: TitleGenerateRequest):
     """Triggers LLM title generation for a conversation."""
-    conv = await db_conversations.fetch_conversation(conversation_id)
-    if not conv:
+    record = await db_conversations.fetch_conversation(conversation_id)
+    if not record:
         raise HTTPException(status_code=404, detail="Conversation not found")
         
     new_title = await titler.generate_title(conversation_id, force=payload.force)

@@ -16,10 +16,19 @@ export interface Message {
     created_at: string;
 }
 
-// We can also type the SSE events here for clarity
 export interface StreamEvent {
     type: 'token' | 'catch_up' | 'done' | 'error';
     content?: string;
     metadata?: any;
     error_data?: any;
+}
+
+export interface Prompt {
+    id: string;
+    name: string;
+    content: string;
+    role: 'system' | 'developer';
+    description: string | null;
+    created_at: string;
+    updated_at: string;
 }
