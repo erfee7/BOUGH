@@ -26,9 +26,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
-import { usePrompts } from '../composables/usePrompts';
-import { Prompt } from '../types';
+import { toRef } from 'vue';
+import { usePromptSelection } from '../composables/usePromptSelection';
 
 const props = defineProps<{ 
     role: 'system' | 'developer', 
@@ -39,53 +38,14 @@ const emit = defineEmits<{
     (e: 'openLibrary'): void 
 }>();
 
-const { prompts, fetchPrompts } = usePrompts();
+const modelValueRef = toRef(props, 'modelValue');
+const updateModelValue = (val: string) => emit('update:modelValue', val);
 
-onMounted(() => {
-    fetchPrompts(props.role);
-});
-
-const filteredPrompts = computed(() => {
-    return prompts.value.filter((p: Prompt) => p.role === props.role);
-});
-
-const selectedMode = ref<string>('none');
-
-const placeholderText = computed(() => {
-    return selectedMode.value === 'none' 
-        ? 'No prompt selected. Start typing to use a custom prompt...' 
-        : 'Write a custom prompt...';
-});
-
-// If parent clears the modelValue (e.g., after send), reset to 'none'
-watch(() => props.modelValue, (newVal) => {
-    if (!newVal && selectedMode.value !== 'custom') {
-        selectedMode.value = 'none';
-    }
-});
-
-function onSelectChange() {
-    if (selectedMode.value === 'none') {
-        emit('update:modelValue', '');
-    } else if (selectedMode.value === 'custom') {
-        // Do nothing! Keep the existing modelValue so the user can edit the previous prompt.
-        return; 
-    } else {
-        const selected = filteredPrompts.value.find(p => p.id === selectedMode.value);
-        if (selected) {
-            emit('update:modelValue', selected.content);
-        }
-    }
-}
-
-function handleInput(event: Event) {
-    const value = (event.target as HTMLTextAreaElement).value;
-    // If user starts typing in 'none' mode, seamlessly switch to 'custom'
-    if (selectedMode.value === 'none' && value.length > 0) {
-        selectedMode.value = 'custom';
-    }
-    emit('update:modelValue', value);
-}
+const { filteredPrompts, selectedMode, placeholderText, onSelectChange, handleInput } = usePromptSelection(
+    props.role, 
+    modelValueRef, 
+    updateModelValue
+);
 </script>
 
 <style scoped>

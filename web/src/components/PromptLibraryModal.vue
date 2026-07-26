@@ -51,59 +51,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { usePrompts } from '../composables/usePrompts';
-import { Prompt } from '../types';
+import { toRef } from 'vue';
+import { usePromptLibrary } from '../composables/usePromptLibrary';
 
 const props = defineProps<{ isVisible: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void }>();
 
-const { prompts, fetchPrompts, createPrompt, updatePrompt, deletePrompt } = usePrompts();
-
-const newPrompt = ref({
-    name: '',
-    role: 'system' as 'system' | 'developer',
-    content: '',
-    description: ''
-});
-
-const editingId = ref<string | null>(null);
-const editData = ref({
-    name: '',
-    content: '',
-    description: ''
-});
-
-watch(() => props.isVisible, (visible) => {
-    if (visible) {
-        fetchPrompts();
-    }
-});
-
-async function handleCreate() {
-    if (!newPrompt.value.name || !newPrompt.value.content) return;
-    await createPrompt(newPrompt.value);
-    newPrompt.value = { name: '', role: 'system', content: '', description: '' };
-}
-
-function startEditing(p: Prompt) {
-    editingId.value = p.id;
-    editData.value = { name: p.name, content: p.content, description: p.description || '' };
-}
-
-function cancelEdit() {
-    editingId.value = null;
-}
-
-async function handleUpdate() {
-    if (!editingId.value) return;
-    await updatePrompt(editingId.value, editData.value);
-    editingId.value = null;
-}
-
-async function handleDelete(id: string) {
-    await deletePrompt(id);
-}
+const isVisibleRef = toRef(props, 'isVisible');
+const { 
+    prompts, 
+    newPrompt, 
+    editingId, 
+    editData, 
+    handleCreate, 
+    startEditing, 
+    cancelEdit, 
+    handleUpdate, 
+    handleDelete 
+} = usePromptLibrary(isVisibleRef);
 </script>
 
 <style scoped>
