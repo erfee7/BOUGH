@@ -14,7 +14,7 @@
                     :modelValue="message.content" 
                     theme="dark" 
                     :previewTheme="'github'" 
-                    :codeTheme="'tokyo-night'" 
+                    :codeTheme="'github'" 
                     class="markdown-content"
                 />
                 <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
@@ -162,6 +162,14 @@ defineProps<{ message: Message }>();
 .user-role .markdown-content :deep(a) {
     color: #f8fafc;
     text-decoration: underline;
+}
+
+/* Fix md-editor-v3's aggressive word-breaking */
+.markdown-content :deep(p),
+.markdown-content :deep(li),
+.markdown-content :deep(.md-editor-preview) {
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
 }
 
 /* Code Block Traffic Light Replacement */
