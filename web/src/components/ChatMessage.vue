@@ -1,22 +1,27 @@
 <template>
     <div class="message-tile" :class="{ 'user-role': message.role === 'user', 'assistant-role': message.role === 'assistant', 'error': message.status === 'error' }">
-        <div class="message-header">
-            <span class="role-label">{{ message.role === 'user' ? 'You' : 'Assistant' }}</span>
+        <div class="avatar">
+            <svg v-if="message.role === 'user'" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2l2.5 7L22 12l-7.5 3L12 22l-2.5-7L2 12l7.5-3z"></path></svg>
         </div>
-        <div class="message-content">
-            <MdPreview 
-                v-if="message.content"
-                :modelValue="message.content" 
-                theme="dark" 
-                :previewTheme="'github'" 
-                :codeTheme="'atom'"
-                :language="'en-US'"
-                class="markdown-content"
-            />
-            <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
-            <span v-else>Empty</span>
-            
-            <span v-if="message.status === 'streaming'" class="cursor">▋</span>
+        <div class="message-body">
+            <div class="message-header">
+                <span class="role-label">{{ message.role === 'user' ? 'User' : 'Assistant' }}</span>
+            </div>
+            <div class="message-content">
+                <MdPreview 
+                    v-if="message.content"
+                    :modelValue="message.content" 
+                    theme="dark" 
+                    :previewTheme="'github'" 
+                    :codeTheme="'tokyo-night'" 
+                    class="markdown-content"
+                />
+                <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
+                <span v-else>Empty</span>
+                
+                <span v-if="message.status === 'streaming'" class="cursor">▋</span>
+            </div>
         </div>
     </div>
 </template>
@@ -30,14 +35,48 @@ defineProps<{ message: Message }>();
 
 <style scoped>
 .message-tile {
+    display: flex;
+    gap: 16px;
     margin: 24px 0;
     padding: 16px 0;
     border-top: 1px solid #1e293b;
+    
+    /* Expand into the left margin, then pad the text back to its original spot */
+    margin-left: -52px; 
+    padding-left: 52px;
 }
 
 .message-tile:first-child {
     border-top: none;
     margin-top: 0;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 4px; /* Align roughly with the header text */
+    background: #1e293b;
+    border: 1px solid #334155;
+}
+
+.user-role .avatar {
+    color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.assistant-role .avatar {
+    color: #10b981;
+    border-color: #10b981;
+}
+
+.message-body {
+    flex: 1;
+    min-width: 0; /* Prevents markdown content from overflowing */
 }
 
 .message-header {
@@ -54,7 +93,7 @@ defineProps<{ message: Message }>();
 }
 
 .assistant-role .message-header {
-    color: #10b981; /* Emerald green for AI */
+    color: #10b981;
 }
 
 .message-content {
@@ -81,6 +120,14 @@ defineProps<{ message: Message }>();
 @keyframes blink {
     0%, 100% { opacity: 0; }
     50% { opacity: 1; }
+}
+
+/* Responsive: On small screens, remove the negative margin so it doesn't overflow */
+@media (max-width: 1024px) {
+    .message-tile {
+        margin-left: 0;
+        padding-left: 0;
+    }
 }
 
 /* Markdown Overrides */

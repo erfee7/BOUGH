@@ -55,7 +55,7 @@ const showDevPrompt = ref(false);
 
 <style scoped>
 .input-area {
-    padding: 20px 5% 32px;
+    padding: 20px 2% 32px;
 }
 
 @media (max-width: 1024px) {
