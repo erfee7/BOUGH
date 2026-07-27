@@ -55,6 +55,7 @@ class MessageResponse(BaseModel):
     parent_id: uuid.UUID | None = None
     role: str
     content: str | None = None
+    reasoning: str | None = None
     status: str
     creation_data: dict | None = None
     metadata: dict | None = None
