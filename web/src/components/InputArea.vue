@@ -55,7 +55,13 @@ const showDevPrompt = ref(false);
 
 <style scoped>
 .input-area {
-    padding: 20px 24px 32px;
+    padding: 20px 5% 32px;
+}
+
+@media (max-width: 1024px) {
+    .input-area {
+        padding: 20px 16px 32px;
+    }
 }
 
 .dev-prompt-panel {
@@ -77,6 +83,8 @@ const showDevPrompt = ref(false);
     cursor: pointer;
     font-size: 14px;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
 }
 
 .toggle-dev-btn:hover {

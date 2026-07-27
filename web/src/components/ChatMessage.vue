@@ -1,6 +1,9 @@
 <template>
-    <div class="message-row" :class="{ 'user-role': message.role === 'user', 'assistant-role': message.role === 'assistant' }">
-        <div class="message-bubble" :class="{ 'streaming': message.status === 'streaming', 'error': message.status === 'error' }">
+    <div class="message-tile" :class="{ 'user-role': message.role === 'user', 'assistant-role': message.role === 'assistant', 'error': message.status === 'error' }">
+        <div class="message-header">
+            <span class="role-label">{{ message.role === 'user' ? 'You' : 'Assistant' }}</span>
+        </div>
+        <div class="message-content">
             <MdPreview 
                 v-if="message.content"
                 :modelValue="message.content" 
@@ -26,54 +29,42 @@ defineProps<{ message: Message }>();
 </script>
 
 <style scoped>
-.message-row {
-    display: flex;
-    margin: 16px 0;
-    width: 100%;
-    animation: fadeIn 0.3s ease;
+.message-tile {
+    margin: 24px 0;
+    padding: 16px 0;
+    border-top: 1px solid #1e293b;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+.message-tile:first-child {
+    border-top: none;
+    margin-top: 0;
 }
 
-.user-role {
-    justify-content: flex-end;
+.message-header {
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.assistant-role {
-    justify-content: flex-start;
+.user-role .message-header {
+    color: #3b82f6;
 }
 
-.message-bubble {
-    max-width: 75%;
-    padding: 12px 16px;
-    border-radius: 16px;
+.assistant-role .message-header {
+    color: #10b981; /* Emerald green for AI */
+}
+
+.message-content {
     font-size: 15px;
     line-height: 1.6;
-    /* white-space: pre-wrap; */
-    /* word-wrap: break-word; */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.user-role .message-bubble {
-    background: #3b82f6;
-    color: white;
-    border-bottom-right-radius: 4px;
-}
-
-.assistant-role .message-bubble {
-    background: #1e293b;
     color: #f8fafc;
-    border: 1px solid #334155;
-    border-bottom-left-radius: 4px;
 }
 
-.message-bubble.error {
-    background: #450a0a;
+.message-tile.error .message-content {
     color: #fca5a5;
-    border: 1px solid #7f1d1d;
 }
 
 .placeholder {
@@ -92,7 +83,7 @@ defineProps<{ message: Message }>();
     50% { opacity: 1; }
 }
 
-/* Override default md-editor-v3 styles to fit our chat bubble */
+/* Markdown Overrides */
 .markdown-content {
     background: transparent !important;
     font-size: inherit !important;
@@ -104,7 +95,6 @@ defineProps<{ message: Message }>();
     background: transparent !important;
 }
 
-/* Force light text for dark theme compatibility */
 .markdown-content :deep(p),
 .markdown-content :deep(li),
 .markdown-content :deep(h1),
@@ -127,12 +117,11 @@ defineProps<{ message: Message }>();
     text-decoration: underline;
 }
 
-/* Hide the three traffic light dots, but keep the space they occupy */
+/* Code Block Traffic Light Replacement */
 .markdown-content :deep(.md-editor-code-flag span) {
     display: none !important;
 }
 
-/* Inject a replacement symbol into the flag's space */
 .markdown-content :deep(.md-editor-code-flag::after) {
     content: '</>';
     color: #64748b;

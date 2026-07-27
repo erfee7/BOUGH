@@ -46,7 +46,6 @@ const emit = defineEmits<{
     position: relative;
     height: 100%;
     width: 100%;
-    max-width: 800px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -58,7 +57,8 @@ const emit = defineEmits<{
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: calc(100% - 48px); /* 24px padding on each side to align with input area */
+    width: calc(90% - 48px); /* Matches input area responsive padding roughly */
+    max-width: 800px;
     text-align: center;
     box-sizing: border-box;
 }
