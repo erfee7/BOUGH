@@ -121,8 +121,10 @@ async def test_generate_message_parent_not_found(mock_pool):
 async def test_stream_message_endpoint_complete():
     """Tests GET /api/chat/messages/{id}/stream when message is already complete."""
     finished_msg = "Assistant response"
+    finished_reasoning = "Thought process"
     mock_msg = {
         'id': uuid.uuid4(), 'status': 'complete', 'content': finished_msg,
+        'reasoning': finished_reasoning,
         'metadata': {'tokens': 5}, 'error_data': None
     }
     with patch('app.routers.messages.db_messages.fetch_message', new_callable=AsyncMock, return_value=mock_msg):
@@ -135,7 +137,7 @@ async def test_stream_message_endpoint_complete():
             # Parse the SSE chunks
             lines = response.text.strip().split("\n\n")
             assert len(lines) == 2
-            assert lines[0] == f'data: {json.dumps({"type": "done", "content": finished_msg, "metadata": {"tokens": 5}})}'
+            assert lines[0] == f'data: {json.dumps({"type": "done", "content": finished_msg, "reasoning": finished_reasoning, "metadata": {"tokens": 5}})}'
             assert lines[1] == "data: [DONE]"
 
 @pytest.mark.asyncio
@@ -143,11 +145,13 @@ async def test_stream_message_endpoint_live():
     """Tests GET /api/chat/messages/{id}/stream during live generation."""
     mock_msg = {
         'id': uuid.uuid4(), 'status': 'streaming', 'content': None,
+        'reasoning': None,
         'metadata': None, 'error_data': None
     }
     
-    # Mock the stream manager to yield one token then done
+    # Mock the stream manager to yield reasoning, token, then done
     async def mock_get_stream(msg_id):
+        yield {"type": "reasoning", "content": "Think"}
         yield {"type": "token", "content": "Live"}
         yield {"type": "done", "metadata": {"tokens": 1}}
 
@@ -158,10 +162,11 @@ async def test_stream_message_endpoint_live():
                 
                 assert response.status_code == 200
                 lines = response.text.strip().split("\n\n")
-                assert len(lines) == 3
-                assert lines[0] == f'data: {json.dumps({"type": "token", "content": "Live"})}'
-                assert lines[1] == f'data: {json.dumps({"type": "done", "metadata": {"tokens": 1}})}'
-                assert lines[2] == "data: [DONE]"
+                assert len(lines) == 4
+                assert lines[0] == f'data: {json.dumps({"type": "reasoning", "content": "Think"})}'
+                assert lines[1] == f'data: {json.dumps({"type": "token", "content": "Live"})}'
+                assert lines[2] == f'data: {json.dumps({"type": "done", "metadata": {"tokens": 1}})}'
+                assert lines[3] == "data: [DONE]"
 
 @pytest.mark.asyncio
 async def test_stream_message_not_found(mock_pool):
