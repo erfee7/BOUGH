@@ -11,23 +11,24 @@ async def create_message(
     role: str, 
     parent_id: uuid.UUID | None = None, 
     content: str | None = None, 
+    reasoning: str | None = None,
     status: str = 'pending',
     creation_data: dict | None = None,
     conn: asyncpg.Connection | None = None
 ) -> uuid.UUID:
     """Creates a new message in the database."""
     query = """
-        INSERT INTO messages (conversation_id, role, parent_id, content, status, creation_data) 
-        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;
+        INSERT INTO messages (conversation_id, role, parent_id, content, reasoning, status, creation_data) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;
     """
-    row = await conn.fetchrow(query, conversation_id, role, parent_id, content, status, creation_data)
+    row = await conn.fetchrow(query, conversation_id, role, parent_id, content, reasoning, status, creation_data)
     logger.info("Created new message with ID: %s (Role: %s)", row['id'], role)
     return row['id']
 
 @with_connection
 async def fetch_message(message_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> dict | None:
     """Fetches a single message by its ID."""
-    query = "SELECT id, conversation_id, role, parent_id, content, status, error_data, metadata, creation_data, created_at FROM messages WHERE id = $1;"
+    query = "SELECT id, conversation_id, role, parent_id, content, reasoning, status, error_data, metadata, creation_data, created_at FROM messages WHERE id = $1;"
     record = await conn.fetchrow(query, message_id)
     return dict(record) if record else None
 
@@ -39,7 +40,7 @@ async def update_message(message_id: uuid.UUID, conn: asyncpg.Connection | None 
         logger.warning("update_message called with no columns to update for ID: %s", message_id)
         return
     
-    valid_columns = {"parent_id", "role", "content", "status", "error_data", "metadata", "creation_data"}
+    valid_columns = {"parent_id", "role", "content", "reasoning", "status", "error_data", "metadata", "creation_data"}
     set_clauses = []
     args = []
     idx = 1
@@ -75,15 +76,15 @@ async def fetch_message_history(message_id: uuid.UUID, conn: asyncpg.Connection 
     # Recursive CTE to walk up the parent_id chain tracking depth
     query = """
         WITH RECURSIVE history AS (
-            SELECT id, conversation_id, role, parent_id, content, status, error_data, metadata, creation_data, created_at, 1 as depth
+            SELECT id, conversation_id, role, parent_id, content, reasoning, status, error_data, metadata, creation_data, created_at, 1 as depth
             FROM messages
             WHERE id = $1
             UNION ALL
-            SELECT m.id, m.conversation_id, m.role, m.parent_id, m.content, m.status, m.error_data, m.metadata, m.creation_data, m.created_at, h.depth + 1
+            SELECT m.id, m.conversation_id, m.role, m.parent_id, m.content, m.reasoning, m.status, m.error_data, m.metadata, m.creation_data, m.created_at, h.depth + 1
             FROM messages m
             JOIN history h ON m.id = h.parent_id
         )
-        SELECT id, role, content, status, error_data, metadata, creation_data, created_at FROM history ORDER BY depth DESC;
+        SELECT id, role, content, reasoning, status, error_data, metadata, creation_data, created_at FROM history ORDER BY depth DESC;
     """
     records = await conn.fetch(query, message_id)
     logger.info("Fetched history for message ID: %s (Length: %d)", message_id, len(records))
@@ -93,7 +94,7 @@ async def fetch_message_history(message_id: uuid.UUID, conn: asyncpg.Connection 
 async def fetch_conversation_messages(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> list[dict]:
     """Fetches all messages for a conversation as a flat list, ordered by creation time."""
     query = """
-        SELECT id, conversation_id, role, parent_id, content, status, error_data, metadata, creation_data, created_at 
+        SELECT id, conversation_id, role, parent_id, content, reasoning, status, error_data, metadata, creation_data, created_at 
         FROM messages 
         WHERE conversation_id = $1 
         ORDER BY created_at ASC;

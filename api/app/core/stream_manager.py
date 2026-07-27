@@ -14,6 +14,7 @@ class StreamState:
     """Holds the in-memory state of an active LLM generation."""
     message_id: uuid.UUID
     accumulated_content: str = ""
+    accumulated_reasoning: str = ""
     is_finished: bool = False
     clients: list[asyncio.Queue] = field(default_factory = list)
 
@@ -48,13 +49,18 @@ async def get_stream(message_id: uuid.UUID) -> AsyncGenerator[dict[str, Any], No
     # No 'await' exists here. The event loop cannot switch to the worker 
     # between reading accumulated content and registering the queue.
     catch_up_content = state.accumulated_content
+    catch_up_reasoning = state.accumulated_reasoning
     queue: asyncio.Queue = asyncio.Queue()
     state.clients.append(queue)
     # --- ATOMIC BLOCK END ---
 
-    # 1. Yield accumulated content as a single chunk if any exists
-    if catch_up_content:
-        yield {"type": "catch_up", "content": catch_up_content}
+    # 1. Yield accumulated content and reasoning as a single chunk if any exists
+    if catch_up_content or catch_up_reasoning:
+        yield {
+            "type": "catch_up", 
+            "content": catch_up_content,
+            "reasoning": catch_up_reasoning
+        }
 
     # 2. listen for live tokens
     while True:
@@ -84,6 +90,15 @@ async def _run_generation(message_id: uuid.UUID, messages_history: list, state: 
                 for q in state.clients:
                     q.put_nowait(event)
                 # --- ATOMIC BLOCK END ---
+
+            elif event_type == "reasoning":
+                content = event.get("content", "")
+                
+                # --- ATOMIC BLOCK START ---
+                state.accumulated_reasoning += content
+                for q in state.clients:
+                    q.put_nowait(event)
+                # --- ATOMIC BLOCK END ---
                     
             elif event_type == "done":
                 metadata = event.get("metadata", {})
@@ -91,6 +106,7 @@ async def _run_generation(message_id: uuid.UUID, messages_history: list, state: 
                     message_id, 
                     status = 'complete', 
                     content = state.accumulated_content, 
+                    reasoning = state.accumulated_reasoning,
                     metadata = metadata
                 )
                 state.is_finished = True
@@ -105,6 +121,7 @@ async def _run_generation(message_id: uuid.UUID, messages_history: list, state: 
                     message_id, 
                     status = 'error', 
                     content = state.accumulated_content, 
+                    reasoning = state.accumulated_reasoning,
                     error_data = error_data
                 )
                 state.is_finished = True
@@ -119,6 +136,7 @@ async def _run_generation(message_id: uuid.UUID, messages_history: list, state: 
             message_id, 
             status = 'error', 
             content = state.accumulated_content, 
+            reasoning = state.accumulated_reasoning,
             error_data = {"message": str(e), "type": type(e).__name__}
         )
         for q in state.clients:

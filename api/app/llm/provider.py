@@ -60,6 +60,7 @@ async def generate_stream(
     
     Yields:
         {"type": "token", "content": "..."} for text chunks.
+        {"type": "reasoning", "content": "..."} for reasoning chunks.
         {"type": "done", "metadata": {...}} at the end of the stream.
         {"type": "error", "error_data": {...}} if an exception occurs.
     """
@@ -81,13 +82,6 @@ async def generate_stream(
         )
         
         async for chunk in stream:
-            # Extract text token if it exists
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield {
-                    "type": "token", 
-                    "content": chunk.choices[0].delta.content
-                }
-            
             # Extract usage metadata if it exists (final chunk)
             if chunk.usage:
                 # Convert pydantic model to dict for easy JSON serialization later
@@ -95,6 +89,18 @@ async def generate_stream(
                     "type": "done", 
                     "metadata": chunk.usage.model_dump()
                 }
+            
+            # Extract text token if it exists
+            if chunk.choices and chunk.choices[0].delta:
+                # Use model_dump() to capture non-standard fields like 'reasoning'
+                delta_dict = chunk.choices[0].delta.model_dump()
+                content = delta_dict.get('content')
+                reasoning = delta_dict.get('reasoning') or delta_dict.get('reasoning_content')
+                
+                if content:
+                    yield {"type": "token", "content": content}
+                if reasoning:
+                    yield {"type": "reasoning", "content": reasoning}
                 
     except Exception as e:
         # Catching generic Exception to ensure the background task doesn't die abruptly

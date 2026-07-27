@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS messages (
     role TEXT NOT NULL CHECK (role IN ('system', 'developer', 'user', 'assistant', 'tool')),
     parent_id UUID REFERENCES messages(id) ON DELETE CASCADE, -- Nullable, null means it's a root message
     content TEXT,
+    reasoning TEXT, -- Stores the reasoning/thinking process from LLMs
     status TEXT NOT NULL CHECK (status IN ('pending', 'streaming', 'complete', 'error')),
     error_data JSONB,   -- Stores raw provider error if status = 'error'
     metadata JSONB,     -- Stores generation stats/costs if status = 'complete'

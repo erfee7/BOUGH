@@ -9,6 +9,7 @@ export interface Message {
     parent_id: string | null;
     role: 'system' | 'developer' | 'user' | 'assistant';
     content: string | null;
+    reasoning?: string | null;
     status: 'pending' | 'streaming' | 'complete' | 'error';
     creation_data?: any;
     error_data?: any;
@@ -17,8 +18,9 @@ export interface Message {
 }
 
 export interface StreamEvent {
-    type: 'token' | 'catch_up' | 'done' | 'error';
+    type: 'token' | 'reasoning' | 'catch_up' | 'done' | 'error';
     content?: string;
+    reasoning?: string | null;
     metadata?: any;
     error_data?: any;
 }

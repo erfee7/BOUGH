@@ -105,12 +105,12 @@ async def stream_message(message_id: uuid.UUID):
     
     async def event_generator():
         if msg['status'] == 'complete':
-            yield _format_sse({"type": "done", "content": msg['content'], "metadata": msg['metadata']})
+            yield _format_sse({"type": "done", "content": msg['content'], "reasoning": msg['reasoning'], "metadata": msg['metadata']})
             yield "data: [DONE]\n\n"
             return
             
         if msg['status'] == 'error':
-            yield _format_sse({"type": "error", "content": msg['content'], "error_data": msg['error_data']})
+            yield _format_sse({"type": "error", "content": msg['content'], "reasoning": msg['reasoning'], "error_data": msg['error_data']})
             yield "data: [DONE]\n\n"
             return
         
