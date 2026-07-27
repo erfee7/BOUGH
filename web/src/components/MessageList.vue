@@ -32,9 +32,15 @@ watch(() => props.messages, async () => {
 .messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: 24px 2%; /* Wider responsive padding */
     scrollbar-width: thin;
     scrollbar-color: #334155 transparent;
+}
+
+@media (max-width: 1024px) {
+    .messages-container {
+        padding: 24px 16px; /* Tighter on small screens */
+    }
 }
 
 .messages-container::-webkit-scrollbar {
