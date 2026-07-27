@@ -17,17 +17,19 @@ async def test_create_and_fetch_message(db_transaction: asyncpg.Connection):
     assert result['id'] == message_id
     assert result['role'] == "user"
     assert result['content'] == "I need a Bough"
+    assert result['reasoning'] is None  # Should be None if not provided
 
 @pytest.mark.asyncio
 async def test_update_message(db_transaction: asyncpg.Connection):
-    """Tests updating message content and status."""
+    """Tests updating message content, reasoning, and status."""
     conversation_id = await create_conversation(title="Test", conn=db_transaction)
     message_id = await create_message(conversation_id=conversation_id, role="assistant", content="", status="pending", conn=db_transaction)
     
-    await update_message(message_id, conn=db_transaction, content="Wonderful to see you", status="complete", metadata={"tokens": 5})
+    await update_message(message_id, conn=db_transaction, content="Wonderful to see you", reasoning="Sir!", status="complete", metadata={"tokens": 5})
     
     result = await fetch_message(message_id=message_id, conn=db_transaction)
     assert result['content'] == "Wonderful to see you"
+    assert result['reasoning'] == "Sir!"
     assert result['status'] == "complete"
     assert result['metadata'] == {"tokens": 5}
 
@@ -49,7 +51,7 @@ async def test_fetch_message_history_recursive(db_transaction: asyncpg.Connectio
     
     # Create a chain: Root -> Child -> Grandchild
     root_id = await create_message(conversation_id=conversation_id, role="user", content="Root", conn=db_transaction)
-    child_id = await create_message(conversation_id=conversation_id, role="assistant", parent_id=root_id, content="Child", conn=db_transaction)
+    child_id = await create_message(conversation_id=conversation_id, role="assistant", parent_id=root_id, content="Child", reasoning="Thinking...", conn=db_transaction)
     grandchild_id = await create_message(conversation_id=conversation_id, role="user", parent_id=child_id, content="Grandchild", conn=db_transaction)
     
     # Fetch history from the grandchild
@@ -62,6 +64,7 @@ async def test_fetch_message_history_recursive(db_transaction: asyncpg.Connectio
     # Ordered chronologically (root first)
     assert history[0]['content'] == "Root"
     assert history[1]['content'] == "Child"
+    assert history[1]['reasoning'] == "Thinking..."
     assert history[2]['content'] == "Grandchild"
 
 @pytest.mark.asyncio
@@ -70,7 +73,7 @@ async def test_fetch_conversation_messages_flat_list(db_transaction: asyncpg.Con
     conversation_id = await create_conversation(title="Test", conn=db_transaction)
     
     await create_message(conversation_id=conversation_id, role="user", content="Msg 1", conn=db_transaction)
-    await create_message(conversation_id=conversation_id, role="assistant", content="Msg 2", conn=db_transaction)
+    await create_message(conversation_id=conversation_id, role="assistant", content="Msg 2", reasoning="Reason 2", conn=db_transaction)
     
     messages = await fetch_conversation_messages(conversation_id=conversation_id, conn=db_transaction)
     
@@ -80,6 +83,7 @@ async def test_fetch_conversation_messages_flat_list(db_transaction: asyncpg.Con
     assert len(messages) == 2
     assert messages[0]['content'] == "Msg 1"
     assert messages[1]['content'] == "Msg 2"
+    assert messages[1]['reasoning'] == "Reason 2"
 
 @pytest.mark.asyncio
 async def test_delete_message(db_transaction: asyncpg.Connection):
