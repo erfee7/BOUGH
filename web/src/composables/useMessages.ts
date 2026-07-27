@@ -68,6 +68,7 @@ export function useMessages() {
                     parent_id: currentParentId,
                     role: 'developer',
                     content: developerContent,
+                    reasoning: null,
                     status: 'complete',
                     created_at: new Date().toISOString()
                 });
@@ -91,6 +92,7 @@ export function useMessages() {
                 parent_id: currentParentId,
                 role: 'user',
                 content: content,
+                reasoning: null,
                 status: 'complete',
                 created_at: new Date().toISOString()
             });
@@ -127,6 +129,7 @@ export function useMessages() {
                 parent_id: parentId,
                 role: 'assistant',
                 content: '', // Starts empty
+                reasoning: '',
                 status: 'pending',
                 created_at: new Date().toISOString()
             });
@@ -194,15 +197,27 @@ export function useMessages() {
                     // Find the message we are updating in the reactive array
                     const msgIndex = messages.value.findIndex(m => m.id === messageId);
                     if (msgIndex !== -1) {
-                        if (event.type === 'token' || event.type === 'catch_up') {
-                            // Append the token to the message content safely handling null
+                        if (event.type === 'catch_up') {
+                            // Assign catch-up content directly to avoid duplication on reconnect
+                            messages.value[msgIndex].content = event.content || '';
+                            messages.value[msgIndex].reasoning = event.reasoning || '';
+                            messages.value[msgIndex].status = 'streaming';
+                        } else if (event.type === 'token') {
                             messages.value[msgIndex].content = (messages.value[msgIndex].content || '') + event.content;
+                            messages.value[msgIndex].status = 'streaming';
+                        } else if (event.type === 'reasoning') {
+                            messages.value[msgIndex].reasoning = (messages.value[msgIndex].reasoning || '') + event.content;
                             messages.value[msgIndex].status = 'streaming';
                         } else if (event.type === 'done') {
                             messages.value[msgIndex].status = 'complete';
+                            // Fallback: If the stream finished while we were disconnected, the backend sends the final content/reasoning here
+                            if (event.content) messages.value[msgIndex].content = event.content;
+                            if (event.reasoning) messages.value[msgIndex].reasoning = event.reasoning;
                             if (event.metadata) messages.value[msgIndex].metadata = event.metadata;
                         } else if (event.type === 'error') {
                             messages.value[msgIndex].status = 'error';
+                            if (event.content) messages.value[msgIndex].content = event.content;
+                            if (event.reasoning) messages.value[msgIndex].reasoning = event.reasoning;
                             if (event.error_data) messages.value[msgIndex].error_data = event.error_data;
                         }
                     }
