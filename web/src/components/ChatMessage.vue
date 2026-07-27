@@ -172,6 +172,12 @@ defineProps<{ message: Message }>();
     overflow-wrap: anywhere !important;
 }
 
+/* Disable sticky code headers and fix z-index conflict with modals */
+.markdown-content :deep(.md-editor-code-head) {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
 /* Code Block Traffic Light Replacement */
 .markdown-content :deep(.md-editor-code-flag span) {
     display: none !important;
