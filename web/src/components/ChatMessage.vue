@@ -7,57 +7,97 @@
         <div class="message-body">
             <div class="message-header">
                 <span class="role-label">{{ message.role === 'user' ? 'User' : 'Assistant' }}</span>
+                <div v-if="siblingInfo.count > 1" class="sibling-nav">
+                    <button @click="emit('switch-sibling', 'prev')" :disabled="siblingInfo.currentIndex === 0">‹</button>
+                    <span>{{ siblingInfo.currentIndex + 1 }}/{{ siblingInfo.count }}</span>
+                    <button @click="emit('switch-sibling', 'next')" :disabled="siblingInfo.currentIndex === siblingInfo.count - 1">›</button>
+                </div>
             </div>
             
-            <!-- Reasoning Block -->
-            <details v-if="message.reasoning" :open="!message.content && (message.status === 'pending' || message.status === 'streaming')" class="reasoning-block">
-                <summary>
-                    <!-- Add the chevron arrow here -->
-                    <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 18l6-6-6-6"></path>
-                    </svg>
-                    <svg class="bulb-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path>
-                        <path d="M9 18h6"></path>
-                        <path d="M10 22h2"></path>
-                    </svg>
-                    <span class="reasoning-label">Thoughts</span>
-                    <svg v-if="!message.content && message.status === 'streaming'" class="spinner-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
-                </summary>
-                <MdPreview 
-                    :modelValue="message.reasoning" 
-                    theme="dark" 
-                    :previewTheme="'github'" 
-                    :codeTheme="'github'" 
-                    :language="'en-US'"
-                    class="markdown-content reasoning-content"
-                />
-            </details>
-
-            <div class="message-content">
-                <MdPreview 
-                    v-if="message.content"
-                    :modelValue="message.content" 
-                    theme="dark" 
-                    :previewTheme="'github'" 
-                    :codeTheme="'github'" 
-                    :language="'en-US'"
-                    class="markdown-content"
-                />
-                <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
-                <span v-else>Empty</span>
-                
-                <span v-if="message.status === 'streaming' && message.content" class="cursor">▋</span>
+            <!-- Edit Mode -->
+            <div v-if="isEditing" class="edit-area">
+                <textarea 
+                    class="edit-textarea" 
+                    :value="editingText" 
+                    @input="emit('update:editingText', ($event.target as HTMLTextAreaElement).value)"
+                ></textarea>
+                <div class="edit-actions">
+                    <button @click="emit('cancel-edit')" class="btn-secondary">Cancel</button>
+                    <button @click="emit('save-edit', false)" class="btn-secondary">Save</button>
+                    <button v-if="message.role === 'user'" @click="emit('save-edit', true)" class="btn-primary">Save & Submit</button>
+                </div>
             </div>
+
+            <!-- Normal Mode -->
+            <template v-else>
+                <details v-if="message.reasoning" :open="!message.content && (message.status === 'pending' || message.status === 'streaming')" class="reasoning-block">
+                    <summary>
+                        <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg>
+                        <svg class="bulb-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path><path d="M9 18h6"></path><path d="M10 22h2"></path></svg>
+                        <span class="reasoning-label">Thoughts</span>
+                        <svg v-if="!message.content && message.status === 'streaming'" class="spinner-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+                    </summary>
+                    <MdPreview 
+                        :modelValue="message.reasoning" 
+                        theme="dark" 
+                        :previewTheme="'github'" 
+                        :codeTheme="'github'" 
+                        :language="'en-US'"
+                        class="markdown-content reasoning-content"
+                    />
+                </details>
+
+                <div class="message-content">
+                    <MdPreview 
+                        v-if="message.content"
+                        :modelValue="message.content" 
+                        theme="dark" 
+                        :previewTheme="'github'" 
+                        :codeTheme="'github'" 
+                        :language="'en-US'"
+                        class="markdown-content"
+                    />
+                    <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
+                    <span v-else>Empty</span>
+                    
+                    <span v-if="message.status === 'streaming' && message.content" class="cursor">▋</span>
+                </div>
+
+                <div class="message-actions">
+                    <button @click="emit('start-edit')" class="btn-action">Edit</button>
+                    <button @click="emit('generate')" :disabled="isStreaming" class="btn-action">
+                        {{ message.role === 'user' ? 'Generate Response' : 'Continue' }}
+                    </button>
+                </div>
+            </template>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { MdPreview } from 'md-editor-v3';
-import { Message } from '../types'; 
+import { Message } from '../types';
+import { getSiblingInfo } from '../utils/tree';
+import { computed } from 'vue';
 
-defineProps<{ message: Message }>();
+const props = defineProps<{ 
+    message: Message,
+    allMessages: Message[],
+    isStreaming: boolean,
+    isEditing: boolean,
+    editingText: string
+}>();
+
+const emit = defineEmits<{
+    (e: 'switch-sibling', direction: 'prev' | 'next'): void,
+    (e: 'generate'): void,
+    (e: 'start-edit'): void,
+    (e: 'cancel-edit'): void,
+    (e: 'save-edit', shouldGenerate: boolean): void,
+    (e: 'update:editingText', value: string): void
+}>();
+
+const siblingInfo = computed(() => getSiblingInfo(props.message.id, props.allMessages));
 </script>
 
 <style scoped>
@@ -295,5 +335,102 @@ defineProps<{ message: Message }>();
     justify-content: center;
     width: 100%;
     height: 100%;
+}
+
+/* Message Branching */
+.sibling-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    color: #94a3b8;
+    margin-left: auto;
+}
+
+.sibling-nav button {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 16px;
+}
+
+.sibling-nav button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.message-actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.message-tile:hover .message-actions {
+    opacity: 1;
+}
+
+.btn-action {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.edit-area {
+    margin-top: 8px;
+}
+
+.edit-textarea {
+    width: 100%;
+    min-height: 100px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #f8fafc;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.6;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.edit-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.btn-secondary, .btn-primary {
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.btn-secondary {
+    background: #334155;
+    border: 1px solid #475569;
+    color: #f8fafc;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    border: 1px solid #3b82f6;
+    color: white;
 }
 </style>

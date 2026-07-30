@@ -1,9 +1,22 @@
 <template>
     <div class="messages-container" ref="messagesContainer">
-        <template v-for="msg in messages" :key="msg.id">
-            <ChatMessage v-if="msg.role !== 'system' && msg.role !== 'developer'" :message="msg" />
+        <template v-for="msg in activePath" :key="msg.id">
+            <ChatMessage 
+                v-if="msg.role !== 'system' && msg.role !== 'developer'" 
+                :message="msg" 
+                :allMessages="allMessages"
+                :isStreaming="isStreaming"
+                :isEditing="editingMessageId === msg.id"
+                :editingText="editingText"
+                @update:editingText="(val: string) => emit('update:editingText', val)"
+                @switch-sibling="(direction: 'prev' | 'next') => emit('switch-sibling', msg.id, direction)"
+                @generate="emit('generate', msg.id)"
+                @start-edit="emit('start-edit', msg)"
+                @cancel-edit="emit('cancel-edit')"
+                @save-edit="(shouldGenerate: boolean) => emit('save-edit', msg, shouldGenerate)"
+            />
         </template>
-        <div v-if="messages.length === 0" class="empty-state">
+        <div v-if="activePath.length === 0" class="empty-state">
             <div class="empty-icon">💬</div>
             <h2>Start a new chat</h2>
             <p>Type a message below to begin</p>
@@ -12,20 +25,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
-import { Message } from '../types';
 import ChatMessage from './ChatMessage.vue';
+import { Message } from '../types';
 
-const props = defineProps<{ messages: Message[] }>();
+defineProps<{ 
+    activePath: Message[], 
+    allMessages: Message[],
+    isStreaming: boolean,
+    editingMessageId: string | null,
+    editingText: string
+}>();
 
-const messagesContainer = ref<HTMLElement | null>(null);
-
-watch(() => props.messages, async () => {
-    await nextTick();
-    if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-    }
-}, { deep: true });
+const emit = defineEmits<{
+    (e: 'switch-sibling', messageId: string, direction: 'prev' | 'next'): void,
+    (e: 'generate', messageId: string): void,
+    (e: 'start-edit', message: Message): void,
+    (e: 'cancel-edit'): void,
+    (e: 'save-edit', message: Message, shouldGenerate: boolean): void,
+    (e: 'update:editingText', value: string): void
+}>();
 </script>
 
 <style scoped>

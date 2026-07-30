@@ -99,6 +99,20 @@ export function useConversations() {
         }
     }
 
+    async function updateActiveLeaf(conversationId: string, leafId: string) {
+        try {
+            const response = await fetch(`/api/chat/conversations/${conversationId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active_leaf_id: leafId })
+            });
+            if (!response.ok) throw new Error('Failed to update active leaf');
+        } catch (error) {
+            console.error("Error updating active leaf:", error);
+        }
+    }
+
+// Update the return statement:
     return {
         conversations,
         currentConversationId,
@@ -107,6 +121,7 @@ export function useConversations() {
         selectConversation,
         updateTitle,
         generatingTitleIds,
-        generateTitle
+        generateTitle,
+        updateActiveLeaf
     };
 }
