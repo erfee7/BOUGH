@@ -45,9 +45,8 @@
 </template>
 
 <script setup lang="ts">
-import { useConversations } from '../composables/useConversations';
-import { useTitleEdit } from '../composables/useTitleEdit';
-import { ConversationSummary } from '../types';
+import { useConversations } from '../useConversations';
+import { useTitleEdit } from './useTitleEdit';
 
 const props = defineProps<{ isStreaming: boolean }>();
 const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>(); // Add emit

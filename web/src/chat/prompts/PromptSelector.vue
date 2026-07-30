@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { toRef } from 'vue';
-import { usePromptSelection } from '../composables/usePromptSelection';
+import { usePromptSelection } from './usePromptSelection';
 
 const props = defineProps<{ 
     role: 'system' | 'developer', 

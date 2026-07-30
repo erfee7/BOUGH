@@ -23,8 +23,8 @@
 
 <script setup lang="ts">
 import InputArea from './InputArea.vue';
-import PromptSelector from './PromptSelector.vue';
-import { useChatEngine } from '../composables/useChatEngine';
+import PromptSelector from './prompts/PromptSelector.vue';
+import { useChatEngine } from './useChatEngine';
 
 const emit = defineEmits<{ 
     (e: 'openLibrary'): void

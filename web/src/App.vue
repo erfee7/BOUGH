@@ -23,11 +23,11 @@
 
 <script setup lang="ts">
 import { onMounted, watch } from 'vue';
-import Sidebar from './components/Sidebar.vue';
-import NewChatArea from './components/NewChatArea.vue';
-import ChatArea from './components/ChatArea.vue';
-import PromptLibraryModal from './components/PromptLibraryModal.vue';
-import { useChatEngine } from './composables/useChatEngine';
+import Sidebar from './chat/sidebar/Sidebar.vue';
+import NewChatArea from './chat/NewChatArea.vue';
+import ChatArea from './chat/ChatArea.vue';
+import PromptLibraryModal from './chat/prompts/PromptLibraryModal.vue';
+import { useChatEngine } from './chat/useChatEngine';
 
 const { 
     currentConversationId, 

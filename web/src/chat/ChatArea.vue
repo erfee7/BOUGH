@@ -16,7 +16,7 @@
 <script setup lang="ts">
 import MessageList from './MessageList.vue';
 import InputArea from './InputArea.vue';
-import { useChatEngine } from '../composables/useChatEngine';
+import { useChatEngine } from './useChatEngine';
 
 const emit = defineEmits<{ 
     (e: 'openLibrary'): void

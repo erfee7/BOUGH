@@ -25,11 +25,10 @@
 </template>
 
 <script setup lang="ts">
-import ChatMessage from './ChatMessage.vue';
-import { Message } from '../types';
-import { useBranching } from '../composables/useBranching';
-import { useMessages } from '../composables/useMessages';
-import { getSiblingInfo as getSiblingInfoUtil } from '../utils/tree';
+import ChatMessage from './message/ChatMessage.vue';
+import { useBranching } from './useBranching';
+import { useMessages } from './useMessages.js';
+import { getSiblingInfo as getSiblingInfoUtil } from './branchingUtils.js';
 
 const { messages } = useMessages();
 const { 

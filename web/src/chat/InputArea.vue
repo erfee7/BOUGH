@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import PromptSelector from './PromptSelector.vue';
+import PromptSelector from './prompts/PromptSelector.vue';
 
 const props = defineProps<{ 
     modelValue: string, 
