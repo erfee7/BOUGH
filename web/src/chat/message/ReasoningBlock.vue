@@ -13,12 +13,15 @@
             :codeTheme="'github'" 
             :language="'en-US'"
             class="markdown-content reasoning-content"
+            @dblclick="handleMarkdownDblClick"
+            @copy="handleMarkdownCopy"
         />
     </details>
 </template>
 
 <script setup lang="ts">
 import { MdPreview } from 'md-editor-v3';
+import { handleMarkdownDblClick, handleMarkdownCopy } from '../markdownInteractions';
 
 defineProps<{ 
     reasoning: string,

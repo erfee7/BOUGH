@@ -37,6 +37,8 @@
                         :codeTheme="'github'" 
                         :language="'en-US'"
                         class="markdown-content"
+                        @dblclick="handleMarkdownDblClick"
+                        @copy="handleMarkdownCopy"
                     />
                     <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
                     <span v-else>Empty</span>
@@ -64,6 +66,7 @@ import { Message } from '../../types';
 import EditArea from './EditArea.vue';
 import ReasoningBlock from './ReasoningBlock.vue';
 import MessageActions from './MessageActions.vue';
+import { handleMarkdownDblClick, handleMarkdownCopy } from '../markdownInteractions';
 
 defineProps<{ 
     message: Message,
