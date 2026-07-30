@@ -1,5 +1,6 @@
 from pydantic import BaseModel, field_validator
 from datetime import datetime
+from typing import Literal
 import uuid
 
 # --- Request Models ---
@@ -29,8 +30,7 @@ class TitleGenerateRequest(BaseModel):
 
 class MessageAppendRequest(BaseModel):
     content: str
-    role: str | None = None
-    creation_data: dict | None = None
+    role: Literal['user', 'developer', 'assistant'] = "user"
 
 class MessageGenerateRequest(BaseModel):
     model: str | None = None
@@ -39,13 +39,13 @@ class MessageGenerateRequest(BaseModel):
 class PromptCreateRequest(BaseModel):
     name: str
     content: str
-    role: str
+    role: Literal['system', 'developer']
     description: str | None = None
 
 class PromptUpdateRequest(BaseModel):
     name: str | None = None
     content: str | None = None
-    role: str | None = None
+    role: Literal['system', 'developer'] | None = None
     description: str | None = None
 
 # --- Response Models ---
@@ -57,6 +57,7 @@ class MessageResponse(BaseModel):
     content: str | None = None
     reasoning: str | None = None
     status: str
+    error_data: dict | None = None
     creation_data: dict | None = None
     metadata: dict | None = None
     created_at: datetime

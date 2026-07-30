@@ -11,6 +11,7 @@ from app.db import messages as db_messages
 TEST_CONVERSATION_TITLE = "Msg API Test"
 TEST_SYSTEM_PROMPT = "You are a test assistant."
 TEST_USER_MESSAGE = "User input"
+TEST_ASSISTANT_MESSAGE = "Manual assistant text"
 
 @pytest.mark.asyncio
 async def test_append_message_endpoint(mock_pool):
@@ -19,7 +20,7 @@ async def test_append_message_endpoint(mock_pool):
     conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
     root_id = await db_messages.create_message(
         conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
-        status="complete", creation_data={"source": "system_setup"}, conn=mock_pool.conn
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
     
     # Action: Call API
@@ -38,10 +39,48 @@ async def test_append_message_endpoint(mock_pool):
             assert msg['role'] == "user"
             assert msg['status'] == "complete"
             assert msg['content'] == TEST_USER_MESSAGE
-            assert msg['creation_data'] == {"source": "user_edit"}
+            assert msg['creation_data'] == {"source": "user"}
             
             conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
             assert conv['active_leaf_id'] == new_msg_id
+
+@pytest.mark.asyncio
+async def test_append_message_assistant_role(mock_pool):
+    """Tests appending an assistant message (e.g., manual edit)."""
+    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"content": TEST_ASSISTANT_MESSAGE, "role": "assistant"}
+            response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
+            
+            assert response.status_code == 200
+            data = response.json()
+            new_msg_id = uuid.UUID(data["message_id"])
+            
+            msg = await db_messages.fetch_message(new_msg_id, conn=mock_pool.conn)
+            assert msg['role'] == "assistant"
+            assert msg['content'] == TEST_ASSISTANT_MESSAGE
+            assert msg['creation_data'] == {"source": "user"}
+
+@pytest.mark.asyncio
+async def test_append_message_invalid_role(mock_pool):
+    """Tests that appending a message with an invalid role returns 422."""
+    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"content": "Test", "role": "system"} # 'system' is forbidden for append
+            response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
+            assert response.status_code == 422
 
 @pytest.mark.asyncio
 async def test_append_message_parent_not_found(mock_pool):
@@ -62,11 +101,11 @@ async def test_generate_message_endpoint(mock_pool):
     conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
     root_id = await db_messages.create_message(
         conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
-        status="complete", creation_data={"source": "system_setup"}, conn=mock_pool.conn
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
     user_msg_id = await db_messages.create_message(
         conversation_id=conv_id, role="user", parent_id=root_id, content=TEST_USER_MESSAGE,
-        status="complete", creation_data={"source": "user_edit"}, conn=mock_pool.conn
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
     
     # Action: Call API
@@ -85,7 +124,7 @@ async def test_generate_message_endpoint(mock_pool):
                 assert msg['parent_id'] == user_msg_id
                 assert msg['role'] == "assistant"
                 assert msg['status'] == "pending"
-                assert msg['creation_data']['source'] == "model_response"
+                assert msg['creation_data']['source'] == "model"
                 assert msg['creation_data']['model'] == "test-model"
                 assert msg['creation_data']['parameters'] == {"temperature": 0.5}
                 
@@ -104,6 +143,29 @@ async def test_generate_message_endpoint(mock_pool):
                 assert len(history) == 2  # root, user; no assistant
                 assert history[0]['role'] == 'system'
                 assert history[1]['role'] == 'user'
+
+@pytest.mark.asyncio
+async def test_generate_message_parent_not_complete(mock_pool):
+    """Tests that generating under a non-complete parent returns 400."""
+    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    pending_user_msg = await db_messages.create_message(
+        conversation_id=conv_id, role="user", parent_id=root_id, content=TEST_USER_MESSAGE,
+        status="pending", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        with patch('app.routers.messages.stream_manager.start_stream') as mock_start:
+            async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                payload = {}
+                response = await client.post(f"/api/chat/messages/{pending_user_msg}/generate", json=payload)
+                
+                assert response.status_code == 400
+                # assert response.json()["detail"] == "Parent message must be complete to generate a response."
+                mock_start.assert_not_called()
 
 @pytest.mark.asyncio
 async def test_generate_message_parent_not_found(mock_pool):

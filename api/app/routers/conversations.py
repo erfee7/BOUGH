@@ -47,7 +47,7 @@ async def create_conversation(payload: ConversationCreateRequest):
                 role = "system",
                 content = root_prompt,
                 status = "complete",
-                creation_data = {"source": "system_setup"},
+                creation_data = {"source": "user"},
                 conn = conn
             )
             
@@ -79,7 +79,7 @@ async def get_conversation(conversation_id: uuid.UUID):
         messages = [MessageResponse.model_validate(msg) for msg in msg_records]
     )
 
-@router.patch("/conversations/{conversation_id}", response_model = ConversationResponse)
+@router.patch("/conversations/{conversation_id}", response_model=ConversationResponse)
 async def update_conversation(conversation_id: uuid.UUID, payload: ConversationPatchRequest):
     """Updates the information of a conversation."""
     record = await db_conversations.fetch_conversation(conversation_id)
@@ -88,6 +88,21 @@ async def update_conversation(conversation_id: uuid.UUID, payload: ConversationP
     
     # Extract only the fields that were actually provided in the request
     update_data = payload.model_dump(exclude_unset=True)
+    
+    # Validate active_leaf_id if provided in the payload
+    if "active_leaf_id" in update_data:
+        leaf_id = update_data["active_leaf_id"]
+        if leaf_id is None:
+            raise HTTPException(status_code=400, detail="active_leaf_id cannot be null")
+        
+        messages = await db_messages.fetch_conversation_messages(conversation_id)
+        msg_ids = {m['id'] for m in messages}
+        parent_ids = {m['parent_id'] for m in messages if m['parent_id'] is not None}
+        
+        if leaf_id not in msg_ids:
+            raise HTTPException(status_code=400, detail="active_leaf_id does not belong to this conversation")
+        if leaf_id in parent_ids:
+            raise HTTPException(status_code=400, detail="active_leaf_id must be a leaf node (cannot have children)")
     
     # If there are fields to update, call the DB layer
     if update_data:
