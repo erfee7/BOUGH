@@ -29,6 +29,7 @@
                     theme="dark" 
                     :previewTheme="'github'" 
                     :codeTheme="'github'" 
+                    :language="'en-US'"
                     class="markdown-content reasoning-content"
                 />
             </details>
@@ -40,6 +41,7 @@
                     theme="dark" 
                     :previewTheme="'github'" 
                     :codeTheme="'github'" 
+                    :language="'en-US'"
                     class="markdown-content"
                 />
                 <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
