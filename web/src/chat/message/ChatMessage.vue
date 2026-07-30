@@ -48,6 +48,7 @@
                     :siblingInfo="siblingInfo" 
                     :isStreaming="isStreaming" 
                     :role="message.role"
+                    :content="message.content"
                     @switch-sibling="emit('switch-sibling', $event)"
                     @start-edit="emit('start-edit')"
                     @generate="emit('generate')"
