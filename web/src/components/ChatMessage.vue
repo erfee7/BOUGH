@@ -10,37 +10,23 @@
             </div>
             
             <!-- Edit Mode -->
-            <div v-if="isEditing" class="edit-area">
-                <textarea 
-                    class="edit-textarea" 
-                    :value="editingText" 
-                    @input="emit('update:editingText', ($event.target as HTMLTextAreaElement).value)"
-                ></textarea>
-                <div class="edit-actions">
-                    <button v-if="message.role === 'user'" @click="emit('save-edit', true)" class="btn-primary">Save & Send</button>
-                    <button @click="emit('save-edit', false)" class="btn-secondary">Save</button>
-                    <button @click="emit('cancel-edit')" class="btn-ghost">Cancel</button>
-                </div>
-            </div>
+            <EditArea 
+                v-if="isEditing"
+                :editingText="editingText"
+                :role="message.role"
+                @update:editingText="emit('update:editingText', $event)"
+                @save-edit="emit('save-edit', $event)"
+                @cancel-edit="emit('cancel-edit')"
+            />
 
             <!-- Normal Mode -->
             <template v-else>
-                <details v-if="message.reasoning" :open="!message.content && (message.status === 'pending' || message.status === 'streaming')" class="reasoning-block">
-                    <summary>
-                        <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg>
-                        <svg class="bulb-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path><path d="M9 18h6"></path><path d="M10 22h2"></path></svg>
-                        <span class="reasoning-label">Thoughts</span>
-                        <svg v-if="!message.content && message.status === 'streaming'" class="spinner-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
-                    </summary>
-                    <MdPreview 
-                        :modelValue="message.reasoning" 
-                        theme="dark" 
-                        :previewTheme="'github'" 
-                        :codeTheme="'github'" 
-                        :language="'en-US'"
-                        class="markdown-content reasoning-content"
-                    />
-                </details>
+                <ReasoningBlock 
+                    v-if="message.reasoning" 
+                    :reasoning="message.reasoning" 
+                    :status="message.status" 
+                    :content="message.content"
+                />
 
                 <div class="message-content">
                     <MdPreview 
@@ -58,31 +44,14 @@
                     <span v-if="message.status === 'streaming' && message.content" class="cursor">▋</span>
                 </div>
 
-                <div class="message-footer">
-                    <div v-if="siblingInfo.count > 1" class="sibling-nav">
-                        <button @click="emit('switch-sibling', 'prev')" :disabled="siblingInfo.currentIndex === 0" title="Previous message" class="action-btn">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M15 18l-6-6 6-6"></path>
-                            </svg>
-                        </button>
-                        <span>{{ siblingInfo.currentIndex + 1 }} / {{ siblingInfo.count }}</span>
-                        <button @click="emit('switch-sibling', 'next')" :disabled="siblingInfo.currentIndex === siblingInfo.count - 1" title="Next message" class="action-btn">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M9 18l6-6-6-6"></path>
-                            </svg>
-                        </button>
-                    </div>
-                    <button @click="emit('start-edit')" class="action-btn" title="Edit message">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                        </svg>
-                    </button>
-                    <button @click="emit('generate')" :disabled="isStreaming" class="action-btn" title="Generate response">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3z"></path>
-                        </svg>
-                    </button>
-                </div>
+                <MessageActions 
+                    :siblingInfo="siblingInfo" 
+                    :isStreaming="isStreaming" 
+                    :role="message.role"
+                    @switch-sibling="emit('switch-sibling', $event)"
+                    @start-edit="emit('start-edit')"
+                    @generate="emit('generate')"
+                />
             </template>
         </div>
     </div>
@@ -91,6 +60,9 @@
 <script setup lang="ts">
 import { MdPreview } from 'md-editor-v3';
 import { Message } from '../types';
+import EditArea from './EditArea.vue';
+import ReasoningBlock from './ReasoningBlock.vue';
+import MessageActions from './MessageActions.vue';
 
 defineProps<{ 
     message: Message,
@@ -135,7 +107,7 @@ const emit = defineEmits<{
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    margin-top: 4px; /* Align roughly with the header text */
+    margin-top: 4px;
     background: #1e293b;
     border: 1px solid #334155;
 }
@@ -152,7 +124,7 @@ const emit = defineEmits<{
 
 .message-body {
     flex: 1;
-    min-width: 0; /* Prevents markdown content from overflowing */
+    min-width: 0;
 }
 
 .message-header {
@@ -204,67 +176,7 @@ const emit = defineEmits<{
     }
 }
 
-/* Reasoning Block Styles */
-.reasoning-block {
-    margin-bottom: 16px;
-}
-
-.reasoning-block summary {
-    cursor: pointer;
-    color: #94a3b8;
-    font-size: 14px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 0; /* Changed to 0 so the box below controls the spacing */
-}
-
-.reasoning-block summary::-webkit-details-marker {
-    display: none; /* Hide default arrow */
-}
-
-.chevron-icon {
-    color: #64748b;
-    transition: transform 0.2s ease; /* Smooth rotation */
-    flex-shrink: 0;
-}
-
-/* Rotate the chevron 90 degrees when the details block is open */
-.reasoning-block[open] .chevron-icon {
-    transform: rotate(90deg);
-}
-
-.bulb-icon {
-    color: #fbbf24;
-    flex-shrink: 0;
-}
-
-.spinner-icon {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* Apply the visual wrapper to the content instead of the whole block */
-.reasoning-content {
-    margin-top: 8px; /* Give space from the summary above */
-    border-left: 2px solid #334155;
-    padding-left: 16px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    border-radius: 4px;
-    /* Add a very subtle dark background to make it feel like a contained block */
-    background: rgba(15, 23, 42, 0.5); 
-    font-size: 14px;
-    color: #cbd5e1;
-    opacity: 0.8;
-}
-
-/* Markdown Overrides */
+/* Markdown Overrides (Global via :deep) */
 .markdown-content {
     background: transparent !important;
     font-size: inherit !important;
@@ -337,149 +249,5 @@ const emit = defineEmits<{
     justify-content: center;
     width: 100%;
     height: 100%;
-}
-
-/* Message Footer & Actions */
-.message-footer {
-    margin-top: 12px;
-    display: flex;
-    align-items: center;
-    gap: 1px;
-    opacity: 0.4;
-    transition: opacity 0.2s;
-}
-
-.message-tile:hover .message-footer {
-    opacity: 1;
-}
-
-.sibling-nav {
-    display: flex;
-    align-items: center;
-    gap: 1px;
-    font-size: 14px;
-    color: #94a3b8;
-    margin-right: 1px;
-}
-
-.sibling-nav span {
-    min-width: 24px;
-    text-align: center;
-}
-
-.sibling-nav button {
-    background: none;
-    border: 1px solid transparent;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    line-height: 1;
-}
-
-.sibling-nav button:hover {
-    color: #f8fafc;
-    background: #1e293b;
-    border-color: #334155;
-}
-
-.sibling-nav button:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.action-btn {
-    background: none;
-    border: 1px solid transparent;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.action-btn:hover {
-    color: #f8fafc;
-    background: #1e293b;
-    border-color: #334155;
-}
-
-.action-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-/* Edit Area */
-.edit-area {
-    margin-top: 8px;
-}
-
-.edit-textarea {
-    width: 100%;
-    min-height: 100px;
-    background: #1e293b;
-    border: 1px solid #334155;
-    color: #f8fafc;
-    border-radius: 6px;
-    padding: 12px;
-    font-family: inherit;
-    font-size: 15px;
-    line-height: 1.6;
-    box-sizing: border-box;
-    resize: vertical;
-}
-
-.edit-actions {
-    margin-top: 8px;
-    display: flex;
-    gap: 8px;
-    justify-content: flex-start;
-}
-
-.btn-primary, .btn-secondary, .btn-ghost {
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.btn-primary {
-    background: #3b82f6;
-    border: 1px solid #3b82f6;
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #2563eb;
-    border-color: #2563eb;
-}
-
-.btn-secondary {
-    background: #334155;
-    border: 1px solid #475569;
-    color: #e2e8f0;
-}
-
-.btn-secondary:hover {
-    background: #3f4d63;
-}
-
-.btn-ghost {
-    background: transparent;
-    border: 1px solid transparent;
-    color: #64748b;
-}
-
-.btn-ghost:hover {
-    color: #cbd5e1;
-    background: rgba(30, 41, 59, 0.5);
 }
 </style>
