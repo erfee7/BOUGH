@@ -7,35 +7,11 @@
         <main class="main-area">
             <NewChatArea 
                 v-if="!currentConversationId" 
-                :modelValue="inputText" 
-                @update:modelValue="inputText = $event"
-                :systemPrompt="systemPrompt"
-                @update:systemPrompt="systemPrompt = $event"
-                :developerPrompt="developerPrompt"
-                @update:developerPrompt="developerPrompt = $event"
-                @send="send"
                 @openLibrary="isPromptLibraryVisible = true"
-                :isStreaming="isStreaming"
             />
             <ChatArea 
                 v-else 
-                :messages="messages" 
-                :activePath="activePath"
-                :editingMessageId="editingMessageId"
-                :editingText="editingText"
-                :modelValue="inputText" 
-                @update:modelValue="inputText = $event"
-                :developerPrompt="developerPrompt"
-                @update:developerPrompt="developerPrompt = $event"
-                @send="send"
                 @openLibrary="isPromptLibraryVisible = true"
-                :isStreaming="isStreaming"
-                @switch-sibling="switchSibling"
-                @generate="handleGenerate"
-                @start-edit="startEdit"
-                @cancel-edit="cancelEdit"
-                @save-edit="saveEdit"
-                @update:editingText="editingText = $event"
             />
         </main>
         <PromptLibraryModal 
@@ -52,35 +28,14 @@ import NewChatArea from './components/NewChatArea.vue';
 import ChatArea from './components/ChatArea.vue';
 import PromptLibraryModal from './components/PromptLibraryModal.vue';
 import { useChatEngine } from './composables/useChatEngine';
-import { useBranching } from './composables/useBranching';
 
 const { 
     currentConversationId, 
-    messages, 
     isStreaming, 
-    inputText, 
-    systemPrompt,
-    developerPrompt,
     isPromptLibraryVisible,
     initialize, 
-    handleNavigation, 
-    send 
+    handleNavigation
 } = useChatEngine();
-
-const { 
-    activePath, 
-    editingMessageId, 
-    editingText, 
-    switchSibling, 
-    startEdit, 
-    cancelEdit, 
-    saveEdit, 
-    generateMessage 
-} = useBranching();
-
-function handleGenerate(messageId: string) {
-    generateMessage(messageId);
-}
 
 onMounted(() => {
     initialize();

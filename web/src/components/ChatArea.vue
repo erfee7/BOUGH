@@ -1,24 +1,12 @@
 <template>
     <div class="chat-container">
-        <MessageList 
-            :activePath="activePath" 
-            :allMessages="messages" 
-            :isStreaming="isStreaming"
-            :editingMessageId="editingMessageId"
-            :editingText="editingText"
-            @switch-sibling="(id, dir) => emit('switch-sibling', id, dir)"
-            @generate="(id) => emit('generate', id)"
-            @start-edit="(msg) => emit('start-edit', msg)"
-            @cancel-edit="emit('cancel-edit')"
-            @save-edit="(msg, gen) => emit('save-edit', msg, gen)"
-            @update:editingText="(val) => emit('update:editingText', val)"
-        />
+        <MessageList />
         <InputArea 
-            :modelValue="modelValue" 
-            @update:modelValue="emit('update:modelValue', $event)"
+            :modelValue="inputText" 
+            @update:modelValue="inputText = $event"
             :developerPrompt="developerPrompt"
-            @update:developerPrompt="emit('update:developerPrompt', $event)"
-            @send="emit('send')"
+            @update:developerPrompt="developerPrompt = $event"
+            @send="send"
             @openLibrary="emit('openLibrary')"
             :isStreaming="isStreaming"
         />
@@ -28,30 +16,18 @@
 <script setup lang="ts">
 import MessageList from './MessageList.vue';
 import InputArea from './InputArea.vue';
-import { Message } from '../types';
-
-defineProps<{ 
-    messages: Message[], 
-    activePath: Message[],
-    modelValue: string, 
-    isStreaming: boolean,
-    developerPrompt: string,
-    editingMessageId: string | null,
-    editingText: string
-}>();
+import { useChatEngine } from '../composables/useChatEngine';
 
 const emit = defineEmits<{ 
-    (e: 'update:modelValue', value: string): void, 
-    (e: 'update:developerPrompt', value: string): void,
-    (e: 'send'): void,
-    (e: 'openLibrary'): void,
-    (e: 'switch-sibling', messageId: string, direction: 'prev' | 'next'): void,
-    (e: 'generate', messageId: string): void,
-    (e: 'start-edit', message: Message): void,
-    (e: 'cancel-edit'): void,
-    (e: 'save-edit', message: Message, shouldGenerate: boolean): void,
-    (e: 'update:editingText', value: string): void
+    (e: 'openLibrary'): void
 }>();
+
+const { 
+    inputText, 
+    developerPrompt, 
+    isStreaming, 
+    send 
+} = useChatEngine();
 </script>
 
 <style scoped>

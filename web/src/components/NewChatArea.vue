@@ -5,16 +5,16 @@
             <PromptSelector 
                 role="system" 
                 :modelValue="systemPrompt" 
-                @update:modelValue="emit('update:systemPrompt', $event)"
+                @update:modelValue="systemPrompt = $event"
                 @openLibrary="emit('openLibrary')"
             />
         </div>
         <InputArea 
-            :modelValue="modelValue" 
-            @update:modelValue="emit('update:modelValue', $event)"
+            :modelValue="inputText" 
+            @update:modelValue="inputText = $event"
             :developerPrompt="developerPrompt"
-            @update:developerPrompt="emit('update:developerPrompt', $event)"
-            @send="emit('send')"
+            @update:developerPrompt="developerPrompt = $event"
+            @send="send"
             @openLibrary="emit('openLibrary')"
             :isStreaming="isStreaming"
         />
@@ -24,21 +24,19 @@
 <script setup lang="ts">
 import InputArea from './InputArea.vue';
 import PromptSelector from './PromptSelector.vue';
-
-const props = defineProps<{ 
-    modelValue: string, 
-    isStreaming: boolean,
-    systemPrompt: string,
-    developerPrompt: string 
-}>();
+import { useChatEngine } from '../composables/useChatEngine';
 
 const emit = defineEmits<{ 
-    (e: 'update:modelValue', value: string): void, 
-    (e: 'update:systemPrompt', value: string): void,
-    (e: 'update:developerPrompt', value: string): void,
-    (e: 'send'): void,
     (e: 'openLibrary'): void
 }>();
+
+const { 
+    inputText, 
+    systemPrompt, 
+    developerPrompt, 
+    isStreaming, 
+    send 
+} = useChatEngine();
 </script>
 
 <style scoped>

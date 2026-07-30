@@ -77,12 +77,10 @@
 <script setup lang="ts">
 import { MdPreview } from 'md-editor-v3';
 import { Message } from '../types';
-import { getSiblingInfo } from '../utils/tree';
-import { computed } from 'vue';
 
-const props = defineProps<{ 
+defineProps<{ 
     message: Message,
-    allMessages: Message[],
+    siblingInfo: { count: number, currentIndex: number },
     isStreaming: boolean,
     isEditing: boolean,
     editingText: string
@@ -96,8 +94,6 @@ const emit = defineEmits<{
     (e: 'save-edit', shouldGenerate: boolean): void,
     (e: 'update:editingText', value: string): void
 }>();
-
-const siblingInfo = computed(() => getSiblingInfo(props.message.id, props.allMessages));
 </script>
 
 <style scoped>
@@ -151,6 +147,9 @@ const siblingInfo = computed(() => getSiblingInfo(props.message.id, props.allMes
     font-size: 17px;
     font-weight: 600;
     color: #94a3b8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .user-role .message-header {
@@ -251,12 +250,6 @@ const siblingInfo = computed(() => getSiblingInfo(props.message.id, props.allMes
     border-radius: 4px;
     /* Add a very subtle dark background to make it feel like a contained block */
     background: rgba(15, 23, 42, 0.5); 
-    font-size: 14px;
-    color: #cbd5e1;
-    opacity: 0.8;
-}
-
-.reasoning-content {
     font-size: 14px;
     color: #cbd5e1;
     opacity: 0.8;

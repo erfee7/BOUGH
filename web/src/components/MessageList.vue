@@ -4,16 +4,16 @@
             <ChatMessage 
                 v-if="msg.role !== 'system' && msg.role !== 'developer'" 
                 :message="msg" 
-                :allMessages="allMessages"
+                :siblingInfo="getSiblingInfoUtil(msg.id, messages)"
                 :isStreaming="isStreaming"
                 :isEditing="editingMessageId === msg.id"
                 :editingText="editingText"
-                @update:editingText="(val: string) => emit('update:editingText', val)"
-                @switch-sibling="(direction: 'prev' | 'next') => emit('switch-sibling', msg.id, direction)"
-                @generate="emit('generate', msg.id)"
-                @start-edit="emit('start-edit', msg)"
-                @cancel-edit="emit('cancel-edit')"
-                @save-edit="(shouldGenerate: boolean) => emit('save-edit', msg, shouldGenerate)"
+                @update:editingText="editingText = $event"
+                @switch-sibling="(direction: 'prev' | 'next') => switchSibling(msg.id, direction)"
+                @generate="generateMessage(msg.id)"
+                @start-edit="startEdit(msg)"
+                @cancel-edit="cancelEdit()"
+                @save-edit="(shouldGenerate: boolean) => saveEdit(msg, shouldGenerate)"
             />
         </template>
         <div v-if="activePath.length === 0" class="empty-state">
@@ -27,23 +27,22 @@
 <script setup lang="ts">
 import ChatMessage from './ChatMessage.vue';
 import { Message } from '../types';
+import { useBranching } from '../composables/useBranching';
+import { useMessages } from '../composables/useMessages';
+import { getSiblingInfo as getSiblingInfoUtil } from '../utils/tree';
 
-defineProps<{ 
-    activePath: Message[], 
-    allMessages: Message[],
-    isStreaming: boolean,
-    editingMessageId: string | null,
-    editingText: string
-}>();
-
-const emit = defineEmits<{
-    (e: 'switch-sibling', messageId: string, direction: 'prev' | 'next'): void,
-    (e: 'generate', messageId: string): void,
-    (e: 'start-edit', message: Message): void,
-    (e: 'cancel-edit'): void,
-    (e: 'save-edit', message: Message, shouldGenerate: boolean): void,
-    (e: 'update:editingText', value: string): void
-}>();
+const { messages } = useMessages();
+const { 
+    activePath, 
+    isStreaming, 
+    editingMessageId, 
+    editingText, 
+    switchSibling, 
+    startEdit, 
+    cancelEdit, 
+    saveEdit, 
+    generateMessage 
+} = useBranching();
 </script>
 
 <style scoped>
