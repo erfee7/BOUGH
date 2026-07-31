@@ -5,6 +5,9 @@ const messages = ref<Message[]>([]);
 const activeLeafId = ref<string | null>(null);
 const isStreaming = ref(false);
 
+// Adjustable UI refresh rate in milliseconds (0 = update on every token, 50 = 20fps)
+export const streamRefreshInterval = ref(50);
+
 let abortController: AbortController | null = null;
 
 export function useMessages() {
@@ -163,6 +166,36 @@ export function useMessages() {
         
         let buffer = '';
         
+        // --- Throttle Buffers ---
+        let contentBuffer = '';
+        let reasoningBuffer = '';
+        let flushTimer: number | null = null;
+
+        const flushBuffers = () => {
+            const msgIndex = messages.value.findIndex(m => m.id === messageId);
+            if (msgIndex === -1) return;
+
+            let mutated = false;
+            if (contentBuffer) {
+                messages.value[msgIndex].content = (messages.value[msgIndex].content || '') + contentBuffer;
+                contentBuffer = '';
+                mutated = true;
+            }
+            if (reasoningBuffer) {
+                messages.value[msgIndex].reasoning = (messages.value[msgIndex].reasoning || '') + reasoningBuffer;
+                reasoningBuffer = '';
+                mutated = true;
+            }
+            if (mutated && messages.value[msgIndex].status !== 'streaming') {
+                messages.value[msgIndex].status = 'streaming';
+            }
+        };
+
+        // Start the throttled flusher if interval > 0
+        if (streamRefreshInterval.value > 0) {
+            flushTimer = window.setInterval(flushBuffers, streamRefreshInterval.value);
+        }
+        
         try {
             while (true) {
                 // Read bytes from the TCP stream
@@ -186,7 +219,10 @@ export function useMessages() {
                     const jsonStr = chunk.replace('data: ', '');
                     
                     if (jsonStr === '[DONE]') {
-                        // Stream fully finished
+                        // Flush any remaining buffered content before exiting
+                        flushBuffers();
+                        if (flushTimer) clearInterval(flushTimer);
+                        flushTimer = null;
                         isStreaming.value = false;
                         return;
                     }
@@ -198,23 +234,35 @@ export function useMessages() {
                     const msgIndex = messages.value.findIndex(m => m.id === messageId);
                     if (msgIndex !== -1) {
                         if (event.type === 'catch_up') {
-                            // Assign catch-up content directly to avoid duplication on reconnect
+                            // Reset buffers and assign directly to avoid duplication
+                            contentBuffer = '';
+                            reasoningBuffer = '';
                             messages.value[msgIndex].content = event.content || '';
                             messages.value[msgIndex].reasoning = event.reasoning || '';
                             messages.value[msgIndex].status = 'streaming';
                         } else if (event.type === 'token') {
-                            messages.value[msgIndex].content = (messages.value[msgIndex].content || '') + event.content;
-                            messages.value[msgIndex].status = 'streaming';
+                            // Append to buffer instead of mutating ref directly
+                            contentBuffer += event.content;
                         } else if (event.type === 'reasoning') {
-                            messages.value[msgIndex].reasoning = (messages.value[msgIndex].reasoning || '') + event.content;
-                            messages.value[msgIndex].status = 'streaming';
+                            // Append to buffer instead of mutating ref directly
+                            reasoningBuffer += event.content;
                         } else if (event.type === 'done') {
+                            // Flush remaining tokens before applying final state
+                            flushBuffers();
+                            if (flushTimer) clearInterval(flushTimer);
+                            flushTimer = null;
+                            
                             messages.value[msgIndex].status = 'complete';
                             // Fallback: If the stream finished while we were disconnected, the backend sends the final content/reasoning here
                             if (event.content) messages.value[msgIndex].content = event.content;
                             if (event.reasoning) messages.value[msgIndex].reasoning = event.reasoning;
                             if (event.metadata) messages.value[msgIndex].metadata = event.metadata;
                         } else if (event.type === 'error') {
+                            // Flush remaining tokens before applying error state
+                            flushBuffers();
+                            if (flushTimer) clearInterval(flushTimer);
+                            flushTimer = null;
+                            
                             messages.value[msgIndex].status = 'error';
                             if (event.content) messages.value[msgIndex].content = event.content;
                             if (event.reasoning) messages.value[msgIndex].reasoning = event.reasoning;
@@ -226,12 +274,16 @@ export function useMessages() {
         }
         catch (error) {
             if (error instanceof Error && error.name === 'AbortError') {
-                // This is expected when switching conversations, exit quietly.
+                // Expected on navigation, flush whatever we have left so it matches DB
+                flushBuffers();
                 return;
             }
             console.error("Streaming error:", error);
         }
         finally {
+            // Clean up timer and flush stragglers if loop breaks unexpectedly
+            if (flushTimer) clearInterval(flushTimer);
+            flushBuffers();
             isStreaming.value = false;
         }
     }
@@ -277,6 +329,7 @@ export function useMessages() {
         clearMessages,
         startStreaming,
         stopStreaming,
-        appendMessage
+        appendMessage,
+        streamRefreshInterval
     };
 }
