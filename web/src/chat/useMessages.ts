@@ -164,13 +164,14 @@ export function useMessages() {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         
-        let buffer = '';
+        let chunksBuffer = '';
         
         // --- Throttle Buffers ---
         let contentBuffer = '';
         let reasoningBuffer = '';
         let flushTimer: number | null = null;
 
+        // Flushes buffered tokens to the reactive array when called (by timer or upon stream end)
         const flushBuffers = () => {
             const msgIndex = messages.value.findIndex(m => m.id === messageId);
             if (msgIndex === -1) return;
@@ -193,6 +194,7 @@ export function useMessages() {
 
         // Start the throttled flusher if interval > 0
         if (streamRefreshInterval.value > 0) {
+            // Sets a background timer to flush accumulated buffers periodically, reducing DOM updates
             flushTimer = window.setInterval(flushBuffers, streamRefreshInterval.value);
         }
         
@@ -204,13 +206,13 @@ export function useMessages() {
                 if (done) break;
                 
                 // Convert bytes to string and add to our buffer
-                buffer += decoder.decode(value, { stream: true });
+                chunksBuffer += decoder.decode(value, { stream: true });
                 
                 // SSE events are separated by a double newline
-                const chunks = buffer.split('\n\n');
+                const chunks = chunksBuffer.split('\n\n');
                 
                 // The last item might be an incomplete chunk, so we save it back to the buffer
-                buffer = chunks.pop() || '';
+                chunksBuffer = chunks.pop() || '';
                 
                 // Process all complete chunks
                 for (const chunk of chunks) {
