@@ -48,7 +48,7 @@
 
                 <MessageActions 
                     :siblingInfo="siblingInfo" 
-                    :isStreaming="isStreaming" 
+                    :isComplete="message.status === 'complete'" 
                     :role="message.role"
                     :content="message.content"
                     @switch-sibling="emit('switch-sibling', $event)"

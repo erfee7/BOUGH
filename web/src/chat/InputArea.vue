@@ -22,7 +22,6 @@
                 @input="handleInput"
                 @keydown.enter.exact.prevent="emit('send')"
                 placeholder="Type a message... (Enter to send)"
-                :disabled="isStreaming"
             ></textarea>
             <button @click="emit('send')" :disabled="isStreaming || !modelValue.trim()">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
