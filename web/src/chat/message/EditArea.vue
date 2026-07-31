@@ -1,9 +1,10 @@
 <template>
     <div class="edit-area">
         <textarea 
+            ref="textareaRef"
             class="edit-textarea" 
             :value="editingText" 
-            @input="emit('update:editingText', ($event.target as HTMLTextAreaElement).value)"
+            @input="handleInput"
         ></textarea>
         <div class="edit-actions">
             <button v-if="role === 'user'" @click="emit('save-edit', true)" class="btn-primary">Save & Send</button>
@@ -14,7 +15,9 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ 
+import { useAutoResizeTextarea } from '../useAutoResizeTextarea'; // <-- Import (up one level)
+
+const props = defineProps<{ 
     editingText: string,
     role: string
 }>();
@@ -24,6 +27,15 @@ const emit = defineEmits<{
     (e: 'save-edit', shouldGenerate: boolean): void,
     (e: 'cancel-edit'): void
 }>();
+
+// Use composable, passing a getter for the editingText
+const { textareaRef, adjustHeight } = useAutoResizeTextarea(() => props.editingText);
+
+function handleInput(event: Event) {
+    const target = event.target as HTMLTextAreaElement;
+    emit('update:editingText', target.value);
+    adjustHeight();
+}
 </script>
 
 <style scoped>
@@ -34,6 +46,7 @@ const emit = defineEmits<{
 .edit-textarea {
     width: 100%;
     min-height: 100px;
+    max-height: 300px;
     background: #1e293b;
     border: 1px solid #334155;
     color: #f8fafc;
@@ -43,7 +56,8 @@ const emit = defineEmits<{
     font-size: 15px;
     line-height: 1.6;
     box-sizing: border-box;
-    resize: vertical;
+    resize: none; /* Disable manual resize, we handle it automatically */
+    overflow-y: auto; /* Scroll when exceeding max-height */
 }
 
 .edit-actions {

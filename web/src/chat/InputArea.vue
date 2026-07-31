@@ -17,8 +17,9 @@
 
         <div class="input-container">
             <textarea 
+                ref="textareaRef"
                 :value="modelValue" 
-                @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+                @input="handleInput"
                 @keydown.enter.exact.prevent="emit('send')"
                 placeholder="Type a message... (Enter to send)"
                 :disabled="isStreaming"
@@ -33,6 +34,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import PromptSelector from './prompts/PromptSelector.vue';
+import { useAutoResizeTextarea } from './useAutoResizeTextarea';
 
 const props = defineProps<{ 
     modelValue: string, 
@@ -48,6 +50,14 @@ const emit = defineEmits<{
 }>();
 
 const showDevPrompt = ref(false);
+
+const { textareaRef, adjustHeight } = useAutoResizeTextarea(() => props.modelValue);
+
+function handleInput(event: Event) {
+    const target = event.target as HTMLTextAreaElement;
+    emit('update:modelValue', target.value);
+    adjustHeight();
+}
 </script>
 
 <style scoped>
@@ -118,11 +128,12 @@ const showDevPrompt = ref(false);
     font-family: inherit;
     font-size: 15px;
     line-height: 1.5;
-    max-height: 150px;
+    max-height: 200px;
     min-height: 24px;
     padding: 0 8px;
     resize: none;
     outline: none;
+    overflow-y: auto; /* Show scrollbar when content exceeds max height */
 }
 
 .input-container button {
