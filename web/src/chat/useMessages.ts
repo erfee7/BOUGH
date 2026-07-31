@@ -236,6 +236,36 @@ export function useMessages() {
         }
     }
 
+    // 5. Append a new message (used for manual edits)
+    async function appendMessage(parentId: string, content: string, role: 'user' | 'assistant'): Promise<string | null> {
+        try {
+            const response = await fetch(`/api/chat/messages/${parentId}/append`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, role })
+            });
+            if (!response.ok) throw new Error('Failed to append message');
+            const data = await response.json();
+            const newMsgId = data.message_id;
+            
+            messages.value.push({
+                id: newMsgId,
+                parent_id: parentId,
+                role: role,
+                content: content,
+                reasoning: null,
+                status: 'complete',
+                created_at: new Date().toISOString()
+            });
+            
+            activeLeafId.value = newMsgId;
+            return newMsgId;
+        } catch (error) {
+            console.error("Error appending message:", error);
+            return null;
+        }
+    }
+
     // Return the reactive state and functions so the UI component can use them
     return {
         messages,
@@ -245,6 +275,8 @@ export function useMessages() {
         sendMessage,
         generateMessage,
         clearMessages,
-        stopStreaming
+        startStreaming,
+        stopStreaming,
+        appendMessage
     };
 }

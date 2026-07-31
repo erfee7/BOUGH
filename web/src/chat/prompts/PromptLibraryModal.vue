@@ -52,7 +52,7 @@
 
 <script setup lang="ts">
 import { toRef } from 'vue';
-import { usePromptLibrary } from '../composables/usePromptLibrary';
+import { usePromptLibrary } from './usePromptLibrary';
 
 const props = defineProps<{ isVisible: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void }>();

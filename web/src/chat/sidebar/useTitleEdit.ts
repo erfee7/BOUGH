@@ -1,6 +1,6 @@
 import { ref } from 'vue';
-import { useConversations } from './useConversations';
-import { ConversationSummary } from '../types';
+import { useConversations } from '../useConversations';
+import { ConversationSummary } from '../../types';
 
 export function useTitleEdit() {
     const { conversations, updateTitle } = useConversations();

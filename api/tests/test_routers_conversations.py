@@ -44,7 +44,7 @@ async def test_create_conversation_endpoint(mock_pool):
             assert msg is not None
             assert msg['role'] == "system"
             assert msg['content'] == TEST_SYSTEM_PROMPT
-            assert msg['creation_data'] == {"source": "system_setup"}
+            assert msg['creation_data'] == {"source": "user"}
 
 @pytest.mark.asyncio
 async def test_get_conversation_endpoint(mock_pool):
@@ -56,7 +56,7 @@ async def test_get_conversation_endpoint(mock_pool):
         role = "system",
         content = TEST_SYSTEM_PROMPT,
         status = "complete",
-        creation_data = {"source": "system_setup"},
+        creation_data = {"source": "user"},
         conn = mock_pool.conn
     )
     await db_conversations.update_conversation(conv_id, active_leaf_id = msg_id, conn = mock_pool.conn)
@@ -186,6 +186,91 @@ async def test_update_conversation_title_too_long(mock_pool):
             response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
             
             assert response.status_code == 422
+
+@pytest.mark.asyncio
+async def test_update_conversation_active_leaf_valid(mock_pool):
+    """Tests that PATCHing a valid active_leaf_id (a leaf) succeeds."""
+    conv_id = await db_conversations.create_conversation(title="Test", conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content="sys", 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    child_id = await db_messages.create_message(
+        conversation_id=conv_id, role="user", parent_id=root_id, content="user", 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"active_leaf_id": str(child_id)}
+            response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
+            
+            assert response.status_code == 200
+            
+            conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
+            assert conv['active_leaf_id'] == child_id
+
+@pytest.mark.asyncio
+async def test_update_conversation_active_leaf_has_children(mock_pool):
+    """Tests that PATCHing an active_leaf_id that has children fails."""
+    conv_id = await db_conversations.create_conversation(title="Test", conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content="sys", 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    # Root has a child, so it's not a leaf
+    await db_messages.create_message(
+        conversation_id=conv_id, role="user", parent_id=root_id, content="user", 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"active_leaf_id": str(root_id)}
+            response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
+            
+            assert response.status_code == 400
+            assert response.json()["detail"] == "active_leaf_id must be a leaf node (cannot have children)"
+
+@pytest.mark.asyncio
+async def test_update_conversation_active_leaf_wrong_conv(mock_pool):
+    """Tests that PATCHing an active_leaf_id from another conversation fails."""
+    conv1_id = await db_conversations.create_conversation(title="Conv1", conn=mock_pool.conn)
+    conv1_root = await db_messages.create_message(
+        conversation_id=conv1_id, role="system", content="sys1", 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+
+    conv2_id = await db_conversations.create_conversation(title="Conv2", conn=mock_pool.conn)
+    conv2_root = await db_messages.create_message(
+        conversation_id=conv2_id, role="system", content="sys2", 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"active_leaf_id": str(conv2_root)} # Belongs to Conv2
+            response = await client.patch(f"/api/chat/conversations/{conv1_id}", json=payload)
+            
+            assert response.status_code == 400
+            assert response.json()["detail"] == "active_leaf_id does not belong to this conversation"
+
+@pytest.mark.asyncio
+async def test_update_conversation_active_leaf_null(mock_pool):
+    """Tests that PATCHing a null active_leaf_id fails."""
+    conv_id = await db_conversations.create_conversation(title="Test", conn=mock_pool.conn)
+    await db_messages.create_message(
+        conversation_id=conv_id, role="system", content="sys", 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"active_leaf_id": None}
+            response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
+            
+            assert response.status_code == 400
+            assert response.json()["detail"] == "active_leaf_id cannot be null"
 
 @pytest.mark.asyncio
 async def test_generate_title_endpoint(mock_pool):

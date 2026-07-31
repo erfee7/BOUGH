@@ -191,3 +191,17 @@ async def test_delete_prompt_endpoint(mock_pool):
             # Delete again should 404
             response = await client.delete(f"/api/chat/prompts/{prompt_id}")
             assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_create_prompt_invalid_role(mock_pool):
+    """Tests that creating a prompt with an invalid role returns 422."""
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {
+                "name": TEST_PROMPT_NAME,
+                "content": TEST_PROMPT_CONTENT,
+                "role": "user", # 'user' is forbidden for prompts
+                "description": TEST_PROMPT_DESCRIPTION
+            }
+            response = await client.post("/api/chat/prompts", json=payload)
+            assert response.status_code == 422

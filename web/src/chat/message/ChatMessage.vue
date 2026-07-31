@@ -9,60 +9,87 @@
                 <span class="role-label">{{ message.role === 'user' ? 'User' : 'Assistant' }}</span>
             </div>
             
-            <!-- Reasoning Block -->
-            <details v-if="message.reasoning" :open="!message.content && (message.status === 'pending' || message.status === 'streaming')" class="reasoning-block">
-                <summary>
-                    <!-- Add the chevron arrow here -->
-                    <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 18l6-6-6-6"></path>
-                    </svg>
-                    <svg class="bulb-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path>
-                        <path d="M9 18h6"></path>
-                        <path d="M10 22h2"></path>
-                    </svg>
-                    <span class="reasoning-label">Thoughts</span>
-                    <svg v-if="!message.content && message.status === 'streaming'" class="spinner-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
-                </summary>
-                <MdPreview 
-                    :modelValue="message.reasoning" 
-                    theme="dark" 
-                    :previewTheme="'github'" 
-                    :codeTheme="'github'" 
-                    class="markdown-content reasoning-content"
-                />
-            </details>
+            <!-- Edit Mode -->
+            <EditArea 
+                v-if="isEditing"
+                :editingText="editingText"
+                :role="message.role"
+                @update:editingText="emit('update:editingText', $event)"
+                @save-edit="emit('save-edit', $event)"
+                @cancel-edit="emit('cancel-edit')"
+            />
 
-            <div class="message-content">
-                <MdPreview 
-                    v-if="message.content"
-                    :modelValue="message.content" 
-                    theme="dark" 
-                    :previewTheme="'github'" 
-                    :codeTheme="'github'" 
-                    class="markdown-content"
+            <!-- Normal Mode -->
+            <template v-else>
+                <ReasoningBlock 
+                    v-if="message.reasoning" 
+                    :reasoning="message.reasoning" 
+                    :status="message.status" 
+                    :content="message.content"
                 />
-                <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
-                <span v-else>Empty</span>
-                
-                <span v-if="message.status === 'streaming' && message.content" class="cursor">▋</span>
-            </div>
+
+                <div class="message-content">
+                    <MdPreview 
+                        v-if="message.content"
+                        :modelValue="message.content" 
+                        theme="dark" 
+                        :previewTheme="'github'" 
+                        :codeTheme="'github'" 
+                        :language="'en-US'"
+                        class="markdown-content"
+                        @dblclick="handleMarkdownDblClick"
+                        @copy="handleMarkdownCopy"
+                    />
+                    <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
+                    <span v-else>Empty</span>
+                    
+                    <span v-if="message.status === 'streaming' && message.content" class="cursor">▋</span>
+                </div>
+
+                <MessageActions 
+                    :siblingInfo="siblingInfo" 
+                    :isComplete="message.status === 'complete'" 
+                    :role="message.role"
+                    :content="message.content"
+                    @switch-sibling="emit('switch-sibling', $event)"
+                    @start-edit="emit('start-edit')"
+                    @generate="emit('generate')"
+                />
+            </template>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { MdPreview } from 'md-editor-v3';
-import { Message } from '../types'; 
+import { Message } from '../../types';
+import EditArea from './EditArea.vue';
+import ReasoningBlock from './ReasoningBlock.vue';
+import MessageActions from './MessageActions.vue';
+import { handleMarkdownDblClick, handleMarkdownCopy } from '../markdownInteractions';
 
-defineProps<{ message: Message }>();
+defineProps<{ 
+    message: Message,
+    siblingInfo: { count: number, currentIndex: number },
+    isStreaming: boolean,
+    isEditing: boolean,
+    editingText: string
+}>();
+
+const emit = defineEmits<{
+    (e: 'switch-sibling', direction: 'prev' | 'next'): void,
+    (e: 'generate'): void,
+    (e: 'start-edit'): void,
+    (e: 'cancel-edit'): void,
+    (e: 'save-edit', shouldGenerate: boolean): void,
+    (e: 'update:editingText', value: string): void
+}>();
 </script>
 
 <style scoped>
 .message-tile {
     display: flex;
     gap: 16px;
-    margin: 24px 0;
     padding: 16px 0;
     border-top: 1px solid #1e293b;
     
@@ -84,7 +111,7 @@ defineProps<{ message: Message }>();
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    margin-top: 4px; /* Align roughly with the header text */
+    margin-top: 4px;
     background: #1e293b;
     border: 1px solid #334155;
 }
@@ -101,7 +128,7 @@ defineProps<{ message: Message }>();
 
 .message-body {
     flex: 1;
-    min-width: 0; /* Prevents markdown content from overflowing */
+    min-width: 0;
 }
 
 .message-header {
@@ -153,74 +180,7 @@ defineProps<{ message: Message }>();
     }
 }
 
-/* Reasoning Block Styles */
-.reasoning-block {
-    margin-bottom: 16px;
-    /* Removed border-left, padding-left, border-radius from here */
-}
-
-.reasoning-block summary {
-    cursor: pointer;
-    color: #94a3b8;
-    font-size: 14px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 0; /* Changed to 0 so the box below controls the spacing */
-}
-
-.reasoning-block summary::-webkit-details-marker {
-    display: none; /* Hide default arrow */
-}
-
-.chevron-icon {
-    color: #64748b;
-    transition: transform 0.2s ease; /* Smooth rotation */
-    flex-shrink: 0;
-}
-
-/* Rotate the chevron 90 degrees when the details block is open */
-.reasoning-block[open] .chevron-icon {
-    transform: rotate(90deg);
-}
-
-.bulb-icon {
-    color: #fbbf24;
-    flex-shrink: 0;
-}
-
-.spinner-icon {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* Apply the visual wrapper to the content instead of the whole block */
-.reasoning-content {
-    margin-top: 8px; /* Give space from the summary above */
-    border-left: 2px solid #334155;
-    padding-left: 16px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    border-radius: 4px;
-    /* Add a very subtle dark background to make it feel like a contained block */
-    background: rgba(15, 23, 42, 0.5); 
-    font-size: 14px;
-    color: #cbd5e1;
-    opacity: 0.8;
-}
-
-.reasoning-content {
-    font-size: 14px;
-    color: #cbd5e1;
-    opacity: 0.8;
-}
-
-/* Markdown Overrides */
+/* Markdown Overrides (Global via :deep) */
 .markdown-content {
     background: transparent !important;
     font-size: inherit !important;
