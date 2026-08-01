@@ -245,9 +245,13 @@ export function useMessages() {
                         } else if (event.type === 'token') {
                             // Append to buffer instead of mutating ref directly
                             contentBuffer += event.content;
+                            // If interval is 0, flush immediately (no throttling)
+                            if (streamRefreshInterval.value === 0) flushBuffers();
                         } else if (event.type === 'reasoning') {
                             // Append to buffer instead of mutating ref directly
                             reasoningBuffer += event.content;
+                            // If interval is 0, flush immediately (no throttling)
+                            if (streamRefreshInterval.value === 0) flushBuffers();
                         } else if (event.type === 'done') {
                             // Flush remaining tokens before applying final state
                             flushBuffers();
