@@ -72,6 +72,8 @@ async def generate_stream(
     
     logger.info("Dispatching request to LLM provider (Model: %s, Messages: %d)", target_model, len(formatted_history))
     
+    usage_metadata = {}
+    
     try:
         # stream_options={"include_usage": True} is critical to get the final cost chunk
         stream = await active_client.chat.completions.create(
@@ -84,11 +86,7 @@ async def generate_stream(
         async for chunk in stream:
             # Extract usage metadata if it exists (final chunk)
             if chunk.usage:
-                # Convert pydantic model to dict for easy JSON serialization later
-                yield {
-                    "type": "done", 
-                    "metadata": chunk.usage.model_dump()
-                }
+                usage_metadata = chunk.usage.model_dump()
             
             # Extract text token if it exists
             if chunk.choices and chunk.choices[0].delta:
@@ -101,6 +99,9 @@ async def generate_stream(
                     yield {"type": "token", "content": content}
                 if reasoning:
                     yield {"type": "reasoning", "content": reasoning}
+                
+        # If the loop finishes without exception, yield done exactly once
+        yield {"type": "done", "metadata": usage_metadata}
                 
     except Exception as e:
         # Catching generic Exception to ensure the background task doesn't die abruptly
