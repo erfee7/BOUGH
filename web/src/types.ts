@@ -10,7 +10,7 @@ export interface Message {
     role: 'system' | 'developer' | 'user' | 'assistant';
     content: string | null;
     reasoning?: string | null;
-    status: 'pending' | 'streaming' | 'complete' | 'error';
+    status: 'pending' | 'streaming' | 'complete' | 'error' | 'canceled';
     creation_data?: any;
     error_data?: any;
     metadata?: any;

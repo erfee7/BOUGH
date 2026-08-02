@@ -187,7 +187,7 @@ export function useMessages() {
                 reasoningBuffer = '';
                 mutated = true;
             }
-            if (mutated && messages.value[msgIndex].status !== 'streaming') {
+            if (mutated && messages.value[msgIndex].status === 'pending') {
                 messages.value[msgIndex].status = 'streaming';
             }
         };
@@ -263,6 +263,15 @@ export function useMessages() {
                             if (event.content) messages.value[msgIndex].content = event.content;
                             if (event.reasoning) messages.value[msgIndex].reasoning = event.reasoning;
                             if (event.metadata) messages.value[msgIndex].metadata = event.metadata;
+                        } else if (event.type === 'canceled') {
+                            // Flush remaining tokens before applying canceled state
+                            flushBuffers();
+                            if (flushTimer) clearInterval(flushTimer);
+                            flushTimer = null;
+                            
+                            messages.value[msgIndex].status = 'canceled';
+                            if (event.content) messages.value[msgIndex].content = event.content;
+                            if (event.reasoning) messages.value[msgIndex].reasoning = event.reasoning;
                         } else if (event.type === 'error') {
                             // Flush remaining tokens before applying error state
                             flushBuffers();

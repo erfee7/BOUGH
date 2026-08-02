@@ -23,8 +23,11 @@
                 @keydown.enter.exact.prevent="emit('send')"
                 placeholder="Type a message... (Enter to send)"
             ></textarea>
-            <button @click="emit('send')" :disabled="isStreaming || !modelValue.trim()">
+            <button v-if="!isStreaming" @click="emit('send')" :disabled="!modelValue.trim()">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+            <button v-else @click="emit('cancel')" class="stop-btn">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
             </button>
         </div>
     </div>
@@ -45,6 +48,7 @@ const emit = defineEmits<{
     (e: 'update:modelValue', value: string): void, 
     (e: 'update:developerPrompt', value: string): void,
     (e: 'send'): void,
+    (e: 'cancel'): void,
     (e: 'openLibrary'): void 
 }>();
 
@@ -159,5 +163,14 @@ function handleInput(event: Event) {
     background: #475569;
     cursor: not-allowed;
     opacity: 0.7;
+}
+
+.input-container button.stop-btn {
+    background: #ef4444;
+}
+
+.input-container button.stop-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
 }
 </style>

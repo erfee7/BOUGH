@@ -7,6 +7,7 @@
             :developerPrompt="developerPrompt"
             @update:developerPrompt="developerPrompt = $event"
             @send="send"
+            @cancel="cancel"
             @openLibrary="emit('openLibrary')"
             :isStreaming="isStreaming"
         />
@@ -26,7 +27,8 @@ const {
     inputText, 
     developerPrompt, 
     isStreaming, 
-    send 
+    send,
+    cancel
 } = useChatEngine();
 </script>
 
