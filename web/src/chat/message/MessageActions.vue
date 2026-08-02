@@ -25,13 +25,13 @@
             </svg>
         </button>
 
-        <!-- Edit & Generate: Disabled if !isComplete -->
-        <button @click="emit('start-edit')" class="action-btn" title="Edit message" :disabled="!isComplete">
+        <!-- Edit & Generate: Disabled if !isInteractive -->
+        <button @click="emit('start-edit')" :disabled="!isInteractive" class="action-btn" title="Edit message">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
             </svg>
         </button>
-        <button @click="emit('generate')" :disabled="!isComplete" class="action-btn" :title="role === 'user' ? 'Generate response' : 'Continue from here'">
+        <button @click="emit('generate')" :disabled="!isInteractive" class="action-btn" :title="role === 'user' ? 'Generate response' : 'Continue from here'">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3z"></path>
             </svg>
@@ -44,7 +44,7 @@ import { ref } from 'vue';
 
 const props = defineProps<{ 
     siblingInfo: { count: number, currentIndex: number },
-    isComplete: boolean,
+    isInteractive: boolean,
     role: string,
     content: string | null
 }>();

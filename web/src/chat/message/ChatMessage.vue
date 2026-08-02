@@ -48,7 +48,7 @@
 
                 <MessageActions 
                     :siblingInfo="siblingInfo" 
-                    :isComplete="message.status === 'complete'" 
+                    :isInteractive="message.status === 'complete' || message.status === 'canceled'"
                     :role="message.role"
                     :content="message.content"
                     @switch-sibling="emit('switch-sibling', $event)"
