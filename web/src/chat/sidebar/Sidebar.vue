@@ -1,7 +1,7 @@
 <template>
     <aside class="sidebar">
         <div class="sidebar-header">
-            <button class="new-chat-btn" @click="handleNewChat" :disabled="props.isStreaming">
+            <button class="new-chat-btn" @click="handleNewChat">
                 <span>+</span> New Chat
             </button>
         </div>
@@ -65,7 +65,6 @@ const vFocus = {
 };
 
 function handleNewChat() {
-    if (props.isStreaming) return;
     selectConversation(null);
 }
 
