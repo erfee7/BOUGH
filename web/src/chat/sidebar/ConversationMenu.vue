@@ -71,6 +71,7 @@ function askForDeleteConfirm() {
 
 function cancelDelete() {
     confirmingDelete.value = false;
+    closeMenu();
 }
 
 function confirmDelete() {
@@ -136,6 +137,7 @@ onBeforeUnmount(() => {
     min-width: 160px;
     padding: 4px;
     margin-top: 4px;
+    cursor: default;
 }
 
 .menu-item {
