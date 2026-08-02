@@ -177,6 +177,7 @@ function handleGenerateTitle(id: string) {
     justify-content: space-between;
     align-items: center;
     gap: 8px;
+    min-height: 26px;
 }
 
 .conv-title {
