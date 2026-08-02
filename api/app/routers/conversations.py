@@ -7,6 +7,7 @@ from app.db import conversations as db_conversations
 from app.db import messages as db_messages
 
 from app.core import titler
+from app.core import stream_manager
 
 from app.schemas.chat import (
     ConversationCreateRequest,
@@ -124,3 +125,19 @@ async def generate_conversation_title(conversation_id: uuid.UUID, payload: Title
     # Fetch the updated record to return canonical truth
     updated_conv = await db_conversations.fetch_conversation(conversation_id)
     return ConversationResponse.model_validate(updated_conv)
+
+@router.delete("/conversations/{conversation_id}", status_code=204)
+async def delete_conversation(conversation_id: uuid.UUID):
+    """Deletes a conversation, cancels any active streams, and cascades messages."""
+    record = await db_conversations.fetch_conversation(conversation_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+        
+    # Find and cancel any active streams before deleting
+    messages = await db_messages.fetch_conversation_messages(conversation_id)
+    for msg in messages:
+        if msg['status'] in ['streaming', 'pending']:
+            stream_manager.cancel_stream(msg['id'])
+            
+    await db_conversations.delete_conversation(conversation_id)
+    logger.info("Deleted conversation %s", conversation_id)

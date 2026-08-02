@@ -301,3 +301,53 @@ async def test_generate_title_conversation_not_found(mock_pool):
             
             assert response.status_code == 404
             assert response.json()["detail"] == "Conversation not found"
+
+@pytest.mark.asyncio
+async def test_delete_conversation_endpoint_success(mock_pool):
+    """Tests DELETE /api/chat/conversations/{id}."""
+    conv_id = await db_conversations.create_conversation(title="To Delete", conn=mock_pool.conn)
+    
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.delete(f"/api/chat/conversations/{conv_id}")
+            
+            assert response.status_code == 204
+            
+            # Verify it's gone from DB
+            result = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
+            assert result is None
+
+@pytest.mark.asyncio
+async def test_delete_conversation_endpoint_not_found(mock_pool):
+    """Tests 404 when deleting non-existent conversation."""
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            random_id = uuid.uuid4()
+            response = await client.delete(f"/api/chat/conversations/{random_id}")
+            assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_delete_conversation_cancels_streams(mock_pool):
+    """Tests that deleting a conversation cancels active streams."""
+    conv_id = await db_conversations.create_conversation(title="Stream Conv", conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content="Sys", 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    user_id = await db_messages.create_message(
+        conversation_id=conv_id, role="user", parent_id=root_id, content="Hi", 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    streaming_msg_id = await db_messages.create_message(
+        conversation_id=conv_id, role="assistant", parent_id=user_id, content=None, 
+        status="streaming", creation_data={"source": "model"}, conn=mock_pool.conn
+    )
+    
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        with patch('app.routers.conversations.stream_manager.cancel_stream') as mock_cancel:
+            async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.delete(f"/api/chat/conversations/{conv_id}")
+                
+                assert response.status_code == 204
+                # Verify cancel_stream was called with the streaming message ID
+                mock_cancel.assert_called_once_with(streaming_msg_id)
