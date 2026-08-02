@@ -112,6 +112,23 @@ export function useConversations() {
         }
     }
 
+    async function deleteConversation(id: string) {
+        try {
+            const response = await fetch(`/api/chat/conversations/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Failed to delete conversation');
+            
+            // If deleting the active conversation, switch to New Chat state
+            if (currentConversationId.value === id) {
+                currentConversationId.value = null;
+            }
+            
+            // Remove from local list
+            conversations.value = conversations.value.filter(c => c.id !== id);
+        } catch (error) {
+            console.error("Error deleting conversation:", error);
+        }
+    }
+
 // Update the return statement:
     return {
         conversations,
@@ -119,6 +136,7 @@ export function useConversations() {
         fetchAllConversations,
         createConversation,
         selectConversation,
+        deleteConversation,
         updateTitle,
         generatingTitleIds,
         generateTitle,

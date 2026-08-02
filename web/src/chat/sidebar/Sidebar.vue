@@ -25,13 +25,14 @@
                     />
                     <div v-else class="conv-item-content">
                         <span class="conv-title">{{ conv.title || 'Untitled' }}</span>
-                        <button 
-                            v-if="!isGenerating(conv.id)"
-                            @click.stop="handleGenerateTitle(conv.id)" 
-                            class="title-action-btn"
-                            title="Generate Title"
-                        >✨</button>
-                        <span v-else class="spinner">⏳</span>
+                        
+                        <!-- Replace old button with ConversationMenu -->
+                        <ConversationMenu 
+                            :isGenerating="isGenerating(conv.id)"
+                            @rename="startEditing(conv)"
+                            @generate-title="handleGenerateTitle(conv.id)"
+                            @delete="deleteConversation(conv.id)"
+                        />
                     </div>
                 </li>
             </ul>
@@ -47,11 +48,12 @@
 <script setup lang="ts">
 import { useConversations } from '../useConversations';
 import { useTitleEdit } from './useTitleEdit';
+import ConversationMenu from './ConversationMenu.vue';
 
 const props = defineProps<{ isStreaming: boolean }>();
-const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>(); // Add emit
+const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>();
 
-const { conversations, currentConversationId, selectConversation, generatingTitleIds, generateTitle } = useConversations();
+const { conversations, currentConversationId, selectConversation, generatingTitleIds, generateTitle, deleteConversation } = useConversations();
 const { editingId, editText, startEditing, saveEdit, cancelEdit } = useTitleEdit();
 
 // Custom directive to auto-focus and select text when the input is mounted
@@ -160,6 +162,10 @@ function handleGenerateTitle(id: string) {
     color: #f8fafc;
 }
 
+.conversation-list li:hover :deep(.kebab-btn) {
+    opacity: 1;
+}
+
 .conversation-list li.active {
     background: #1e293b;
     color: #f8fafc;
@@ -204,10 +210,6 @@ function handleGenerateTitle(id: string) {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-li:hover .title-action-btn {
-    opacity: 1;
 }
 
 .title-action-btn:hover {
