@@ -12,6 +12,7 @@ TEST_CONVERSATION_TITLE = "Msg API Test"
 TEST_SYSTEM_PROMPT = "You are a test assistant."
 TEST_USER_MESSAGE = "User input"
 TEST_ASSISTANT_MESSAGE = "Manual assistant text"
+TEST_ERROR_DATA = {'message': 'API Died', 'type': 'APIError'}
 
 @pytest.mark.asyncio
 async def test_append_message_endpoint(mock_pool):
@@ -240,3 +241,88 @@ async def test_stream_message_not_found(mock_pool):
             
             assert response.status_code == 404
             assert response.json()["detail"] == "Message not found"
+
+@pytest.mark.asyncio
+async def test_generate_message_parent_canceled(mock_pool):
+    """Tests that generating under a canceled parent is allowed (e.g., continuing from partial)."""
+    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    canceled_user_msg = await db_messages.create_message(
+        conversation_id=conv_id, role="user", parent_id=root_id, content=TEST_USER_MESSAGE,
+        status="canceled", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        with patch('app.routers.messages.stream_manager.start_stream') as mock_start:
+            async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                payload = {}
+                response = await client.post(f"/api/chat/messages/{canceled_user_msg}/generate", json=payload)
+                
+                assert response.status_code == 200
+                mock_start.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_cancel_message_endpoint(mock_pool):
+    """Tests POST /api/chat/messages/{id}/cancel."""
+    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    msg_id = await db_messages.create_message(
+        conversation_id=conv_id, role="assistant", parent_id=None, content="Partial",
+        status="streaming", creation_data={"source": "model"}, conn=mock_pool.conn
+    )
+    
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        with patch('app.routers.messages.stream_manager.cancel_stream') as mock_cancel:
+            async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.post(f"/api/chat/messages/{msg_id}/cancel")
+                
+                assert response.status_code == 200
+                assert response.json()["status"] == "ok"
+                mock_cancel.assert_called_once_with(msg_id)
+
+@pytest.mark.asyncio
+async def test_cancel_message_not_found(mock_pool):
+    """Tests that canceling a non-existent message returns 404."""
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            random_msg_id = uuid.uuid4()
+            response = await client.post(f"/api/chat/messages/{random_msg_id}/cancel")
+            assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_stream_message_endpoint_canceled():
+    """Tests GET /api/chat/messages/{id}/stream when message was canceled (e.g., reconnecting after cancel)."""
+    mock_msg = {
+        'id': uuid.uuid4(), 'status': 'canceled', 'content': 'Partial gen',
+        'reasoning': 'Partial think',
+        'metadata': None, 'error_data': None
+    }
+    with patch('app.routers.messages.db_messages.fetch_message', new_callable=AsyncMock, return_value=mock_msg):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get(f"/api/chat/messages/{mock_msg['id']}/stream")
+            
+            assert response.status_code == 200
+            lines = response.text.strip().split("\n\n")
+            assert len(lines) == 2
+            assert lines[0] == f'data: {json.dumps({"type": "canceled", "content": "Partial gen", "reasoning": "Partial think"})}'
+            assert lines[1] == "data: [DONE]"
+
+@pytest.mark.asyncio
+async def test_stream_message_endpoint_error():
+    """Tests GET /api/chat/messages/{id}/stream when message has error status."""
+    mock_msg = {
+        'id': uuid.uuid4(), 'status': 'error', 'content': 'Partial gen',
+        'reasoning': 'Partial think',
+        'metadata': None, 'error_data': TEST_ERROR_DATA
+    }
+    with patch('app.routers.messages.db_messages.fetch_message', new_callable=AsyncMock, return_value=mock_msg):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get(f"/api/chat/messages/{mock_msg['id']}/stream")
+            
+            assert response.status_code == 200
+            lines = response.text.strip().split("\n\n")
+            assert len(lines) == 2
+            assert lines[0] == f'data: {json.dumps({"type": "error", "content": "Partial gen", "reasoning": "Partial think", "error_data": TEST_ERROR_DATA})}'
+            assert lines[1] == "data: [DONE]"
