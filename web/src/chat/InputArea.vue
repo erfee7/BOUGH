@@ -11,7 +11,7 @@
         
         <div class="action-bar">
             <button @click="showDevPrompt = !showDevPrompt" class="toggle-dev-btn" :class="{ 'active': showDevPrompt }" title="Toggle Developer Prompt">
-                >_
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.terminal"></svg>
             </button>
         </div>
 
@@ -24,10 +24,10 @@
                 placeholder="Type a message... (Enter to send)"
             ></textarea>
             <button v-if="!isStreaming" @click="emit('send')" :disabled="!modelValue.trim()">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.send"></svg>
             </button>
             <button v-else @click="emit('cancel')" class="stop-btn">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.stop"></svg>
             </button>
         </div>
     </div>
@@ -37,6 +37,7 @@
 import { ref } from 'vue';
 import PromptSelector from './prompts/PromptSelector.vue';
 import { useAutoResizeTextarea } from './useAutoResizeTextarea';
+import { ICONS } from '../icons';
 
 const props = defineProps<{ 
     modelValue: string, 

@@ -1,16 +1,23 @@
 <template>
     <div class="menu-container" v-if="!isGenerating">
         <button @click.stop="toggleMenu" class="kebab-btn" :class="{ 'is-open': menuOpen }" title="More actions">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                <circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>
-            </svg>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.vertical_dots"></svg>
         </button>
         
         <div v-if="menuOpen" class="dropdown-menu">
             <template v-if="!confirmingDelete">
-                <button @click.stop="handleRename" class="menu-item">Rename</button>
-                <button @click.stop="handleGenerateTitle" class="menu-item">Auto Title ✨</button>
-                <button @click.stop="askForDeleteConfirm" class="menu-item danger">Delete</button>
+                <button @click.stop="handleRename" class="menu-item">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.pencil"></svg>
+                    Rename
+                </button>
+                <button @click.stop="handleGenerateTitle" class="menu-item">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.sparkles"></svg>
+                    Auto Title
+                </button>
+                <button @click.stop="askForDeleteConfirm" class="menu-item danger">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.trash"></svg> <!-- You'll need to add 'trash' to your icons.ts -->
+                    Delete
+                </button>
             </template>
             
             <template v-else>
@@ -24,11 +31,12 @@
             </template>
         </div>
     </div>
-    <span v-else class="spinner">⏳</span>
+    <div v-else class="spinner"></div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ICONS } from '../../icons';
 
 const props = defineProps<{ 
     isGenerating: boolean 
@@ -141,7 +149,9 @@ onBeforeUnmount(() => {
 }
 
 .menu-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     width: 100%;
     text-align: left;
     background: transparent;
@@ -151,7 +161,12 @@ onBeforeUnmount(() => {
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
+    line-height: 1; /* Remove extra text spacing */
     transition: background-color 0.15s;
+}
+
+.menu-item svg {
+    flex-shrink: 0; /* Prevent the icon from squishing */
 }
 
 .menu-item:hover {
@@ -209,13 +224,15 @@ onBeforeUnmount(() => {
 }
 
 .spinner {
-    font-size: 14px;
-    opacity: 1;
-    animation: spin 1s linear infinite;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #475569;
+    border-top-color: #f8fafc;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-    from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
 </style>
