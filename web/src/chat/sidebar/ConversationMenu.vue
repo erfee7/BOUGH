@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { ICONS } from '../../icons';
+import { ICONS } from '@/icons';
 
 const props = defineProps<{ 
     isGenerating: boolean 

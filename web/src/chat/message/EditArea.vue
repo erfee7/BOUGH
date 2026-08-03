@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { useAutoResizeTextarea } from '../useAutoResizeTextarea'; // <-- Import (up one level)
+import { useAutoResizeTextarea } from '@/chat/useAutoResizeTextarea';
 
 const props = defineProps<{ 
     editingText: string,

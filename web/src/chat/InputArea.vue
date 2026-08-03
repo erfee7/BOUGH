@@ -37,7 +37,7 @@
 import { ref } from 'vue';
 import PromptSelector from './prompts/PromptSelector.vue';
 import { useAutoResizeTextarea } from './useAutoResizeTextarea';
-import { ICONS } from '../icons';
+import { ICONS } from '@/icons';
 
 const props = defineProps<{ 
     modelValue: string, 

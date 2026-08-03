@@ -1,6 +1,6 @@
 import { ref, computed, onMounted, watch, type Ref } from 'vue';
 import { usePrompts } from './usePrompts';
-import { Prompt } from '../../types';
+import { Prompt } from '@/types';
 
 export function usePromptSelection(
     role: 'system' | 'developer', 

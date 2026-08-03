@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { Prompt } from '../../types';
+import { Prompt } from '@/types';
 
 const prompts = ref<Prompt[]>([]);
 const isLoading = ref(false);

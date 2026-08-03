@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { Message } from '../types';
+import { Message } from '@/types';
 
 const messages = ref<Message[]>([]);
 const activeLeafId = ref<string | null>(null);

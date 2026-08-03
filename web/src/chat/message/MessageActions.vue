@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { ICONS } from '../../icons';
+import { ICONS } from '@/icons';
 
 const props = defineProps<{ 
     siblingInfo: { count: number, currentIndex: number },

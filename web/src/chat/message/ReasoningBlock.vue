@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import { MdPreview } from 'md-editor-v3';
-import { handleMarkdownDblClick, handleMarkdownCopy } from '../markdownInteractions';
+import { handleMarkdownDblClick, handleMarkdownCopy } from '@/chat/markdownInteractions';
 
 defineProps<{ 
     reasoning: string,

@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { ConversationSummary } from '../types';
+import { ConversationSummary } from '@/types';
 
 const conversations = ref<ConversationSummary[]>([]);
 const currentConversationId = ref<string | null>(null);

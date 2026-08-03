@@ -48,10 +48,10 @@
 </template>
 
 <script setup lang="ts">
-import { useConversations } from '../useConversations';
+import { useConversations } from '@/chat/useConversations';
 import { useTitleEdit } from './useTitleEdit';
 import ConversationMenu from './ConversationMenu.vue';
-import { ICONS } from '../../icons';
+import { ICONS } from '@/icons';
 
 const props = defineProps<{ isStreaming: boolean }>();
 const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>();

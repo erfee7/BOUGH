@@ -62,11 +62,11 @@
 
 <script setup lang="ts">
 import { MdPreview } from 'md-editor-v3';
-import { Message } from '../../types';
+import { Message } from '@/types';
 import EditArea from './EditArea.vue';
 import ReasoningBlock from './ReasoningBlock.vue';
 import MessageActions from './MessageActions.vue';
-import { handleMarkdownDblClick, handleMarkdownCopy } from '../markdownInteractions';
+import { handleMarkdownDblClick, handleMarkdownCopy } from '@/chat/markdownInteractions';
 
 defineProps<{ 
     message: Message,
