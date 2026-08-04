@@ -2,6 +2,7 @@ import json
 import uuid
 import pytest
 import httpx
+import asyncio
 from httpx import ASGITransport
 from unittest.mock import patch, AsyncMock
 from app.main import app
@@ -23,6 +24,9 @@ async def test_append_message_endpoint(mock_pool):
         conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
         status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
+
+    # Wait a moment so clock_timestamp() will be strictly greater
+    await asyncio.sleep(0.01)
     
     # Action: Call API
     with patch('app.routers.messages.get_pool', return_value=mock_pool):
@@ -44,6 +48,7 @@ async def test_append_message_endpoint(mock_pool):
             
             conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
             assert conv['active_leaf_id'] == new_msg_id
+            assert conv['updated_at'] > conv['created_at']
 
 @pytest.mark.asyncio
 async def test_append_message_assistant_role(mock_pool):
@@ -108,6 +113,9 @@ async def test_generate_message_endpoint(mock_pool):
         conversation_id=conv_id, role="user", parent_id=root_id, content=TEST_USER_MESSAGE,
         status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
+
+    # Wait so that update time will be later than create time
+    await asyncio.sleep(0.01)
     
     # Action: Call API
     with patch('app.routers.messages.get_pool', return_value=mock_pool):
@@ -131,6 +139,7 @@ async def test_generate_message_endpoint(mock_pool):
                 
                 conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
                 assert conv['active_leaf_id'] == asst_id
+                assert conv['updated_at'] > conv['created_at']
                 
                 # Verify stream manager was called
                 mock_start.assert_called_once()

@@ -1,6 +1,7 @@
 import uuid
 import pytest
 import httpx
+import asyncio
 from httpx import ASGITransport
 from unittest.mock import patch, AsyncMock
 
@@ -351,3 +352,37 @@ async def test_delete_conversation_cancels_streams(mock_pool):
                 assert response.status_code == 204
                 # Verify cancel_stream was called with the streaming message ID
                 mock_cancel.assert_called_once_with(streaming_msg_id)
+
+@pytest.mark.asyncio
+async def test_touch_conversation_endpoint(mock_pool):
+    """Tests POST /api/chat/conversations/{id}/touch actually updates the timestamp."""
+    conv_id = await db_conversations.create_conversation(title="Touch Me", conn=mock_pool.conn)
+    
+    # 1. Fetch the initial state directly from the DB
+    initial_conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
+    
+    # 2. Wait a moment so clock_timestamp() will be strictly greater
+    await asyncio.sleep(0.01)
+    
+    # 3. Call the API endpoint
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(f"/api/chat/conversations/{conv_id}/touch")
+            
+            assert response.status_code == 200
+            assert response.json()["status"] == "ok"
+            
+    # 4. Fetch the updated state directly from the DB
+    updated_conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
+    
+    # 5. Assert that the DB function was actually called and the timestamp advanced
+    assert updated_conv['updated_at'] > initial_conv['updated_at']
+
+@pytest.mark.asyncio
+async def test_touch_conversation_not_found(mock_pool):
+    """Tests 404 when touching a non-existent conversation."""
+    with patch('app.db.connection.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            random_id = uuid.uuid4()
+            response = await client.post(f"/api/chat/conversations/{random_id}/touch")
+            assert response.status_code == 404
