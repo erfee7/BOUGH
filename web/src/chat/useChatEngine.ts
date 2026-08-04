@@ -100,9 +100,6 @@ export function useChatEngine() {
     }
 
     return {
-        currentConversationId,
-        messages,
-        isStreaming,
         inputText,
         systemPrompt,
         developerPrompt,

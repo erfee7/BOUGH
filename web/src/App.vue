@@ -27,11 +27,19 @@ import Sidebar from './chat/sidebar/Sidebar.vue';
 import NewChatArea from './chat/NewChatArea.vue';
 import ChatArea from './chat/ChatArea.vue';
 import PromptLibraryModal from './chat/prompts/PromptLibraryModal.vue';
+import { useMessages } from './chat/useMessages';
+import { useConversations } from './chat/useConversations';
 import { useChatEngine } from './chat/useChatEngine';
 
+const {
+    isStreaming
+} = useMessages();
+
+const {
+    currentConversationId
+} = useConversations();
+
 const { 
-    currentConversationId, 
-    isStreaming, 
     isPromptLibraryVisible,
     initialize, 
     handleNavigation

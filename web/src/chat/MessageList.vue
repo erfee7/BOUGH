@@ -30,17 +30,19 @@ import { useBranching } from './useBranching';
 import { useMessages } from './useMessages.js';
 import { getSiblingInfo as getSiblingInfoUtil } from './branchingUtils.js';
 
-const { messages } = useMessages();
+const { messages,
+        isStreaming,
+        generateMessage
+ } = useMessages();
+
 const { 
     activePath, 
-    isStreaming, 
     editingMessageId, 
     editingText, 
     switchSibling, 
     startEdit, 
     cancelEdit, 
-    saveEdit, 
-    generateMessage 
+    saveEdit
 } = useBranching();
 </script>
 

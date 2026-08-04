@@ -8,7 +8,6 @@ export function useBranching() {
     const { 
         messages, 
         activeLeafId, 
-        isStreaming, 
         stopStreaming, 
         startStreaming, 
         generateMessage, 
@@ -85,11 +84,9 @@ export function useBranching() {
         activePath,
         editingMessageId,
         editingText,
-        isStreaming,
         switchSibling,
         startEdit,
         cancelEdit,
-        saveEdit,
-        generateMessage
+        saveEdit
     };
 }
