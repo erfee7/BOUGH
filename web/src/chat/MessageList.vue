@@ -5,7 +5,6 @@
                 v-if="msg.role !== 'system' && msg.role !== 'developer'" 
                 :message="msg" 
                 :siblingInfo="getSiblingInfoUtil(msg.id, messages)"
-                :isStreaming="isStreaming"
                 :isEditing="editingMessageId === msg.id"
                 :editingText="editingText"
                 @update:editingText="editingText = $event"
@@ -31,7 +30,6 @@ import { useMessages } from './useMessages.js';
 import { getSiblingInfo as getSiblingInfoUtil } from './branchingUtils.js';
 
 const { messages,
-        isStreaming,
         generateMessage
  } = useMessages();
 

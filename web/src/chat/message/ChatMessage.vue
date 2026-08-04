@@ -71,7 +71,6 @@ import { handleMarkdownDblClick, handleMarkdownCopy } from '@/chat/markdownInter
 defineProps<{ 
     message: Message,
     siblingInfo: { count: number, currentIndex: number },
-    isStreaming: boolean,
     isEditing: boolean,
     editingText: string
 }>();

@@ -54,7 +54,6 @@ import { useTitleEdit } from './useTitleEdit';
 import ConversationMenu from './ConversationMenu.vue';
 import { ICONS } from '@/icons';
 
-const props = defineProps<{ isStreaming: boolean }>();
 const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>();
 
 const { conversations, currentConversationId, selectConversation, generatingTitleIds, generateTitle, touchConversation, deleteConversation } = useConversations();

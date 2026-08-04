@@ -1,7 +1,6 @@
 <template>
     <div class="app-layout">
         <Sidebar 
-            :isStreaming="isStreaming" 
             @openPromptLibrary="isPromptLibraryVisible = true" 
         />
         <main class="main-area">
@@ -32,7 +31,6 @@ import { useConversations } from './chat/useConversations';
 import { useChatEngine } from './chat/useChatEngine';
 
 const {
-    isStreaming
 } = useMessages();
 
 const {
