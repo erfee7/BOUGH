@@ -15,11 +15,6 @@
                 @save-edit="(shouldGenerate: boolean) => saveEdit(msg, shouldGenerate)"
             />
         </template>
-        <div v-if="activePath.length === 0" class="empty-state">
-            <div class="empty-icon">💬</div>
-            <h2>Start a new chat</h2>
-            <p>Type a message below to begin</p>
-        </div>
     </div>
 </template>
 
@@ -66,32 +61,5 @@ const {
 .messages-container::-webkit-scrollbar-thumb {
     background-color: #334155;
     border-radius: 3px;
-}
-
-.empty-state {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: #64748b;
-    margin-top: 10vh;
-}
-
-.empty-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    opacity: 0.5;
-}
-
-.empty-state h2 {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0 0 8px 0;
-}
-
-.empty-state p {
-    font-size: 14px;
-    margin: 0;
 }
 </style>
