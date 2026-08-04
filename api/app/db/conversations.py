@@ -16,14 +16,14 @@ async def create_conversation(title: str | None, conn: asyncpg.Connection | None
 @with_connection
 async def fetch_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> dict | None:
     """Fetches a single conversation by its ID."""
-    query = "SELECT id, title, active_leaf_id, created_at FROM conversations WHERE id = $1;"
+    query = "SELECT id, title, active_leaf_id, created_at, updated_at FROM conversations WHERE id = $1;"
     record = await conn.fetchrow(query, conversation_id)
     return dict(record) if record else None
 
 @with_connection
 async def fetch_all_conversations(conn: asyncpg.Connection | None = None) -> list[dict]:
-    """Fetches all conversations, ordered by newest first."""
-    query = "SELECT id, title, created_at FROM conversations ORDER BY created_at DESC;"
+    """Fetches all conversations, ordered by most recently updated first."""
+    query = "SELECT id, title, created_at, updated_at FROM conversations ORDER BY updated_at DESC;"
     records = await conn.fetch(query)
     return [dict(r) for r in records]
 
@@ -49,6 +49,8 @@ async def update_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connecti
     if not set_clauses:
         logger.warning("update_conversation called with no valid columns to update for ID: %s", conversation_id)
         return
+
+    # We do NOT automatically refresh the update time here for flexible UX
         
     args.append(conversation_id)
     query = f"UPDATE conversations SET {', '.join(set_clauses)} WHERE id = ${idx};"
@@ -61,3 +63,11 @@ async def delete_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connecti
     query = "DELETE FROM conversations WHERE id = $1;"
     await conn.execute(query, conversation_id)
     logger.info("Deleted conversation with ID: %s", conversation_id)
+
+@with_connection
+async def touch_conversation(conversation_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> None:
+    """Updates the updated_at timestamp of a conversation to current real-time."""
+    # Use clock_timestamp() to get real-time, not transaction start time
+    query = "UPDATE conversations SET updated_at = clock_timestamp() WHERE id = $1;"
+    await conn.execute(query, conversation_id)
+    logger.info("Touched conversation ID: %s", conversation_id)

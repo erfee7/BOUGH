@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT, -- Nullable, represents an untitled conversation
     active_leaf_id UUID, -- Tracks the currently visible end of the chat tree
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Messages Table (Adjacency List for Rooted Tree)

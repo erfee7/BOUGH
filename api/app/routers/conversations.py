@@ -141,3 +141,15 @@ async def delete_conversation(conversation_id: uuid.UUID):
             
     await db_conversations.delete_conversation(conversation_id)
     logger.info("Deleted conversation %s", conversation_id)
+
+@router.post("/conversations/{conversation_id}/touch")
+async def touch_conversation(conversation_id: uuid.UUID):
+    """Manually bumps the conversation's updated_at timestamp."""
+    record = await db_conversations.fetch_conversation(conversation_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+        
+    await db_conversations.touch_conversation(conversation_id)
+    logger.info("Touched conversation %s", conversation_id)
+    
+    return {"status": "ok"}

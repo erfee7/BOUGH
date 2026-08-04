@@ -50,6 +50,7 @@ async def append_message(parent_id: uuid.UUID, payload: MessageAppendRequest):
             )
             
             await db_conversations.update_conversation(conversation_id, active_leaf_id = new_msg_id, conn = conn)
+            await db_conversations.touch_conversation(conversation_id, conn = conn)
             
             return MessageIdResponse(message_id = new_msg_id)
 
@@ -86,8 +87,8 @@ async def generate_message(parent_id: uuid.UUID, payload: MessageGenerateRequest
                 conn = conn
             )
             
-            # Update active leaf
             await db_conversations.update_conversation(conversation_id, active_leaf_id = assistant_msg_id, conn = conn)
+            await db_conversations.touch_conversation(conversation_id, conn = conn)
             
             # Fetch history from the new assistant message (walks up to root)
             history = await db_messages.fetch_message_history(parent_id, conn = conn)
