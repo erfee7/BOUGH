@@ -1,7 +1,7 @@
 <template>
     <aside class="sidebar">
         <div class="sidebar-header">
-            <button class="new-chat-btn" @click="handleNewChat" :disabled="props.isStreaming">
+            <button class="new-chat-btn" @click="handleNewChat">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.new_chat"></svg>
                 New Chat
             </button>
