@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { Message } from '@/types';
+import { useConversations } from './useConversations';
 
 const messages = ref<Message[]>([]);
 const activeLeafId = ref<string | null>(null);
@@ -11,7 +12,10 @@ export const streamRefreshInterval = ref(50);
 let abortController: AbortController | null = null;
 
 export function useMessages() {
-
+    
+    // Get access to the conversation bump function and ID
+    const { currentConversationId, bumpLocalConversation } = useConversations();
+    
     // 0. Stop the ongoing streaming for switching conversations or canceling a generation
     function stopStreaming() {
     if (abortController) {
@@ -138,6 +142,11 @@ export function useMessages() {
             });
             
             activeLeafId.value = assistantMsgId;
+
+            // Bump the conversation to the top of the sidebar
+            if (currentConversationId.value) {
+                bumpLocalConversation(currentConversationId.value);
+            }
             
             // Start listening to the SSE stream
             startStreaming(assistantMsgId);
@@ -326,6 +335,12 @@ export function useMessages() {
             });
             
             activeLeafId.value = newMsgId;
+
+            // Bump the conversation to the top of the sidebar
+            if (currentConversationId.value) {
+                bumpLocalConversation(currentConversationId.value);
+            }
+            
             return newMsgId;
         } catch (error) {
             console.error("Error appending message:", error);

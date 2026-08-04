@@ -32,6 +32,7 @@
                             :isGenerating="isGenerating(conv.id)"
                             @rename="startEditing(conv)"
                             @generate-title="handleGenerateTitle(conv.id)"
+                            @touch="handleTouch(conv.id)" 
                             @delete="deleteConversation(conv.id)"
                         />
                     </div>
@@ -56,7 +57,7 @@ import { ICONS } from '@/icons';
 const props = defineProps<{ isStreaming: boolean }>();
 const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>();
 
-const { conversations, currentConversationId, selectConversation, generatingTitleIds, generateTitle, deleteConversation } = useConversations();
+const { conversations, currentConversationId, selectConversation, generatingTitleIds, generateTitle, touchConversation, deleteConversation } = useConversations();
 const { editingId, editText, startEditing, saveEdit, cancelEdit } = useTitleEdit();
 
 // Custom directive to auto-focus and select text when the input is mounted
@@ -77,6 +78,10 @@ function isGenerating(id: string) {
 
 function handleGenerateTitle(id: string) {
     generateTitle(id, true);
+}
+
+function handleTouch(id: string) {
+    touchConversation(id);
 }
 </script>
 

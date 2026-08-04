@@ -14,8 +14,12 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.sparkles"></svg>
                     Auto Title
                 </button>
+                <button @click.stop="handleTouch" class="menu-item">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevrons_up"></svg>
+                    Bump
+                </button>
                 <button @click.stop="askForDeleteConfirm" class="menu-item danger">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.trash"></svg> <!-- You'll need to add 'trash' to your icons.ts -->
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.trash"></svg>
                     Delete
                 </button>
             </template>
@@ -45,6 +49,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'rename'): void,
     (e: 'generate-title'): void,
+    (e: 'touch'): void,
     (e: 'delete'): void
 }>();
 
@@ -71,6 +76,11 @@ function handleRename() {
 function handleGenerateTitle() {
     closeMenu();
     emit('generate-title');
+}
+
+function handleTouch() {
+    closeMenu();
+    emit('touch');
 }
 
 function askForDeleteConfirm() {

@@ -32,7 +32,8 @@ export function useConversations() {
             const newConv: ConversationSummary = {
                 id: data.conversation.id,
                 title: data.conversation.title,
-                created_at: data.conversation.created_at
+                created_at: data.conversation.created_at,
+                updated_at: data.conversation.updated_at
             };
             
             // Add to top of list and select it
@@ -112,6 +113,29 @@ export function useConversations() {
         }
     }
 
+    function bumpLocalConversation(conversationId: string) {
+        const conv = conversations.value.find(c => c.id === conversationId);
+        if (conv) {
+            conv.updated_at = new Date().toISOString();
+            // Trigger reactivity by creating a new sorted array
+            conversations.value = [...conversations.value].sort((a, b) => 
+                new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            );
+        }
+    }
+
+    async function touchConversation(id: string) {
+        try {
+            const response = await fetch(`/api/chat/conversations/${id}/touch`, { method: 'POST' });
+            if (!response.ok) throw new Error('Failed to touch conversation');
+
+            // Update the local timestamp and re-sort to mimic backend behavior
+            bumpLocalConversation(id);
+        } catch (error) {
+            console.error("Error touching conversation:", error);
+        }
+    }
+
     async function deleteConversation(id: string) {
         try {
             const response = await fetch(`/api/chat/conversations/${id}`, { method: 'DELETE' });
@@ -136,10 +160,12 @@ export function useConversations() {
         fetchAllConversations,
         createConversation,
         selectConversation,
+        touchConversation,
         deleteConversation,
         updateTitle,
         generatingTitleIds,
         generateTitle,
-        updateActiveLeaf
+        updateActiveLeaf,
+        bumpLocalConversation
     };
 }

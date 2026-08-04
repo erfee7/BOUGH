@@ -1,5 +1,5 @@
 /*
-Icon paths sourced from Lucide Icons (https://lucide.dev)
+Icon svgs sourced from Lucide Icons (https://lucide.dev)
 
 ISC License
 
@@ -57,6 +57,7 @@ export const ICONS = {
     terminal: '<path d="M12 19h8"/><path d="m4 17 6-6-6-6"/>', // Lucide "terminal"
     chevron_left: '<path d="m15 18-6-6 6-6"/>', // Lucide "chevron-left"
     chevron_right: '<path d="m9 18 6-6-6-6"/>', // Lucide "chevron-right"
+    chevrons_up: '<path d="m17 11-5-5-5 5"/><path d="m17 18-5-5-5 5"/>', // Lucide "chevrons-up"
     copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>', // Lucide "copy"
     check: '<path d="M20 6 9 17l-5-5"/>', // Lucide "check"
     trash: '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>' // Lucide "trash"
