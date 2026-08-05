@@ -18,14 +18,6 @@ export interface Message {
     created_at: string;
 }
 
-export interface StreamEvent {
-    type: 'token' | 'reasoning' | 'catch_up' | 'done' | 'error';
-    content?: string;
-    reasoning?: string | null;
-    metadata?: any;
-    error_data?: any;
-}
-
 export interface Prompt {
     id: string;
     name: string;
