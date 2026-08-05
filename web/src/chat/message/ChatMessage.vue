@@ -36,14 +36,12 @@
                         :previewTheme="'github'" 
                         :codeTheme="'github'" 
                         :language="'en-US'"
-                        class="markdown-content"
+                        :class="`markdown-content ${message.status === 'streaming' && message.content ? 'streaming' : ''}`"
                         @dblclick="handleMarkdownDblClick"
                         @copy="handleMarkdownCopy"
                     />
                     <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
                     <span v-else>Empty</span>
-                    
-                    <span v-if="message.status === 'streaming' && message.content" class="stream-cursor"></span>
                 </div>
 
                 <MessageActions 
@@ -161,19 +159,20 @@ const emit = defineEmits<{
     font-style: italic;
 }
 
-.stream-cursor {
+.markdown-content.streaming :deep(p:last-child)::after {
+    content: '';
     display: inline-block;
     width: 8px;
     height: 16px;
     background-color: var(--accent-blue);
-    margin-left: 2px;
+    margin-left: 4px; /* Increased from 2px to add a space */
     vertical-align: text-bottom;
     animation: blink 1s step-end infinite;
 }
 
 @keyframes blink {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }
 
 /* Responsive: On small screens, remove the negative margin so it doesn't overflow */
