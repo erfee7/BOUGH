@@ -1,8 +1,8 @@
 <template>
     <div class="message-tile" :class="{ 'user-role': message.role === 'user', 'assistant-role': message.role === 'assistant', 'error': message.status === 'error' }">
         <div class="avatar">
-            <svg v-if="message.role === 'user'" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-            <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2l2.5 7L22 12l-7.5 3L12 22l-2.5-7L2 12l7.5-3z"></path></svg>
+            <svg v-if="message.role === 'user'" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.user"></svg>
+            <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.bot"></svg>
         </div>
         <div class="message-body">
             <div class="message-header">
@@ -36,19 +36,17 @@
                         :previewTheme="'github'" 
                         :codeTheme="'github'" 
                         :language="'en-US'"
-                        class="markdown-content"
+                        :class="`markdown-content ${message.status === 'streaming' && message.content ? 'streaming' : ''}`"
                         @dblclick="handleMarkdownDblClick"
                         @copy="handleMarkdownCopy"
                     />
                     <span v-else-if="message.status === 'pending' || message.status === 'streaming'" class="placeholder">Thinking...</span>
                     <span v-else>Empty</span>
-                    
-                    <span v-if="message.status === 'streaming' && message.content" class="cursor">▋</span>
                 </div>
 
                 <MessageActions 
                     :siblingInfo="siblingInfo" 
-                    :isComplete="message.status === 'complete'" 
+                    :isInteractive="message.status === 'complete' || message.status === 'canceled'"
                     :role="message.role"
                     :content="message.content"
                     @switch-sibling="emit('switch-sibling', $event)"
@@ -62,16 +60,16 @@
 
 <script setup lang="ts">
 import { MdPreview } from 'md-editor-v3';
-import { Message } from '../../types';
+import { Message } from '@/types';
 import EditArea from './EditArea.vue';
 import ReasoningBlock from './ReasoningBlock.vue';
 import MessageActions from './MessageActions.vue';
-import { handleMarkdownDblClick, handleMarkdownCopy } from '../markdownInteractions';
+import { ICONS } from '@/icons';
+import { handleMarkdownDblClick, handleMarkdownCopy } from '@/chat/markdownInteractions';
 
 defineProps<{ 
     message: Message,
     siblingInfo: { count: number, currentIndex: number },
-    isStreaming: boolean,
     isEditing: boolean,
     editingText: string
 }>();
@@ -91,7 +89,7 @@ const emit = defineEmits<{
     display: flex;
     gap: 16px;
     padding: 16px 0;
-    border-top: 1px solid #1e293b;
+    border-top: 1px solid var(--border-default);
     
     /* Expand into the left margin, then pad the text back to its original spot */
     margin-left: -52px; 
@@ -106,24 +104,24 @@ const emit = defineEmits<{
 .avatar {
     width: 32px;
     height: 32px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     margin-top: 4px;
-    background: #1e293b;
-    border: 1px solid #334155;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
 }
 
 .user-role .avatar {
-    color: #3b82f6;
-    border-color: #3b82f6;
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
 }
 
 .assistant-role .avatar {
-    color: #10b981;
-    border-color: #10b981;
+    color: var(--accent-green);
+    border-color: var(--accent-green);
 }
 
 .message-body {
@@ -135,41 +133,46 @@ const emit = defineEmits<{
     margin-bottom: 8px;
     font-size: 17px;
     font-weight: 600;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .user-role .message-header {
-    color: #3b82f6;
+    color: var(--accent-blue);
 }
 
 .assistant-role .message-header {
-    color: #10b981;
+    color: var(--accent-green);
 }
 
 .message-content {
     font-size: 15px;
     line-height: 1.6;
-    color: #f8fafc;
+    color: var(--text-primary);
 }
 
 .message-tile.error .message-content {
-    color: #fca5a5;
+    color: #fca5a5; /* Kept hex for specific error tailwind shade */
 }
 
 .placeholder {
-    color: #94a3b8;
+    color: var(--text-muted);
     font-style: italic;
 }
 
-.cursor {
+.markdown-content.streaming :deep(p:last-child)::after {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 16px;
+    background-color: var(--accent-blue);
+    margin-left: 4px; /* Increased from 2px to add a space */
+    vertical-align: text-bottom;
     animation: blink 1s step-end infinite;
-    margin-left: 2px;
-    color: #3b82f6;
 }
 
 @keyframes blink {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }
 
 /* Responsive: On small screens, remove the negative margin so it doesn't overflow */
@@ -198,7 +201,7 @@ const emit = defineEmits<{
 .markdown-content :deep(h2),
 .markdown-content :deep(h3),
 .markdown-content :deep(h4) {
-    color: #f8fafc !important;
+    color: var(--text-primary) !important;
 }
 
 .reasoning-content :deep(p),
@@ -207,7 +210,7 @@ const emit = defineEmits<{
 .reasoning-content :deep(h2),
 .reasoning-content :deep(h3),
 .reasoning-content :deep(h4) {
-    color: #cbd5e1 !important;
+    color: var(--text-secondary) !important;
 }
 
 .markdown-content :deep(p) {
@@ -219,7 +222,7 @@ const emit = defineEmits<{
 }
 
 .user-role .markdown-content :deep(a) {
-    color: #f8fafc;
+    color: var(--text-primary);
     text-decoration: underline;
 }
 
@@ -244,7 +247,7 @@ const emit = defineEmits<{
 
 .markdown-content :deep(.md-editor-code-flag::after) {
     content: '</>';
-    color: #64748b;
+    color: var(--text-faded);
     font-family: monospace;
     font-size: 12px;
     font-weight: bold;

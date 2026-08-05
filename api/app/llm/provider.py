@@ -72,6 +72,8 @@ async def generate_stream(
     
     logger.info("Dispatching request to LLM provider (Model: %s, Messages: %d)", target_model, len(formatted_history))
     
+    usage_metadata = {}
+    
     try:
         # stream_options={"include_usage": True} is critical to get the final cost chunk
         stream = await active_client.chat.completions.create(
@@ -81,26 +83,27 @@ async def generate_stream(
             stream_options={"include_usage": True}
         )
         
-        async for chunk in stream:
-            # Extract usage metadata if it exists (final chunk)
-            if chunk.usage:
-                # Convert pydantic model to dict for easy JSON serialization later
-                yield {
-                    "type": "done", 
-                    "metadata": chunk.usage.model_dump()
-                }
-            
-            # Extract text token if it exists
-            if chunk.choices and chunk.choices[0].delta:
-                # Use model_dump() to capture non-standard fields like 'reasoning'
-                delta_dict = chunk.choices[0].delta.model_dump()
-                content = delta_dict.get('content')
-                reasoning = delta_dict.get('reasoning') or delta_dict.get('reasoning_content')
+        try:
+            async for chunk in stream:
+                if chunk.usage:
+                    usage_metadata = chunk.usage.model_dump()
                 
-                if content:
-                    yield {"type": "token", "content": content}
-                if reasoning:
-                    yield {"type": "reasoning", "content": reasoning}
+                if chunk.choices and chunk.choices[0].delta:
+                    delta_dict = chunk.choices[0].delta.model_dump()
+                    content = delta_dict.get('content')
+                    reasoning = delta_dict.get('reasoning') or delta_dict.get('reasoning_content')
+                    
+                    if content:
+                        yield {"type": "token", "content": content}
+                    if reasoning:
+                        yield {"type": "reasoning", "content": reasoning}
+        finally:
+            # Explicitly close the OpenAI AsyncStream to drop the HTTP connection immediately.
+            # This triggers GeneratorExit unwinding when cancelled from the outside.
+            await stream.close()
+                
+        # If the loop finishes without exception, yield done exactly once
+        yield {"type": "done", "metadata": usage_metadata}
                 
     except Exception as e:
         # Catching generic Exception to ensure the background task doesn't die abruptly

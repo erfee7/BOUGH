@@ -16,6 +16,7 @@ class StreamState:
     accumulated_content: str = ""
     accumulated_reasoning: str = ""
     is_finished: bool = False
+    cancel_requested: bool = False
     clients: list[asyncio.Queue] = field(default_factory = list)
 
 # Module-level registry for active streams
@@ -27,12 +28,20 @@ def start_stream(message_id: uuid.UUID, messages_history: list) -> None:
         logger.warning("Stream for message %s is already active.", message_id)
         return
         
-    state = StreamState(message_id = message_id)
+    state = StreamState(message_id=message_id)
     _active_streams[message_id] = state
     
     # Detach the generation from the HTTP request lifecycle
     asyncio.create_task(_run_generation(message_id, messages_history, state))
     logger.info("Started background stream generation for message %s", message_id)
+
+def cancel_stream(message_id: uuid.UUID) -> bool:
+    """Requests cancellation for a specific message stream."""
+    state = _active_streams.get(message_id)
+    if state and not state.is_finished and not state.cancel_requested:
+        state.cancel_requested = True
+        return True
+    return False
 
 async def get_stream(message_id: uuid.UUID) -> AsyncGenerator[dict[str, Any], None]:
     """
@@ -69,17 +78,31 @@ async def get_stream(message_id: uuid.UUID) -> AsyncGenerator[dict[str, Any], No
             # End of stream signal from worker
             break
         yield item
-        if item.get("type") in ["done", "error"]:
+        if item.get("type") in ["done", "error", "canceled"]:
             # Signal the client to close the connection
             break
 
 async def _run_generation(message_id: uuid.UUID, messages_history: list, state: StreamState) -> None:
     """The background worker. Consumes LLM provider events and updates DB/memory."""
     try:
-        await db_messages.update_message(message_id, status = 'streaming')
+        await db_messages.update_message(message_id, status='streaming')
         logger.info("Stream generation started for message %s", message_id)
         
         async for event in generate_stream(messages_history):
+            # Check for cancellation before processing the chunk
+            if state.cancel_requested:
+                await db_messages.update_message(
+                    message_id, 
+                    status='canceled', 
+                    content=state.accumulated_content, 
+                    reasoning=state.accumulated_reasoning
+                )
+                state.is_finished = True
+                # Broadcast the cancel event to all listeners
+                for q in state.clients:
+                    q.put_nowait({"type": "canceled"})
+                break
+
             event_type = event.get("type")
             
             if event_type == "token":
@@ -104,10 +127,10 @@ async def _run_generation(message_id: uuid.UUID, messages_history: list, state: 
                 metadata = event.get("metadata", {})
                 await db_messages.update_message(
                     message_id, 
-                    status = 'complete', 
-                    content = state.accumulated_content, 
-                    reasoning = state.accumulated_reasoning,
-                    metadata = metadata
+                    status='complete', 
+                    content=state.accumulated_content, 
+                    reasoning=state.accumulated_reasoning,
+                    metadata=metadata
                 )
                 state.is_finished = True
                 # Broadcast the done event to all listeners
@@ -119,10 +142,10 @@ async def _run_generation(message_id: uuid.UUID, messages_history: list, state: 
                 error_data = event.get("error_data", {})
                 await db_messages.update_message(
                     message_id, 
-                    status = 'error', 
-                    content = state.accumulated_content, 
-                    reasoning = state.accumulated_reasoning,
-                    error_data = error_data
+                    status='error', 
+                    content=state.accumulated_content, 
+                    reasoning=state.accumulated_reasoning,
+                    error_data=error_data
                 )
                 state.is_finished = True
                 # Broadcast the error event to all listeners
@@ -134,10 +157,10 @@ async def _run_generation(message_id: uuid.UUID, messages_history: list, state: 
         logger.error("Unexpected error in stream generation for %s: %s", message_id, e)
         await db_messages.update_message(
             message_id, 
-            status = 'error', 
-            content = state.accumulated_content, 
-            reasoning = state.accumulated_reasoning,
-            error_data = {"message": str(e), "type": type(e).__name__}
+            status='error', 
+            content=state.accumulated_content, 
+            reasoning=state.accumulated_reasoning,
+            error_data={"message": str(e), "type": type(e).__name__}
         )
         for q in state.clients:
             q.put_nowait({"type": "error", "error_data": {"message": str(e)}})

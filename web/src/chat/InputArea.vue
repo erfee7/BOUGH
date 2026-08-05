@@ -10,8 +10,8 @@
         </div>
         
         <div class="action-bar">
-            <button @click="showDevPrompt = !showDevPrompt" class="toggle-dev-btn" :class="{ 'active': showDevPrompt }" title="Toggle Developer Prompt">
-                >_
+            <button @click="showDevPrompt = !showDevPrompt" class="btn-icon toggle-dev-btn" :class="{ 'active': showDevPrompt }" title="Toggle Developer Prompt">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.terminal"></svg>
             </button>
         </div>
 
@@ -23,8 +23,11 @@
                 @keydown.enter.exact.prevent="emit('send')"
                 placeholder="Type a message... (Enter to send)"
             ></textarea>
-            <button @click="emit('send')" :disabled="isStreaming || !modelValue.trim()">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            <button v-if="!isStreaming" @click="emit('send')" :disabled="!modelValue.trim()" class="send-btn">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.send"></svg>
+            </button>
+            <button v-else @click="emit('cancel')" class="stop-btn">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square"></svg>
             </button>
         </div>
     </div>
@@ -34,6 +37,7 @@
 import { ref } from 'vue';
 import PromptSelector from './prompts/PromptSelector.vue';
 import { useAutoResizeTextarea } from './useAutoResizeTextarea';
+import { ICONS } from '@/icons';
 
 const props = defineProps<{ 
     modelValue: string, 
@@ -45,6 +49,7 @@ const emit = defineEmits<{
     (e: 'update:modelValue', value: string): void, 
     (e: 'update:developerPrompt', value: string): void,
     (e: 'send'): void,
+    (e: 'cancel'): void,
     (e: 'openLibrary'): void 
 }>();
 
@@ -80,42 +85,24 @@ function handleInput(event: Event) {
     margin-bottom: 8px;
 }
 
-.toggle-dev-btn {
-    background: #1e293b;
-    border: 1px solid #334155;
-    color: #94a3b8;
-    border-radius: 6px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-}
-
-.toggle-dev-btn:hover {
-    color: #f8fafc;
-    border-color: #475569;
-}
-
 .toggle-dev-btn.active {
-    background: #334155;
-    color: #3b82f6;
-    border-color: #3b82f6;
+    background: var(--bg-tertiary);
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
 }
 
 .input-container {
     display: flex;
     align-items: flex-end;
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
     padding: 12px;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .input-container:focus-within {
-    border-color: #3b82f6;
+    border-color: var(--accent-blue);
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
@@ -123,7 +110,7 @@ function handleInput(event: Event) {
     flex: 1;
     background: transparent;
     border: none;
-    color: #f8fafc;
+    color: var(--text-primary);
     font-family: inherit;
     font-size: 15px;
     line-height: 1.5;
@@ -135,10 +122,9 @@ function handleInput(event: Event) {
     overflow-y: auto; /* Show scrollbar when content exceeds max height */
 }
 
-.input-container button {
-    background: #3b82f6;
+.send-btn, .stop-btn {
     border: none;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     color: white;
     cursor: pointer;
     display: flex;
@@ -147,17 +133,30 @@ function handleInput(event: Event) {
     height: 36px;
     width: 36px;
     margin-left: 8px;
-    transition: background-color 0.2s, transform 0.1s;
+    transition: background-color 0.2s, transform 0.1s, opacity 0.2s;
 }
 
-.input-container button:hover:not(:disabled) {
-    background: #2563eb;
+.send-btn {
+    background: var(--accent-blue);
+}
+
+.send-btn:hover:not(:disabled) {
+    background: var(--accent-blue-hover);
     transform: translateY(-1px);
 }
 
-.input-container button:disabled {
-    background: #475569;
+.send-btn:disabled {
+    background: var(--bg-tertiary);
     cursor: not-allowed;
     opacity: 0.7;
+}
+
+.stop-btn {
+    background: var(--accent-red);
+}
+
+.stop-btn:hover {
+    background: var(--accent-red-hover);
+    transform: translateY(-1px);
 }
 </style>

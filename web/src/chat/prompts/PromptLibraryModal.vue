@@ -3,7 +3,9 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Prompt Library</h2>
-                <button @click="emit('close')" class="close-btn">&times;</button>
+                <button @click="emit('close')" class="btn-icon close-btn" title="Close">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.x"></svg>
+                </button>
             </div>
             
             <div class="modal-body">
@@ -16,7 +18,10 @@
                     </select>
                     <textarea v-model="newPrompt.content" placeholder="Prompt content..." class="text-area"></textarea>
                     <input v-model="newPrompt.description" placeholder="Description (optional)" class="text-input" />
-                    <button @click="handleCreate" class="create-btn">Create</button>
+                    <button @click="handleCreate" class="btn-primary create-btn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.save"></svg>
+                        Create
+                    </button>
                 </div>
 
                 <div class="prompt-list-container">
@@ -29,8 +34,14 @@
                                     <p v-if="p.description" class="prompt-desc">{{ p.description }}</p>
                                 </div>
                                 <div class="prompt-actions">
-                                    <button @click="startEditing(p)" class="action-btn edit">Edit</button>
-                                    <button @click="handleDelete(p.id)" class="action-btn delete">Delete</button>
+                                    <button @click="startEditing(p)" class="btn-secondary action-btn">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.pencil"></svg>
+                                        Edit
+                                    </button>
+                                    <button @click="handleDelete(p.id)" class="btn-danger action-btn">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.trash_2"></svg>
+                                        Delete
+                                    </button>
                                 </div>
                             </div>
                             <div v-else class="prompt-edit">
@@ -38,8 +49,14 @@
                                 <textarea v-model="editData.content" placeholder="Prompt content..." class="text-area"></textarea>
                                 <input v-model="editData.description" placeholder="Description (optional)" class="text-input" />
                                 <div class="prompt-actions">
-                                    <button @click="handleUpdate" class="action-btn save">Save</button>
-                                    <button @click="cancelEdit" class="action-btn cancel">Cancel</button>
+                                    <button @click="handleUpdate" class="btn-primary action-btn">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.save"></svg>
+                                        Save
+                                    </button>
+                                    <button @click="cancelEdit" class="btn-ghost action-btn">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.x"></svg>
+                                        Cancel
+                                    </button>
                                 </div>
                             </div>
                         </li>
@@ -53,6 +70,7 @@
 <script setup lang="ts">
 import { toRef } from 'vue';
 import { usePromptLibrary } from './usePromptLibrary';
+import { ICONS } from '@/icons';
 
 const props = defineProps<{ isVisible: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void }>();
@@ -86,15 +104,15 @@ const {
 }
 
 .modal-content {
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
     width: 100%;
     max-width: 600px;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
-    color: #f8fafc;
+    color: var(--text-primary);
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
@@ -103,7 +121,7 @@ const {
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid var(--border-default);
 }
 
 .modal-header h2 {
@@ -112,16 +130,7 @@ const {
 }
 
 .close-btn {
-    background: none;
-    border: none;
-    color: #94a3b8;
-    font-size: 24px;
-    cursor: pointer;
-    line-height: 1;
-}
-
-.close-btn:hover {
-    color: #f8fafc;
+    font-size: 20px;
 }
 
 .modal-body {
@@ -137,21 +146,25 @@ const {
 .create-form h3, .prompt-list-container h3 {
     margin: 0 0 12px 0;
     font-size: 14px;
-    color: #cbd5e1;
+    color: var(--text-secondary);
 }
 
 .text-input, .text-area {
     width: 100%;
-    background: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #334155;
-    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
     padding: 8px;
-    margin-bottom: 8px;
     font-family: inherit;
     font-size: 14px;
     outline: none;
     box-sizing: border-box;
+    margin-bottom: 0; /* Was 8px, now handled by flex gap */
+}
+
+.text-input:focus, .text-area:focus {
+    border-color: var(--accent-blue);
 }
 
 .text-area {
@@ -160,18 +173,10 @@ const {
 }
 
 .create-btn {
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background 0.2s;
-}
-
-.create-btn:hover {
-    background: #2563eb;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
 }
 
 .prompt-list {
@@ -181,9 +186,9 @@ const {
 }
 
 .prompt-item {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
     padding: 12px;
     margin-bottom: 8px;
 }
@@ -195,6 +200,11 @@ const {
     gap: 12px;
 }
 
+.prompt-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Replaces the margin-bottom on inputs for cleaner vertical spacing */
+}
 .prompt-info {
     flex: 1;
 }
@@ -205,17 +215,17 @@ const {
 
 .role-tag {
     font-size: 11px;
-    background: #334155;
+    background: var(--bg-tertiary);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     margin-left: 8px;
-    color: #cbd5e1;
+    color: var(--text-secondary);
 }
 
 .prompt-desc {
     margin: 4px 0 0 0;
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .prompt-actions {
@@ -225,18 +235,10 @@ const {
 }
 
 .action-btn {
-    background: none;
-    border: 1px solid #475569;
-    color: #cbd5e1;
-    border-radius: 6px;
-    padding: 4px 8px;
-    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
     font-size: 12px;
-    transition: all 0.2s;
 }
-
-.action-btn.edit:hover { border-color: #3b82f6; color: #3b82f6; }
-.action-btn.delete:hover { border-color: #ef4444; color: #ef4444; }
-.action-btn.save:hover { border-color: #22c55e; color: #22c55e; }
-.action-btn.cancel:hover { border-color: #64748b; color: #64748b; }
 </style>

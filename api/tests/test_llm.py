@@ -7,6 +7,20 @@ TEST_METADATA = {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12
 
 # --- Helper Functions to Mock OpenAI SDK Chunks ---
 
+class MockAsyncStream:
+    """Wraps an async generator to act like an OpenAI AsyncStream with a close() method."""
+    def __init__(self, gen):
+        self._gen = gen
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        return await self._gen.__anext__()
+
+    async def close(self):
+        await self._gen.aclose()
+
 async def mock_stream_success():
     """Simulates a successful stream returning tokens and then usage."""
     # Chunk 1: Reasoning
@@ -47,6 +61,13 @@ async def mock_stream_success():
     chunk6 = MagicMock(choices=[choice6], usage=usage)
     yield chunk6
 
+async def mock_stream_no_usage():
+    """Simulates a stream that ends without sending a final usage chunk."""
+    choice1 = MagicMock()
+    choice1.delta.model_dump.return_value = {"content": "Hello", "reasoning": None}
+    chunk1 = MagicMock(choices=[choice1], usage=None)
+    yield chunk1
+
 # --- Tests ---
 
 @pytest.mark.asyncio
@@ -55,7 +76,7 @@ async def test_generate_stream_success():
     # Arrange
     mock_client = AsyncMock()
     # create() returns an awaitable that resolves to an async iterator
-    mock_client.chat.completions.create = AsyncMock(return_value=mock_stream_success())
+    mock_client.chat.completions.create = AsyncMock(return_value=MockAsyncStream(mock_stream_success()))
     
     # Act
     events = []
@@ -136,3 +157,22 @@ async def test_generate_completion_success():
         messages=messages_payload,
         stream=False
     )
+
+@pytest.mark.asyncio
+async def test_generate_stream_no_usage():
+    """Tests that 'done' is yielded even if no usage chunk is received."""
+    mock_client = AsyncMock()
+    mock_client.chat.completions.create = AsyncMock(return_value=MockAsyncStream(mock_stream_no_usage()))
+    
+    events = []
+    async for event in generate_stream(
+        messages_history=[{"role": "user", "content": "Hi"}], 
+        model="test-model", 
+        client=mock_client
+    ):
+        events.append(event)
+        
+    assert len(events) == 2
+    assert events[0] == {"type": "token", "content": "Hello"}
+    # Ensure done is yielded with empty metadata, preventing frontend hangs
+    assert events[1] == {"type": "done", "metadata": {}}

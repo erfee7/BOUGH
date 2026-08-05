@@ -1,6 +1,6 @@
 import { ref, watch, type Ref } from 'vue';
 import { usePrompts } from './usePrompts';
-import { Prompt } from '../../types';
+import { Prompt } from '@/types';
 
 export function usePromptLibrary(isVisible: Ref<boolean>) {
     const { prompts, fetchPrompts, createPrompt, updatePrompt, deletePrompt } = usePrompts();

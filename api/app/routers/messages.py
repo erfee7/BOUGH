@@ -50,6 +50,7 @@ async def append_message(parent_id: uuid.UUID, payload: MessageAppendRequest):
             )
             
             await db_conversations.update_conversation(conversation_id, active_leaf_id = new_msg_id, conn = conn)
+            await db_conversations.touch_conversation(conversation_id, conn = conn)
             
             return MessageIdResponse(message_id = new_msg_id)
 
@@ -63,8 +64,8 @@ async def generate_message(parent_id: uuid.UUID, payload: MessageGenerateRequest
             if not p_msg_record:
                 raise HTTPException(status_code = 404, detail = "Parent message not found")
 
-            if p_msg_record['status'] != 'complete':
-                raise HTTPException(status_code = 400, detail = "Parent message must be complete to generate a response.")
+            if p_msg_record['status'] not in ['complete', 'canceled']:
+                raise HTTPException(status_code = 400, detail = "Parent message must be 'complete' or 'canceled' to generate a response.")
                 
             conversation_id = p_msg_record['conversation_id']
             target_model = payload.model or os.getenv("DEFAULT_MODEL", "openrouter/free")
@@ -86,8 +87,8 @@ async def generate_message(parent_id: uuid.UUID, payload: MessageGenerateRequest
                 conn = conn
             )
             
-            # Update active leaf
             await db_conversations.update_conversation(conversation_id, active_leaf_id = assistant_msg_id, conn = conn)
+            await db_conversations.touch_conversation(conversation_id, conn = conn)
             
             # Fetch history from the new assistant message (walks up to root)
             history = await db_messages.fetch_message_history(parent_id, conn = conn)
@@ -116,6 +117,11 @@ async def stream_message(message_id: uuid.UUID):
             yield _format_sse({"type": "error", "content": msg['content'], "reasoning": msg['reasoning'], "error_data": msg['error_data']})
             yield "data: [DONE]\n\n"
             return
+
+        if msg['status'] == 'canceled':
+            yield _format_sse({"type": "canceled", "content": msg['content'], "reasoning": msg['reasoning']})
+            yield "data: [DONE]\n\n"
+            return
         
         # If pending or streaming, hook into the stream manager
         async for event in stream_manager.get_stream(message_id):
@@ -129,3 +135,14 @@ async def stream_message(message_id: uuid.UUID):
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+@router.post("/messages/{message_id}/cancel")
+async def cancel_message(message_id: uuid.UUID):
+    """Requests cancellation for an active stream. Idempotent."""
+    msg = await db_messages.fetch_message(message_id)
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    stream_manager.cancel_stream(message_id)
+    
+    return {"status": "ok"}

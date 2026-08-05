@@ -2,7 +2,7 @@ import uuid
 import pytest
 import asyncpg
 
-from app.db.conversations import create_conversation
+from app.db.conversations import create_conversation, delete_conversation, fetch_conversation
 from app.db.messages import create_message, fetch_message, update_message, delete_message, fetch_message_history, fetch_conversation_messages
 
 @pytest.mark.asyncio
@@ -94,3 +94,52 @@ async def test_delete_message(db_transaction: asyncpg.Connection):
     await delete_message(message_id=message_id, conn=db_transaction)
     result = await fetch_message(message_id=message_id, conn=db_transaction)
     assert result is None
+
+@pytest.mark.asyncio
+async def test_delete_conversation_cascade(db_transaction: asyncpg.Connection):
+    """Tests that deleting a conversation cascades to all child messages."""
+    # 1. Create the conversation
+    conversation_id = await create_conversation(title="To Delete", conn=db_transaction)
+    
+    # 2. Create a tree of messages: root -> user -> assistant
+    root_id = await create_message(
+        conversation_id=conversation_id, 
+        role="system", 
+        parent_id=None, 
+        content="System Prompt", 
+        status="complete", 
+        conn=db_transaction
+    )
+    user_id = await create_message(
+        conversation_id=conversation_id, 
+        role="user", 
+        parent_id=root_id, 
+        content="User text", 
+        status="complete", 
+        conn=db_transaction
+    )
+    assistant_id = await create_message(
+        conversation_id=conversation_id, 
+        role="assistant", 
+        parent_id=user_id, 
+        content="Assistant response", 
+        status="complete", 
+        conn=db_transaction
+    )
+    
+    # Verify they exist before deletion
+    assert await fetch_message(root_id, conn=db_transaction) is not None
+    assert await fetch_message(user_id, conn=db_transaction) is not None
+    assert await fetch_message(assistant_id, conn=db_transaction) is not None
+    
+    # 3. Delete the conversation
+    await delete_conversation(conversation_id=conversation_id, conn=db_transaction)
+    
+    # 4. Assert the conversation is gone
+    result = await fetch_conversation(conversation_id=conversation_id, conn=db_transaction)
+    assert result is None
+    
+    # 5. Assert all messages are gone (testing the ON DELETE CASCADE behavior)
+    assert await fetch_message(root_id, conn=db_transaction) is None
+    assert await fetch_message(user_id, conn=db_transaction) is None
+    assert await fetch_message(assistant_id, conn=db_transaction) is None

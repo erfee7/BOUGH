@@ -67,6 +67,7 @@ class ConversationResponse(BaseModel):
     title: str | None = None
     active_leaf_id: uuid.UUID | None = None
     created_at: datetime
+    updated_at: datetime
 
 class PromptResponse(BaseModel):
     id: uuid.UUID

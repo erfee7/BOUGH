@@ -2,13 +2,12 @@ import { ref, computed } from 'vue';
 import { useMessages } from './useMessages';
 import { useConversations } from './useConversations';
 import { getActivePath, getSiblingInfo, getMostRecentDescendantLeaf, compareMessages } from './branchingUtils';
-import { Message } from '../types';
+import { Message } from '@/types';
 
 export function useBranching() {
     const { 
         messages, 
         activeLeafId, 
-        isStreaming, 
         stopStreaming, 
         startStreaming, 
         generateMessage, 
@@ -85,11 +84,9 @@ export function useBranching() {
         activePath,
         editingMessageId,
         editingText,
-        isStreaming,
         switchSibling,
         startEdit,
         cancelEdit,
-        saveEdit,
-        generateMessage
+        saveEdit
     };
 }

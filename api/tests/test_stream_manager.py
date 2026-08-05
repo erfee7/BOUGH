@@ -30,6 +30,13 @@ async def mock_generate_stream_error(history):
     await asyncio.sleep(0.05)
     yield {"type": "error", "error_data": MOCK_ERROR_DATA}
 
+async def mock_generate_stream_cancellable(history):
+    """Simulates a provider that yields a token, pauses, yields another, then finishes."""
+    yield {"type": "token", "content": "1"}
+    await asyncio.sleep(0.2)  # Long pause to allow cancellation mid-stream
+    yield {"type": "token", "content": "2"}  # This token should be dropped due to cancellation
+    yield {"type": "done", "metadata": {}}
+
 # --- Tests ---
 
 @pytest.mark.asyncio
@@ -170,3 +177,32 @@ async def test_multiple_clients_receive_stream():
             assert events1[3] == {"type": "done", "metadata": MOCK_METADATA}
             assert events2[3] == {"type": "done", "metadata": MOCK_METADATA}
             assert events3[3] == {"type": "done", "metadata": MOCK_METADATA}
+
+@pytest.mark.asyncio
+async def test_cancel_stream_saves_partial():
+    """Tests that cancelling mid-stream saves accumulated content as 'canceled' and drops subsequent tokens."""
+    message_id = uuid.uuid4()
+    
+    with patch('app.core.stream_manager.db_messages.update_message', new_callable=AsyncMock) as mock_update:
+        with patch('app.core.stream_manager.generate_stream', new=mock_generate_stream_cancellable):
+            start_stream(message_id, [{"role": "user", "content": "Hi"}])
+            
+            # Wait for "1" to be processed, and hit the sleep(0.2)
+            await asyncio.sleep(0.05)
+            
+            # Request cancellation
+            assert stream_manager.cancel_stream(message_id) is True
+            
+            # Wait for the background task to handle the cancellation and finish
+            await asyncio.sleep(0.3)
+            
+            # Assert the final DB update saved the partial content ("1") as 'canceled'
+            mock_update.assert_any_call(
+                message_id, 
+                status='canceled', 
+                content='1', 
+                reasoning=''
+            )
+            
+            # Ensure state is cleaned up
+            assert message_id not in _active_streams

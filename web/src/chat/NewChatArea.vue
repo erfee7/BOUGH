@@ -24,17 +24,21 @@
 <script setup lang="ts">
 import InputArea from './InputArea.vue';
 import PromptSelector from './prompts/PromptSelector.vue';
+import { useMessages } from './useMessages';
 import { useChatEngine } from './useChatEngine';
 
 const emit = defineEmits<{ 
     (e: 'openLibrary'): void
 }>();
 
+const {
+    isStreaming
+} = useMessages();
+
 const { 
     inputText, 
     systemPrompt, 
     developerPrompt, 
-    isStreaming, 
     send 
 } = useChatEngine();
 </script>
@@ -65,6 +69,6 @@ const {
     font-size: 20px;
     font-weight: 600;
     margin: 0 0 16px 0;
-    color: #f8fafc;
+    color: var(--text-primary);
 }
 </style>

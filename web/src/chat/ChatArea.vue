@@ -7,6 +7,7 @@
             :developerPrompt="developerPrompt"
             @update:developerPrompt="developerPrompt = $event"
             @send="send"
+            @cancel="cancel"
             @openLibrary="emit('openLibrary')"
             :isStreaming="isStreaming"
         />
@@ -16,17 +17,22 @@
 <script setup lang="ts">
 import MessageList from './MessageList.vue';
 import InputArea from './InputArea.vue';
+import { useMessages } from './useMessages';
 import { useChatEngine } from './useChatEngine';
 
 const emit = defineEmits<{ 
     (e: 'openLibrary'): void
 }>();
 
+const {
+    isStreaming
+} = useMessages();
+
 const { 
     inputText, 
     developerPrompt, 
-    isStreaming, 
-    send 
+    send,
+    cancel
 } = useChatEngine();
 </script>
 

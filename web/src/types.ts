@@ -2,6 +2,7 @@ export interface ConversationSummary {
     id: string;
     title: string | null;
     created_at: string;
+    updated_at: string;
 }
 
 export interface Message {
@@ -10,7 +11,7 @@ export interface Message {
     role: 'system' | 'developer' | 'user' | 'assistant';
     content: string | null;
     reasoning?: string | null;
-    status: 'pending' | 'streaming' | 'complete' | 'error';
+    status: 'pending' | 'streaming' | 'complete' | 'error' | 'canceled';
     creation_data?: any;
     error_data?: any;
     metadata?: any;

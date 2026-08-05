@@ -6,7 +6,9 @@
                 <option value="custom">Custom</option>
                 <option v-for="p in filteredPrompts" :key="p.id" :value="p.id">{{ p.name }}</option>
             </select>
-            <button @click="emit('openLibrary')" class="manage-btn" title="Manage Prompts">⚙️</button>
+            <button @click="emit('openLibrary')" class="btn-icon" title="Manage Prompts">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.book_open"></svg>
+            </button>
         </div>
         
         <!-- Textarea is always available for none/custom -->
@@ -28,6 +30,7 @@
 <script setup lang="ts">
 import { toRef } from 'vue';
 import { usePromptSelection } from './usePromptSelection';
+import { ICONS } from '@/icons';
 
 const props = defineProps<{ 
     role: 'system' | 'developer', 
@@ -51,9 +54,9 @@ const { filteredPrompts, selectedMode, placeholderText, onSelectChange, handleIn
 <style scoped>
 .prompt-selector {
     margin-bottom: 12px;
-    background: #0b0f19;
-    border: 1px solid #1e293b;
-    border-radius: 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
     padding: 8px;
 }
 
@@ -66,35 +69,26 @@ const { filteredPrompts, selectedMode, placeholderText, onSelectChange, handleIn
 
 .prompt-select {
     flex: 1;
-    background: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #334155;
-    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
     padding: 6px;
     font-size: 13px;
     outline: none;
-}
-
-.manage-btn {
-    background: none;
-    border: none;
     cursor: pointer;
-    font-size: 16px;
-    color: #94a3b8;
-    padding: 4px;
-    transition: color 0.2s;
 }
 
-.manage-btn:hover {
-    color: #f8fafc;
+.prompt-select:focus {
+    border-color: var(--accent-blue);
 }
 
 .prompt-textarea {
     width: 100%;
     background: transparent;
-    color: #e2e8f0;
-    border: 1px solid #334155;
-    border-radius: 6px;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
     padding: 8px;
     font-family: inherit;
     font-size: 13px;
@@ -106,15 +100,15 @@ const { filteredPrompts, selectedMode, placeholderText, onSelectChange, handleIn
 }
 
 .prompt-textarea:focus {
-    border-color: #3b82f6;
+    border-color: var(--accent-blue);
 }
 
 .prompt-preview {
     width: 100%;
-    background: #1e293b;
-    color: #cbd5e1;
-    border: 1px solid #334155;
-    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
     padding: 8px;
     font-size: 13px;
     min-height: 60px;

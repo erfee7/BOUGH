@@ -63,7 +63,7 @@ async def update_prompt(prompt_id: uuid.UUID, conn: asyncpg.Connection | None = 
         return
         
     # Always update the updated_at timestamp
-    set_clauses.append(f"updated_at = NOW()")
+    set_clauses.append(f"updated_at = clock_timestamp()")
     
     args.append(prompt_id)
     query = f"UPDATE prompts SET {', '.join(set_clauses)} WHERE id = ${idx};"

@@ -1,4 +1,4 @@
-import { Message } from '../types';
+import { Message } from '@/types';
 
 /**
  * Stable comparison helper for messages.
