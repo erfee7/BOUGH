@@ -1,7 +1,7 @@
 <template>
     <div class="menu-container" v-if="!isGenerating">
-        <button @click.stop="toggleMenu" class="kebab-btn" :class="{ 'is-open': menuOpen }" title="More actions">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.vertical_dots"></svg>
+        <button @click.stop="toggleMenu" class="btn-icon kebab-btn" :class="{ 'is-open': menuOpen }" title="More actions">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.ellipsis_vertical"></svg>
         </button>
         
         <div v-if="menuOpen" class="dropdown-menu">
@@ -18,8 +18,8 @@
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevrons_up"></svg>
                     Bump
                 </button>
-                <button @click.stop="askForDeleteConfirm" class="menu-item danger">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.trash"></svg>
+                <button @click.stop="askForDeleteConfirm" class="menu-item danger-text">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.trash_2"></svg>
                     Delete
                 </button>
             </template>
@@ -28,8 +28,8 @@
                 <div class="confirm-box">
                     <span class="confirm-text">Delete this chat?</span>
                     <div class="confirm-actions">
-                        <button @click.stop="cancelDelete" class="confirm-btn">Cancel</button>
-                        <button @click.stop="confirmDelete" class="confirm-btn danger">Delete</button>
+                        <button @click.stop="cancelDelete" class="btn-ghost confirm-btn-small">Cancel</button>
+                        <button @click.stop="confirmDelete" class="btn-danger confirm-btn-small">Delete</button>
                     </div>
                 </div>
             </template>
@@ -123,16 +123,8 @@ onBeforeUnmount(() => {
 }
 
 .kebab-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: inherit;
     opacity: 0;
     transition: opacity 0.15s, transform 0.15s;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .kebab-btn.is-open {
@@ -147,15 +139,15 @@ onBeforeUnmount(() => {
     position: absolute;
     top: 100%;
     right: 0;
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     z-index: 100;
     min-width: 160px;
     padding: 4px;
     margin-top: 4px;
-    cursor: default;
+    cursor: default; /* Override inherited pointer */
 }
 
 .menu-item {
@@ -166,29 +158,29 @@ onBeforeUnmount(() => {
     text-align: left;
     background: transparent;
     border: none;
-    color: #cbd5e1;
+    color: var(--text-secondary);
     padding: 8px 12px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 14px;
-    line-height: 1; /* Remove extra text spacing */
-    transition: background-color 0.15s;
+    line-height: 1; /* Fix vertical alignment */
+    transition: background-color 0.15s, color 0.15s;
 }
 
 .menu-item svg {
-    flex-shrink: 0; /* Prevent the icon from squishing */
+    flex-shrink: 0; /* Prevent icon squishing */
 }
 
 .menu-item:hover {
-    background: #334155;
-    color: #f8fafc;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
-.menu-item.danger {
-    color: #f87171;
+.menu-item.danger-text {
+    color: var(--accent-red);
 }
 
-.menu-item.danger:hover {
+.menu-item.danger-text:hover {
     background: rgba(239, 68, 68, 0.1);
 }
 
@@ -199,7 +191,7 @@ onBeforeUnmount(() => {
 .confirm-text {
     display: block;
     font-size: 13px;
-    color: #f8fafc;
+    color: var(--text-primary);
     margin-bottom: 8px;
     white-space: nowrap;
 }
@@ -210,39 +202,9 @@ onBeforeUnmount(() => {
     justify-content: flex-end;
 }
 
-.confirm-btn {
-    background: #334155;
-    border: none;
-    color: #f8fafc;
+/* Smaller padding for inline confirmation buttons */
+.confirm-btn-small {
     padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
     font-size: 12px;
-    transition: background-color 0.15s;
-}
-
-.confirm-btn:hover {
-    background: #475569;
-}
-
-.confirm-btn.danger {
-    background: #ef4444;
-}
-
-.confirm-btn.danger:hover {
-    background: #dc2626;
-}
-
-.spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid #475569;
-    border-top-color: #f8fafc;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
 }
 </style>

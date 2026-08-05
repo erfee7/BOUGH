@@ -47,10 +47,10 @@ function handleInput(event: Event) {
     width: 100%;
     min-height: 100px;
     max-height: 300px;
-    background: #1e293b;
-    border: 1px solid #334155;
-    color: #f8fafc;
-    border-radius: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+    border-radius: var(--radius-md);
     padding: 12px;
     font-family: inherit;
     font-size: 15px;
@@ -58,6 +58,12 @@ function handleInput(event: Event) {
     box-sizing: border-box;
     resize: none; /* Disable manual resize, we handle it automatically */
     overflow-y: auto; /* Scroll when exceeding max-height */
+    outline: none;
+}
+
+.edit-textarea:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .edit-actions {
@@ -65,46 +71,5 @@ function handleInput(event: Event) {
     display: flex;
     gap: 8px;
     justify-content: flex-start;
-}
-
-.btn-primary, .btn-secondary, .btn-ghost {
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.btn-primary {
-    background: #3b82f6;
-    border: 1px solid #3b82f6;
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #2563eb;
-    border-color: #2563eb;
-}
-
-.btn-secondary {
-    background: #334155;
-    border: 1px solid #475569;
-    color: #e2e8f0;
-}
-
-.btn-secondary:hover {
-    background: #3f4d63;
-}
-
-.btn-ghost {
-    background: transparent;
-    border: 1px solid transparent;
-    color: #64748b;
-}
-
-.btn-ghost:hover {
-    color: #cbd5e1;
-    background: rgba(30, 41, 59, 0.5);
 }
 </style>

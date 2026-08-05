@@ -69,6 +69,6 @@ const {
     font-size: 20px;
     font-weight: 600;
     margin: 0 0 16px 0;
-    color: #f8fafc;
+    color: var(--text-primary);
 }
 </style>

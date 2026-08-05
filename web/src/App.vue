@@ -57,8 +57,8 @@ watch(currentConversationId, (newId) => {
     display: flex;
     height: 100vh;
     width: 100%;
-    background: #0f172a;
-    color: #f8fafc;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -67,16 +67,5 @@ watch(currentConversationId, (newId) => {
     display: flex;
     flex-direction: column;
     position: relative;
-}
-</style>
-
-<style>
-/* Global styles to strip browser defaults */
-html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    background-color: #0f172a;
-    overflow: hidden;
 }
 </style>

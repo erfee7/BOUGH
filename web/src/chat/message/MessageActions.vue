@@ -1,24 +1,24 @@
 <template>
     <div class="message-footer">
         <div v-if="siblingInfo.count > 1" class="sibling-nav">
-            <button @click="emit('switch-sibling', 'prev')" :disabled="siblingInfo.currentIndex === 0" title="Previous message" class="action-btn">
+            <button @click="emit('switch-sibling', 'prev')" :disabled="siblingInfo.currentIndex === 0" title="Previous message" class="btn-icon nav-btn">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevron_left"></svg>
             </button>
             <span>{{ siblingInfo.currentIndex + 1 }} / {{ siblingInfo.count }}</span>
-            <button @click="emit('switch-sibling', 'next')" :disabled="siblingInfo.currentIndex === siblingInfo.count - 1" title="Next message" class="action-btn">
+            <button @click="emit('switch-sibling', 'next')" :disabled="siblingInfo.currentIndex === siblingInfo.count - 1" title="Next message" class="btn-icon nav-btn">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevron_right"></svg>
             </button>
         </div>
         
-        <button @click="copyToClipboard" class="action-btn" :title="isCopied ? 'Copied!' : 'Copy to clipboard'">
+        <button @click="copyToClipboard" class="btn-icon" :title="isCopied ? 'Copied!' : 'Copy to clipboard'">
             <svg v-if="!isCopied" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.copy"></svg>
             <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.check"></svg>
         </button>
 
-        <button @click="emit('start-edit')" class="action-btn" title="Edit message" :disabled="!isInteractive">
+        <button @click="emit('start-edit')" class="btn-icon" title="Edit message" :disabled="!isInteractive">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.pencil"></svg>
         </button>
-        <button @click="emit('generate')" :disabled="!isInteractive" class="action-btn" :title="role === 'user' ? 'Generate response' : 'Continue from here'">
+        <button @click="emit('generate')" :disabled="!isInteractive" class="btn-icon" :title="role === 'user' ? 'Generate response' : 'Continue from here'">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.sparkles"></svg>
         </button>
     </div>
@@ -75,7 +75,7 @@ async function copyToClipboard() {
     align-items: center;
     gap: 1px;
     font-size: 14px;
-    color: #94a3b8;
+    color: var(--text-muted);
     margin-right: 1px;
 }
 
@@ -84,51 +84,8 @@ async function copyToClipboard() {
     text-align: center;
 }
 
-.sibling-nav button {
-    background: none;
-    border: 1px solid transparent;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.nav-btn {
     font-size: 18px;
     line-height: 1;
-}
-
-.sibling-nav button:hover {
-    color: #f8fafc;
-    background: #1e293b;
-    border-color: #334155;
-}
-
-.sibling-nav button:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.action-btn {
-    background: none;
-    border: 1px solid transparent;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.action-btn:hover {
-    color: #f8fafc;
-    background: #1e293b;
-    border-color: #334155;
-}
-
-.action-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
 }
 </style>

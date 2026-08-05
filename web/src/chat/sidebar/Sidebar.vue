@@ -1,8 +1,8 @@
 <template>
     <aside class="sidebar">
         <div class="sidebar-header">
-            <button class="new-chat-btn" @click="handleNewChat">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.new_chat"></svg>
+            <button class="btn-secondary new-chat-btn" @click="handleNewChat">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_pen"></svg>
                 New Chat
             </button>
         </div>
@@ -27,12 +27,11 @@
                     <div v-else class="conv-item-content">
                         <span class="conv-title">{{ conv.title || 'Untitled' }}</span>
                         
-                        <!-- Replace old button with ConversationMenu -->
                         <ConversationMenu 
                             :isGenerating="isGenerating(conv.id)"
                             @rename="startEditing(conv)"
                             @generate-title="handleGenerateTitle(conv.id)"
-                            @touch="handleTouch(conv.id)" 
+                            @touch="handleTouch(conv.id)"
                             @delete="deleteConversation(conv.id)"
                         />
                     </div>
@@ -40,8 +39,8 @@
             </ul>
         </div>
         <div class="sidebar-footer">
-            <button class="library-btn" @click="emit('openPromptLibrary')">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.prompt_library"></svg>
+            <button class="btn-ghost library-btn" @click="emit('openPromptLibrary')">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.book_open"></svg>
                 Prompt Library
             </button>
         </div>
@@ -87,64 +86,29 @@ function handleTouch(id: string) {
 <style scoped>
 .sidebar {
     width: 280px;
-    background: #0b0f19;
-    border-right: 1px solid #1e293b;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-default);
     display: flex;
     flex-direction: column;
 }
 
 .sidebar-header {
     padding: 16px;
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid var(--border-default);
 }
 
 .new-chat-btn {
     width: 100%;
-    padding: 10px;
-    background: transparent;
-    color: #f8fafc;
-    border: 1px dashed #334155;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s;
-}
-
-.new-chat-btn span {
-    font-size: 18px;
-    line-height: 1;
-}
-
-.new-chat-btn:hover:not(:disabled) {
-    background: #1e293b;
-    border-color: #475569;
-}
-
-.new-chat-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .conversation-list-container {
     flex: 1;
     overflow-y: auto;
     padding: 12px 8px;
-    scrollbar-width: thin;
-    scrollbar-color: #334155 transparent;
-}
-
-.conversation-list-container::-webkit-scrollbar {
-    width: 6px;
-}
-
-.conversation-list-container::-webkit-scrollbar-thumb {
-    background-color: #334155;
-    border-radius: 3px;
 }
 
 .conversation-list {
@@ -156,25 +120,21 @@ function handleTouch(id: string) {
 .conversation-list li {
     padding: 10px 12px;
     margin-bottom: 4px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 14px;
-    color: #cbd5e1;
+    color: var(--text-secondary);
     transition: background-color 0.15s, color 0.15s;
 }
 
 .conversation-list li:hover {
-    background: #1e293b;
-    color: #f8fafc;
-}
-
-.conversation-list li:hover :deep(.kebab-btn) {
-    opacity: 1;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
 .conversation-list li.active {
-    background: #1e293b;
-    color: #f8fafc;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
     font-weight: 500;
 }
 
@@ -183,7 +143,7 @@ function handleTouch(id: string) {
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    min-height: 26px;
+    min-height: 26px; /* Prevents layout shift when menu/spinner toggles */
 }
 
 .conv-title {
@@ -195,10 +155,10 @@ function handleTouch(id: string) {
 
 .edit-input {
     width: 100%;
-    background: #0f172a;
-    color: #f8fafc;
-    border: 1px solid #3b82f6;
-    border-radius: 4px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--accent-blue);
+    border-radius: var(--radius-sm);
     font-size: 14px;
     font-family: inherit;
     padding: 4px 8px;
@@ -206,59 +166,21 @@ function handleTouch(id: string) {
     box-sizing: border-box;
 }
 
-.title-action-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    opacity: 0;
-    transition: opacity 0.15s, transform 0.15s;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.title-action-btn:hover {
-    transform: scale(1.15);
-}
-
-.spinner {
-    font-size: 14px;
+/* Reveal kebab menu on row hover */
+.conversation-list li:hover :deep(.kebab-btn) {
     opacity: 1;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
 }
 
 .sidebar-footer {
     padding: 16px;
-    border-top: 1px solid #1e293b;
+    border-top: 1px solid var(--border-default);
 }
 
 .library-btn {
     width: 100%;
-    padding: 10px;
-    background: transparent;
-    color: #cbd5e1;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s;
-}
-
-.library-btn:hover {
-    background: #1e293b;
-    color: #f8fafc;
-    border-color: #475569;
 }
 </style>
