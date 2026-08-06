@@ -1,15 +1,46 @@
 <template>
     <div class="message-details">
-        <div v-if="creationData" class="detail-section">
-            <span class="detail-label">Creation Data</span>
-            <pre>{{ formattedCreationData }}</pre>
+        <!-- Model -->
+        <div class="detail-row" v-if="model">
+            <span class="detail-label">Model</span>
+            <span class="detail-value">{{ model }}</span>
         </div>
-        <div v-if="metadata" class="detail-section">
-            <span class="detail-label">Metadata</span>
-            <pre>{{ formattedMetadata }}</pre>
+
+        <!-- Parameters (Smart GUI) -->
+        <div class="detail-row" v-if="parameterChips.length > 0">
+            <span class="detail-label">Parameters</span>
+            <div class="param-chips">
+                <span v-for="chip in parameterChips" :key="chip.label" class="param-chip">
+                    {{ chip.label }}: {{ chip.value }}
+                </span>
+            </div>
         </div>
-        <div v-if="!creationData && !metadata" class="empty-details">
-            No details available.
+
+        <!-- Tokens -->
+        <div class="detail-row" v-if="promptTokens !== null || completionTokens !== null">
+            <span class="detail-label">Tokens</span>
+            <div class="token-breakdown">
+                <span v-if="promptTokens !== null">In: {{ promptTokens }}</span>
+                <span v-if="completionTokens !== null">
+                    Out: {{ completionTokens }}
+                    <span v-if="reasoningTokens > 0" class="sub-token">(Reasoning: {{ reasoningTokens }})</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Generation Time & Speed -->
+        <div class="detail-row" v-if="generationTime !== null">
+            <span class="detail-label">Speed</span>
+            <div class="speed-breakdown">
+                <span>{{ generationTime.toFixed(2) }}s</span>
+                <span v-if="throughput !== null">{{ throughput.toFixed(2) }} tok/s</span>
+            </div>
+        </div>
+
+        <!-- Cost -->
+        <div class="detail-row" v-if="cost !== null">
+            <span class="detail-label">Cost</span>
+            <span class="detail-value">${{ formattedCost }}</span>
         </div>
     </div>
 </template>
@@ -22,8 +53,47 @@ const props = defineProps<{
     metadata?: any
 }>();
 
-const formattedCreationData = computed(() => JSON.stringify(props.creationData, null, 2));
-const formattedMetadata = computed(() => JSON.stringify(props.metadata, null, 2));
+const model = computed(() => props.creationData?.model);
+
+// Smart GUI for arbitrary parameters
+const parameterChips = computed(() => {
+    const params = props.creationData?.parameters;
+    if (!params || typeof params !== 'object' || Object.keys(params).length === 0) {
+        return [];
+    }
+    return Object.entries(params).map(([key, value]) => {
+        // Prettify label (e.g., "top_p" -> "Top P", "temperature" -> "Temperature")
+        let label = key.replace(/_/g, ' ');
+        label = label.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        
+        // Format value (trim trailing zeros for numbers)
+        let val = value;
+        if (typeof val === 'number' && !Number.isInteger(val)) {
+            val = parseFloat(val.toFixed(2));
+        }
+        return { label, value: val };
+    });
+});
+
+const promptTokens = computed(() => props.metadata?.prompt_tokens ?? null);
+const completionTokens = computed(() => props.metadata?.completion_tokens ?? null);
+const reasoningTokens = computed(() => props.metadata?.completion_tokens_details?.reasoning_tokens ?? 0);
+
+const cost = computed(() => props.metadata?.cost ?? null);
+const formattedCost = computed(() => {
+    if (cost.value === null) return '0';
+    // Show 6 decimal places for precise LLM costs
+    return cost.value.toFixed(6);
+});
+
+// Future-Proofing: Time & Throughput
+const generationTime = computed(() => props.metadata?.generation_time ?? null);
+const throughput = computed(() => {
+    if (generationTime.value !== null && generationTime.value > 0 && completionTokens.value !== null) {
+        return completionTokens.value / generationTime.value;
+    }
+    return null;
+});
 </script>
 
 <style scoped>
@@ -32,43 +102,60 @@ const formattedMetadata = computed(() => JSON.stringify(props.metadata, null, 2)
     background: var(--bg-tertiary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
-    padding: 12px;
+    padding: 12px 16px;
     font-size: 13px;
     color: var(--text-secondary);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
-.detail-section {
+.detail-row {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 12px;
 }
 
 .detail-label {
     font-weight: 600;
     color: var(--text-muted);
-    text-transform: uppercase;
+    text-transform: none;
     font-size: 11px;
     letter-spacing: 0.05em;
+    width: 80px; /* Fixed width for alignment */
+    flex-shrink: 0;
 }
 
-pre {
-    margin: 0;
-    padding: 8px;
-    background: var(--bg-primary);
-    border-radius: var(--radius-sm);
-    white-space: pre-wrap;
-    word-break: break-all;
-    font-family: monospace;
+.detail-value {
     color: var(--text-primary);
-    max-height: 300px;
-    overflow-y: auto;
+    font-family: monospace;
 }
 
-.empty-details {
-    color: var(--text-faded);
-    font-style: italic;
+.param-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.param-chip {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    font-size: 12px;
+    color: var(--accent-blue);
+}
+
+.token-breakdown, .speed-breakdown {
+    display: flex;
+    gap: 16px;
+    color: var(--text-primary);
+    font-family: monospace;
+}
+
+.sub-token {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-left: 4px;
 }
 </style>
