@@ -85,7 +85,7 @@
                         @inspect="showDetails = !showDetails"
                     />
                     <MessageDetails 
-                        v-if="showDetails && message.creation_data?.source === 'model'" 
+                        v-if="showDetails && message.role === 'assistant'"
                         :creationData="message.creation_data" 
                         :metadata="message.metadata" 
                     />

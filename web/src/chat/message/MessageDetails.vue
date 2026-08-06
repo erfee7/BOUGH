@@ -1,47 +1,55 @@
 <template>
     <div class="message-details">
-        <!-- Model -->
-        <div class="detail-row" v-if="model">
-            <span class="detail-label">Model</span>
-            <span class="detail-value">{{ model }}</span>
+        <!-- Warning for edited messages -->
+        <div v-if="creationData?.source === 'user'" class="empty-details">
+            Message edited by user. Generation details are not available.
         </div>
 
-        <!-- Parameters (Smart GUI) -->
-        <div class="detail-row" v-if="parameterChips.length > 0">
-            <span class="detail-label">Parameters</span>
-            <div class="param-chips">
-                <span v-for="chip in parameterChips" :key="chip.label" class="param-chip">
-                    {{ chip.label }}: {{ chip.value }}
-                </span>
+        <!-- Normal stats layout -->
+        <template v-else>
+            <!-- Model -->
+            <div class="detail-row" v-if="model">
+                <span class="detail-label">Model</span>
+                <span class="detail-value">{{ model }}</span>
             </div>
-        </div>
 
-        <!-- Tokens -->
-        <div class="detail-row" v-if="promptTokens !== null || completionTokens !== null">
-            <span class="detail-label">Tokens</span>
-            <div class="token-breakdown">
-                <span v-if="promptTokens !== null">In: {{ promptTokens }}</span>
-                <span v-if="completionTokens !== null">
-                    Out: {{ completionTokens }}
-                    <span v-if="reasoningTokens > 0" class="sub-token">(Reasoning: {{ reasoningTokens }})</span>
-                </span>
+            <!-- Parameters (Smart GUI) -->
+            <div class="detail-row" v-if="parameterChips.length > 0">
+                <span class="detail-label">Parameters</span>
+                <div class="param-chips">
+                    <span v-for="chip in parameterChips" :key="chip.label" class="param-chip">
+                        {{ chip.label }}: {{ chip.value }}
+                    </span>
+                </div>
             </div>
-        </div>
 
-        <!-- Generation Time & Speed -->
-        <div class="detail-row" v-if="generationTime !== null">
-            <span class="detail-label">Speed</span>
-            <div class="speed-breakdown">
-                <span>{{ generationTime.toFixed(2) }}s</span>
-                <span v-if="throughput !== null">{{ throughput.toFixed(2) }} tok/s</span>
+            <!-- Tokens -->
+            <div class="detail-row" v-if="promptTokens !== null || completionTokens !== null">
+                <span class="detail-label">Tokens</span>
+                <div class="token-breakdown">
+                    <span v-if="promptTokens !== null">In: {{ promptTokens }}</span>
+                    <span v-if="completionTokens !== null">
+                        Out: {{ completionTokens }}
+                        <span v-if="reasoningTokens > 0" class="sub-token">(Reasoning: {{ reasoningTokens }})</span>
+                    </span>
+                </div>
             </div>
-        </div>
 
-        <!-- Cost -->
-        <div class="detail-row" v-if="cost !== null">
-            <span class="detail-label">Cost</span>
-            <span class="detail-value">${{ formattedCost }}</span>
-        </div>
+            <!-- Generation Time & Speed -->
+            <div class="detail-row" v-if="generationTime !== null">
+                <span class="detail-label">Speed</span>
+                <div class="speed-breakdown">
+                    <span>{{ generationTime.toFixed(2) }}s</span>
+                    <span v-if="throughput !== null">{{ throughput.toFixed(2) }} tok/s</span>
+                </div>
+            </div>
+
+            <!-- Cost -->
+            <div class="detail-row" v-if="cost !== null">
+                <span class="detail-label">Cost</span>
+                <span class="detail-value">${{ formattedCost }}</span>
+            </div>
+        </template>
     </div>
 </template>
 

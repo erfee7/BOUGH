@@ -23,7 +23,7 @@
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.sparkles"></svg>
         </button>
 
-        <button v-if="source === 'model'" @click="emit('inspect')" class="btn-icon" :class="{ 'active': isInspecting }" :title="isInspecting ? 'Hide details' : 'Inspect details'">
+        <button v-if="role === 'assistant'" @click="emit('inspect')" class="btn-icon" :class="{ 'active': isInspecting }" :title="isInspecting ? 'Hide details' : 'Inspect details'">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.info"></svg>
         </button>
     </div>
