@@ -7,6 +7,7 @@
         <div class="message-body">
             <div class="message-header">
                 <span class="role-label">{{ message.role === 'user' ? 'User' : 'Assistant' }}</span>
+                <span class="msg-time" :title="formatAbsoluteTime(message.created_at)">{{ formatRelativeTime(message.created_at) }}</span>
             </div>
             
             <!-- Edit Mode -->
@@ -66,6 +67,7 @@ import ReasoningBlock from './ReasoningBlock.vue';
 import MessageActions from './MessageActions.vue';
 import { ICONS } from '@/icons';
 import { handleMarkdownDblClick, handleMarkdownCopy } from '@/chat/markdownInteractions';
+import { formatRelativeTime, formatAbsoluteTime } from '@/utils/time';
 
 defineProps<{ 
     message: Message,
@@ -134,6 +136,16 @@ const emit = defineEmits<{
     font-size: 17px;
     font-weight: 600;
     color: var(--text-muted);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.msg-time {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-faded);
+    cursor: default;
 }
 
 .user-role .message-header {
