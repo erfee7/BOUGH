@@ -72,23 +72,27 @@
                         <span v-else-if="isPrompt" class="empty-prompt">Empty prompt</span>
                         <span v-else>Empty</span>
                     </div>
-                    <MessageActions 
-                        :siblingInfo="siblingInfo" 
-                        :isInteractive="isPrompt || message.status === 'complete' || message.status === 'canceled'"
-                        :role="message.role"
-                        :content="message.content"
-                        :source="message.creation_data?.source"
-                        :isInspecting="showDetails"
-                        @switch-sibling="emit('switch-sibling', $event)"
-                        @start-edit="emit('start-edit')"
-                        @generate="emit('generate')"
-                        @inspect="showDetails = !showDetails"
-                    />
-                    <MessageDetails 
-                        v-if="showDetails && message.role === 'assistant'"
-                        :creationData="message.creation_data" 
-                        :metadata="message.metadata" 
-                    />
+                    <div class="actions-container">
+                        <MessageActions 
+                            :siblingInfo="siblingInfo" 
+                            :isInteractive="isPrompt || message.status === 'complete' || message.status === 'canceled'"
+                            :role="message.role"
+                            :content="message.content"
+                            :source="message.creation_data?.source"
+                            :isInspecting="showDetails"
+                            @switch-sibling="emit('switch-sibling', $event)"
+                            @start-edit="emit('start-edit')"
+                            @generate="emit('generate')"
+                            @inspect="showDetails = !showDetails"
+                        />
+                        <Transition name="fade">
+                            <MessageDetails 
+                                v-if="showDetails && message.role === 'assistant'" 
+                                :creationData="message.creation_data" 
+                                :metadata="message.metadata" 
+                            />
+                        </Transition>
+                    </div>
                 </template>
             </div>
         </div>
@@ -177,6 +181,20 @@ function toggleExpand() {
 .message-body {
     flex: 1;
     min-width: 0;
+}
+
+.actions-container {
+    position: relative;
+}
+
+/* Floating details fade transition */
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+    opacity: 0;
+    transform: translateY(4px); /* Slight upward/downward slide */
 }
 
 /* === Prompt Tile Overrides === */

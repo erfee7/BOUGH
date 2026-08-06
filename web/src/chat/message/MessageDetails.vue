@@ -106,8 +106,12 @@ const throughput = computed(() => {
 
 <style scoped>
 .message-details {
-    margin-top: 12px;
-    background: var(--bg-tertiary);
+    position: absolute;
+    bottom: 100%;
+    left: 57px; /* Offset slightly from the left edge */
+    margin-bottom: 8px;
+    
+    background: var(--bg-primary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
     padding: 12px 16px;
@@ -116,6 +120,13 @@ const throughput = computed(() => {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    
+    /* Give it more space to breathe */
+    min-width: 260px;
+    max-width: 360px; 
+    
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    z-index: 10;
 }
 
 .detail-row {
@@ -127,16 +138,18 @@ const throughput = computed(() => {
 .detail-label {
     font-weight: 600;
     color: var(--text-muted);
-    text-transform: none;
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    width: 80px; /* Fixed width for alignment */
+    font-size: 12px;
+    letter-spacing: normal;
+    width: 80px;
     flex-shrink: 0;
 }
 
 .detail-value {
     color: var(--text-primary);
     font-family: monospace;
+    /* Ensure long model names wrap properly instead of overflowing */
+    overflow-wrap: anywhere;
+    word-break: break-all;
 }
 
 .param-chips {
