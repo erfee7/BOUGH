@@ -84,4 +84,54 @@ defineProps<{
     color: var(--text-secondary);
     opacity: 0.8;
 }
+
+/* === md-editor-v3 Overrides (Targeting child component internals via :deep) === */
+.reasoning-content {
+    background: transparent !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+}
+
+.reasoning-content :deep(.md-editor-preview) {
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+.reasoning-content :deep(p) {
+    margin: 0 0 10px 0;
+}
+
+/* This is the specific fix for the "extra newline" */
+.reasoning-content :deep(p:last-child) {
+    margin-bottom: 0;
+}
+
+.reasoning-content :deep(p),
+.reasoning-content :deep(li),
+.reasoning-content :deep(.md-editor-preview) {
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.reasoning-content :deep(.md-editor-code-head) {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+.reasoning-content :deep(.md-editor-code-flag span) {
+    display: none !important;
+}
+
+.reasoning-content :deep(.md-editor-code-flag::after) {
+    content: '</>';
+    color: var(--text-faded);
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
 </style>

@@ -312,7 +312,7 @@ function toggleExpand() {
     }
 }
 
-/* === Markdown Overrides (Global via :deep) === */
+/* === md-editor-v3 Overrides (Targeting child component internals via :deep) === */
 .markdown-content {
     background: transparent !important;
     font-size: inherit !important;
