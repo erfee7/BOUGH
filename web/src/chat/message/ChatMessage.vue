@@ -77,9 +77,17 @@
                         :isInteractive="isPrompt || message.status === 'complete' || message.status === 'canceled'"
                         :role="message.role"
                         :content="message.content"
+                        :source="message.creation_data?.source"
+                        :isInspecting="showDetails"
                         @switch-sibling="emit('switch-sibling', $event)"
                         @start-edit="emit('start-edit')"
                         @generate="emit('generate')"
+                        @inspect="showDetails = !showDetails"
+                    />
+                    <MessageDetails 
+                        v-if="showDetails && message.creation_data?.source === 'model'" 
+                        :creationData="message.creation_data" 
+                        :metadata="message.metadata" 
                     />
                 </template>
             </div>
@@ -94,6 +102,7 @@ import { Message } from '@/types';
 import EditArea from './EditArea.vue';
 import ReasoningBlock from './ReasoningBlock.vue';
 import MessageActions from './MessageActions.vue';
+import MessageDetails from './MessageDetails.vue';
 import { ICONS } from '@/icons';
 import { handleMarkdownDblClick, handleMarkdownCopy } from '@/chat/markdownInteractions';
 import { formatRelativeTime, formatAbsoluteTime } from '@/utils/time';
@@ -116,6 +125,7 @@ const emit = defineEmits<{
 
 const isPrompt = computed(() => props.message.role === 'system' || props.message.role === 'developer');
 const isExpanded = ref(false);
+const showDetails = ref(false);
 
 function toggleExpand() {
     isExpanded.value = !isExpanded.value;
