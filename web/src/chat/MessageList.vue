@@ -1,39 +1,24 @@
 <template>
     <div class="messages-container" ref="messagesContainer">
-        <template v-for="msg in activePath" :key="msg.id">
-            <PromptMessage 
-                v-if="msg.role === 'system' || msg.role === 'developer'" 
-                :message="msg" 
-                :siblingInfo="getSiblingInfoUtil(msg.id, messages)"
-                :isEditing="editingMessageId === msg.id"
-                :editingText="editingText"
-                @update:editingText="editingText = $event"
-                @switch-sibling="(direction: 'prev' | 'next') => switchSibling(msg.id, direction)"
-                @generate="generateMessage(msg.id)"
-                @start-edit="startEdit(msg)"
-                @cancel-edit="cancelEdit()"
-                @save-edit="(shouldGenerate: boolean) => saveEdit(msg, shouldGenerate)"
-            />
-            <ChatMessage 
-                v-else
-                :message="msg" 
-                :siblingInfo="getSiblingInfoUtil(msg.id, messages)"
-                :isEditing="editingMessageId === msg.id"
-                :editingText="editingText"
-                @update:editingText="editingText = $event"
-                @switch-sibling="(direction: 'prev' | 'next') => switchSibling(msg.id, direction)"
-                @generate="generateMessage(msg.id)"
-                @start-edit="startEdit(msg)"
-                @cancel-edit="cancelEdit()"
-                @save-edit="(shouldGenerate: boolean) => saveEdit(msg, shouldGenerate)"
-            />
-        </template>
+        <ChatMessage 
+            v-for="msg in activePath" 
+            :key="msg.id"
+            :message="msg" 
+            :siblingInfo="getSiblingInfoUtil(msg.id, messages)"
+            :isEditing="editingMessageId === msg.id"
+            :editingText="editingText"
+            @update:editingText="editingText = $event"
+            @switch-sibling="(direction: 'prev' | 'next') => switchSibling(msg.id, direction)"
+            @generate="generateMessage(msg.id)"
+            @start-edit="startEdit(msg)"
+            @cancel-edit="cancelEdit()"
+            @save-edit="(shouldGenerate: boolean) => saveEdit(msg, shouldGenerate)"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
 import ChatMessage from './message/ChatMessage.vue';
-import PromptMessage from './message/PromptMessage.vue';
 import { useBranching } from './useBranching';
 import { useMessages } from './useMessages.js';
 import { getSiblingInfo as getSiblingInfoUtil } from './branchingUtils.js';
