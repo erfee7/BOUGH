@@ -1,26 +1,46 @@
 <template>
     <div class="prompt-tile">
-        <div class="prompt-header" @click="toggleExpand">
-            <svg class="chevron" :class="{ 'expanded': isExpanded }" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevron_right"></svg>
+        <div class="prompt-header" @click="toggleExpand" :class="{ 'editing': isEditing }">
+            <svg class="chevron" :class="{ 'expanded': isExpanded || isEditing }" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevron_right"></svg>
             <div class="prompt-label">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="message.role === 'system' ? ICONS.settings : ICONS.terminal"></svg>
                 <span>{{ message.role === 'system' ? 'System Prompt' : 'Developer Prompt' }}</span>
             </div>
         </div>
         
-        <div v-if="isExpanded" class="prompt-content">
-            <MdPreview 
-                v-if="message.content"
-                :modelValue="message.content" 
-                theme="dark" 
-                :previewTheme="'github'" 
-                :codeTheme="'github'" 
-                :language="'en-US'"
-                class="markdown-content"
-                @dblclick="handleMarkdownDblClick"
-                @copy="handleMarkdownCopy"
+        <div v-if="isExpanded || isEditing" class="prompt-content">
+            <EditArea 
+                v-if="isEditing"
+                :editingText="editingText"
+                :role="message.role"
+                @update:editingText="emit('update:editingText', $event)"
+                @save-edit="emit('save-edit', $event)"
+                @cancel-edit="emit('cancel-edit')"
             />
-            <span v-else class="empty-prompt">Empty prompt</span>
+            <template v-else>
+                <MdPreview 
+                    v-if="message.content"
+                    :modelValue="message.content" 
+                    theme="dark" 
+                    :previewTheme="'github'" 
+                    :codeTheme="'github'" 
+                    :language="'en-US'"
+                    class="markdown-content"
+                    @dblclick="handleMarkdownDblClick"
+                    @copy="handleMarkdownCopy"
+                />
+                <span v-else class="empty-prompt">Empty prompt</span>
+                
+                <MessageActions 
+                    :siblingInfo="siblingInfo" 
+                    :isInteractive="true"
+                    :role="message.role"
+                    :content="message.content"
+                    @switch-sibling="emit('switch-sibling', $event)"
+                    @start-edit="emit('start-edit')"
+                    @generate="emit('generate')"
+                />
+            </template>
         </div>
     </div>
 </template>
@@ -29,11 +49,25 @@
 import { ref } from 'vue';
 import { MdPreview } from 'md-editor-v3';
 import { Message } from '@/types';
+import EditArea from './EditArea.vue';
+import MessageActions from './MessageActions.vue';
 import { ICONS } from '@/icons';
 import { handleMarkdownDblClick, handleMarkdownCopy } from '@/chat/markdownInteractions';
 
 defineProps<{ 
-    message: Message
+    message: Message,
+    siblingInfo: { count: number, currentIndex: number },
+    isEditing: boolean,
+    editingText: string
+}>();
+
+const emit = defineEmits<{
+    (e: 'switch-sibling', direction: 'prev' | 'next'): void,
+    (e: 'generate'): void,
+    (e: 'start-edit'): void,
+    (e: 'cancel-edit'): void,
+    (e: 'save-edit', shouldGenerate: boolean): void,
+    (e: 'update:editingText', value: string): void
 }>();
 
 const isExpanded = ref(false);
@@ -71,6 +105,15 @@ function toggleExpand() {
     background: var(--bg-tertiary);
 }
 
+.prompt-header.editing {
+    cursor: default;
+}
+
+.prompt-header.editing:hover {
+    background: transparent;
+    color: var(--text-muted);
+}
+
 .chevron {
     transition: transform 0.2s ease;
 }
@@ -86,12 +129,9 @@ function toggleExpand() {
 }
 
 .prompt-content {
-    /* 48px aligns perfectly with normal message text (32px avatar + 16px gap) */
-    padding-left: 48px; 
-    padding-right: 16px;
-    padding-bottom: 12px;
-    padding-top: 12px;
+    padding: 0 16px 12px 48px;
     border-top: 1px solid var(--border-default);
+    padding-top: 12px;
 }
 
 .empty-prompt {
@@ -143,5 +183,10 @@ function toggleExpand() {
 
 .markdown-content :deep(.md-editor-code-flag span) {
     display: none !important;
+}
+
+/* Make MessageActions visible for prompt tiles */
+.prompt-content :deep(.message-footer) {
+    opacity: 1;
 }
 </style>

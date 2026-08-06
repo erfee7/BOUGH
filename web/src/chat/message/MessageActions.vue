@@ -15,7 +15,7 @@
             <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.check"></svg>
         </button>
 
-        <button @click="emit('start-edit')" class="btn-icon" title="Edit message" :disabled="!isInteractive">
+        <button @click="emit('start-edit')" class="btn-icon" title="Edit message" :disabled="!isInteractive || role === 'system'">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.pencil"></svg>
         </button>
         <button @click="emit('generate')" :disabled="!isInteractive" class="btn-icon" :title="role === 'user' ? 'Generate response' : 'Continue from here'">

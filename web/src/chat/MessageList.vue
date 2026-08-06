@@ -4,6 +4,15 @@
             <PromptMessage 
                 v-if="msg.role === 'system' || msg.role === 'developer'" 
                 :message="msg" 
+                :siblingInfo="getSiblingInfoUtil(msg.id, messages)"
+                :isEditing="editingMessageId === msg.id"
+                :editingText="editingText"
+                @update:editingText="editingText = $event"
+                @switch-sibling="(direction: 'prev' | 'next') => switchSibling(msg.id, direction)"
+                @generate="generateMessage(msg.id)"
+                @start-edit="startEdit(msg)"
+                @cancel-edit="cancelEdit()"
+                @save-edit="(shouldGenerate: boolean) => saveEdit(msg, shouldGenerate)"
             />
             <ChatMessage 
                 v-else
