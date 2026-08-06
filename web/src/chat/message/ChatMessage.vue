@@ -26,6 +26,7 @@
                     <div class="prompt-label">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="message.role === 'system' ? ICONS.settings : ICONS.terminal"></svg>
                         <span>{{ message.role === 'system' ? 'System Prompt' : 'Developer Prompt' }}</span>
+                        <span v-if="isExpanded" class="msg-time" :title="formatAbsoluteTime(message.created_at)">{{ formatRelativeTime(message.created_at) }}</span>
                     </div>
                 </template>
                 <template v-else>
@@ -242,6 +243,20 @@ function toggleExpand() {
     font-weight: 400;
     color: var(--text-faded);
     cursor: default;
+    
+    /* Hide by default */
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Show on hover for standard messages */
+.message-tile:hover .msg-time {
+    opacity: 1;
+}
+
+/* Show on hover for prompt headers */
+.message-header.prompt-header:hover .msg-time {
+    opacity: 1;
 }
 
 .user-role .message-header {
