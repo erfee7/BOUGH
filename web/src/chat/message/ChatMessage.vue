@@ -72,7 +72,7 @@
                         <span v-else-if="isPrompt" class="empty-prompt">Empty prompt</span>
                         <span v-else>Empty</span>
                     </div>
-                    <div class="actions-container">
+                    <div class="actions-container" ref="actionsContainerRef">
                         <MessageActions 
                             :siblingInfo="siblingInfo" 
                             :isInteractive="isPrompt || message.status === 'complete' || message.status === 'canceled'"
@@ -100,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { MdPreview } from 'md-editor-v3';
 import { Message } from '@/types';
 import EditArea from './EditArea.vue';
@@ -130,6 +130,29 @@ const emit = defineEmits<{
 const isPrompt = computed(() => props.message.role === 'system' || props.message.role === 'developer');
 const isExpanded = ref(false);
 const showDetails = ref(false);
+
+const actionsContainerRef = ref<HTMLElement | null>(null);
+
+
+function handleClickOutside(event: MouseEvent) {
+    if (actionsContainerRef.value && !actionsContainerRef.value.contains(event.target as Node)) {
+        showDetails.value = false;
+    }
+}
+
+// Only listen when the popover is open to save resources
+watch(showDetails, (isOpen) => {
+    if (isOpen) {
+        document.addEventListener('click', handleClickOutside);
+    } else {
+        document.removeEventListener('click', handleClickOutside);
+    }
+});
+
+// Clean up listener if the message gets deleted while popover is open
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
 
 function toggleExpand() {
     isExpanded.value = !isExpanded.value;
