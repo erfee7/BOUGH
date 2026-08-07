@@ -100,8 +100,8 @@ const formattedCost = computed(() => {
     return cost.value.toFixed(6);
 });
 
-// Future-Proofing: Time & Throughput
-const generationTime = computed(() => props.metadata?.generation_time ?? null);
+// Time & Throughput
+const generationTime = computed(() => props.metadata?.server_metrics?.generation_time ?? null);
 const throughput = computed(() => {
     if (generationTime.value !== null && generationTime.value > 0 && completionTokens.value !== null) {
         return completionTokens.value / generationTime.value;
