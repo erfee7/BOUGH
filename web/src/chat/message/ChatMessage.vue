@@ -22,12 +22,12 @@
                 @click="isPrompt && !isEditing ? toggleExpand() : null"
             >
                 <template v-if="isPrompt">
-                    <svg class="chevron" :class="{ 'expanded': isExpanded || isEditing }" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevron_right"></svg>
                     <div class="prompt-label">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="message.role === 'system' ? ICONS.settings : ICONS.terminal"></svg>
                         <span>{{ message.role === 'system' ? 'System Prompt' : 'Developer Prompt' }}</span>
-                        <span v-if="isExpanded" class="msg-time" :title="formatAbsoluteTime(message.created_at)">{{ formatRelativeTime(message.created_at) }}</span>
+                        <svg class="chevron" :class="{ 'expanded': isExpanded || isEditing }" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevron_right"></svg>
                     </div>
+                    <span v-if="isExpanded" class="msg-time" :title="formatAbsoluteTime(message.created_at)">{{ formatRelativeTime(message.created_at) }}</span>
                 </template>
                 <template v-else>
                     <span class="role-label">{{ message.role === 'user' ? 'User' : 'Assistant' }}</span>
@@ -177,7 +177,8 @@ function toggleExpand() {
     padding-left: 52px;
 }
 
-.message-tile:first-child {
+.message-tile:first-child,
+.message-tile.is-prompt:first-child {
     border-top: none;
     margin-top: 0;
 }
@@ -228,14 +229,19 @@ function toggleExpand() {
 /* === Prompt Tile Overrides === */
 .message-tile.is-prompt {
     display: block;
-    margin: 12px 0;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-default);
+    margin: 0; /* Remove margin since we use padding for spacing */
+    background: transparent; /* Silent marker: no background */
+    border: 1px solid transparent; /* Silent marker: no border */
     border-radius: var(--radius-md);
     overflow: hidden;
-    padding: 0;
-    margin-left: 0;
-    padding-left: 0;
+    
+    /* Add the separator line and spacing just like standard messages */
+    border-top: 1px solid var(--border-default);
+    padding: 8px 0; 
+    
+    /* Apply the exact same negative margin and left padding as standard messages */
+    margin-left: -52px; 
+    padding-left: 52px;
 }
 
 .message-header {
@@ -251,14 +257,17 @@ function toggleExpand() {
 .message-header.prompt-header {
     cursor: pointer;
     font-size: 14px;
-    padding: 10px 16px;
+    padding: 6px 0; /* Less padding, remove left padding to align with content */
     align-items: center;
-    transition: background 0.2s;
+    transition: color 0.2s;
+    color: var(--text-faded); /* Muted color */
+    display: flex;
+    gap: 8px; /* Use gap to space out label and time */
 }
 
 .message-header.prompt-header:hover {
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    background: transparent; /* No background change on hover */
 }
 
 .message-header.prompt-header.editing {
@@ -267,7 +276,7 @@ function toggleExpand() {
 
 .message-header.prompt-header.editing:hover {
     background: transparent;
-    color: var(--text-muted);
+    color: var(--text-faded);
 }
 
 .chevron {
@@ -285,9 +294,9 @@ function toggleExpand() {
 }
 
 .content-wrapper.prompt-content {
-    padding: 0 16px 12px 48px;
-    border-top: 1px solid var(--border-default);
-    padding-top: 12px;
+    padding: 0 0 12px 48px; /* Remove right padding since there is no border */
+    border-top: none; /* Remove border since it's not a block anymore */
+    padding-top: 8px;
 }
 
 .content-wrapper.prompt-content :deep(.message-footer) {
@@ -362,7 +371,7 @@ function toggleExpand() {
 
 /* Responsive: On small screens, remove the negative margin so it doesn't overflow */
 @media (max-width: 1024px) {
-    .message-tile:not(.is-prompt) {
+    .message-tile {
         margin-left: 0;
         padding-left: 0;
     }

@@ -1,10 +1,12 @@
 <template>
     <details :open="!content && (status === 'pending' || status === 'streaming')" class="reasoning-block">
         <summary>
+            <div class="summary-left">
+                <svg class="bulb-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.lightbulb"></svg>
+                <span class="reasoning-label">Thoughts</span>
+                <div v-if="!content && status === 'streaming'" class="spinner small-spinner"></div>
+            </div>
             <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevron_right"></svg>
-            <svg class="bulb-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.lightbulb"></svg>
-            <span class="reasoning-label">Thoughts</span>
-            <div v-if="!content && status === 'streaming'" class="spinner small-spinner"></div>
         </summary>
         <MdPreview 
             :modelValue="reasoning" 
@@ -43,8 +45,16 @@ defineProps<{
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px; /* Use gap to space out label and chevron */
     margin-bottom: 0;
+    padding: 4px 0; /* Remove horizontal padding to align with content */
+    transition: background 0.2s;
+}
+
+.summary-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .reasoning-block summary::-webkit-details-marker {
