@@ -252,6 +252,7 @@ function toggleExpand() {
     display: flex;
     align-items: baseline;
     gap: 8px;
+    user-select: none; /* Prevent text selection on rapid clicks */
 }
 
 .message-header.prompt-header {

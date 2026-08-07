@@ -49,6 +49,7 @@ defineProps<{
     margin-bottom: 0;
     padding: 4px 0; /* Remove horizontal padding to align with content */
     transition: background 0.2s;
+    user-select: none; /* Prevent text selection on rapid clicks */
 }
 
 .summary-left {
