@@ -70,7 +70,6 @@
                         />
                         <span v-else-if="!isPrompt && (message.status === 'pending' || message.status === 'streaming')" class="placeholder">Thinking...</span>
                         <span v-else-if="isPrompt" class="empty-prompt">Empty prompt</span>
-                        <span v-else>Empty</span>
                     </div>
                     <ErrorBlock 
                         v-if="!isPrompt && message.status === 'error'" 
