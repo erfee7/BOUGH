@@ -1,8 +1,13 @@
 <template>
     <div class="message-details">
+        <!-- Generation in progress -->
+        <div v-if="status === 'pending' || status === 'streaming'" class="empty-details">
+            Generating... Metadata will be available upon completion.
+        </div>
+
         <!-- Warning for edited messages -->
-        <div v-if="creationData?.source === 'user'" class="empty-details">
-            Message edited by user. Generation details are not available.
+        <div v-else-if="creationData?.source === 'user'" class="empty-details">
+            Message edited by user. Metadata is not available.
         </div>
 
         <!-- Normal stats layout -->
@@ -58,7 +63,8 @@ import { computed } from 'vue';
 
 const props = defineProps<{
     creationData?: any,
-    metadata?: any
+    metadata?: any,
+    status?: string
 }>();
 
 const model = computed(() => props.creationData?.model);

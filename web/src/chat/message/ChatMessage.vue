@@ -93,6 +93,7 @@
                                 v-if="showDetails && message.role === 'assistant'" 
                                 :creationData="message.creation_data" 
                                 :metadata="message.metadata" 
+                                :status="message.status"
                             />
                         </Transition>
                     </div>
