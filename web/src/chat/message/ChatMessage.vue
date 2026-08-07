@@ -128,7 +128,7 @@ const emit = defineEmits<{
 }>();
 
 const isPrompt = computed(() => props.message.role === 'system' || props.message.role === 'developer');
-const isExpanded = ref(false);
+const isExpanded = ref(props.siblingInfo.count > 1);
 const showDetails = ref(false);
 
 const actionsContainerRef = ref<HTMLElement | null>(null);
