@@ -85,6 +85,3 @@ class ConversationCreateRequestResponse(BaseModel):
 class ConversationDetailResponse(BaseModel):
     conversation: ConversationResponse
     messages: list[MessageResponse]
-
-class MessageIdResponse(BaseModel):
-    message_id: uuid.UUID

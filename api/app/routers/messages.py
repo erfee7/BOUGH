@@ -12,7 +12,7 @@ from app.core import stream_manager
 from app.schemas.chat import (
     MessageAppendRequest,
     MessageGenerateRequest,
-    MessageIdResponse
+    MessageResponse
 )
 
 
@@ -24,7 +24,7 @@ def _format_sse(data: dict) -> str:
     """Formats a dictionary into a standard Server-Sent Event string."""
     return f"data: {json.dumps(data)}\n\n"
 
-@router.post("/messages/{parent_id}/append", response_model = MessageIdResponse)
+@router.post("/messages/{parent_id}/append", response_model = MessageResponse)
 async def append_message(parent_id: uuid.UUID, payload: MessageAppendRequest):
     """Appends a new message (e.g., user message) to a parent node."""
     pool = get_pool()
@@ -52,9 +52,10 @@ async def append_message(parent_id: uuid.UUID, payload: MessageAppendRequest):
             await db_conversations.update_conversation(conversation_id, active_leaf_id = new_msg_id, conn = conn)
             await db_conversations.touch_conversation(conversation_id, conn = conn)
             
-            return MessageIdResponse(message_id = new_msg_id)
+            new_msg_record = await db_messages.fetch_message(new_msg_id, conn = conn)
+            return MessageResponse.model_validate(new_msg_record)
 
-@router.post("/messages/{parent_id}/generate", response_model = MessageIdResponse)
+@router.post("/messages/{parent_id}/generate", response_model = MessageResponse)
 async def generate_message(parent_id: uuid.UUID, payload: MessageGenerateRequest):
     """Triggers LLM generation for an assistant message based on the parent's history."""
     pool = get_pool()
@@ -90,13 +91,15 @@ async def generate_message(parent_id: uuid.UUID, payload: MessageGenerateRequest
             await db_conversations.update_conversation(conversation_id, active_leaf_id = assistant_msg_id, conn = conn)
             await db_conversations.touch_conversation(conversation_id, conn = conn)
             
+            assistant_msg_record = await db_messages.fetch_message(assistant_msg_id, conn = conn)
+            
             # Fetch history from the new assistant message (walks up to root)
             history = await db_messages.fetch_message_history(parent_id, conn = conn)
             
-            # Trigger background stream
-            stream_manager.start_stream(assistant_msg_id, history)
-            
-            return MessageIdResponse(message_id = assistant_msg_id)
+    # Trigger background stream OUTSIDE the transaction so the DB is guaranteed committed first
+    stream_manager.start_stream(assistant_msg_id, history)
+    
+    return MessageResponse.model_validate(assistant_msg_record)
 
 @router.get("/messages/{message_id}/stream")
 async def stream_message(message_id: uuid.UUID):
