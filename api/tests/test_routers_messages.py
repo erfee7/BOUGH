@@ -36,7 +36,7 @@ async def test_append_message_endpoint(mock_pool):
             
             assert response.status_code == 200
             data = response.json()
-            new_msg_id = uuid.UUID(data["message_id"])
+            new_msg_id = uuid.UUID(data["id"])
             
             # Verify DB
             msg = await db_messages.fetch_message(new_msg_id, conn=mock_pool.conn)
@@ -66,7 +66,7 @@ async def test_append_message_assistant_role(mock_pool):
             
             assert response.status_code == 200
             data = response.json()
-            new_msg_id = uuid.UUID(data["message_id"])
+            new_msg_id = uuid.UUID(data["id"])
             
             msg = await db_messages.fetch_message(new_msg_id, conn=mock_pool.conn)
             assert msg['role'] == "assistant"
@@ -126,7 +126,7 @@ async def test_generate_message_endpoint(mock_pool):
                 
                 assert response.status_code == 200
                 data = response.json()
-                asst_id = uuid.UUID(data["message_id"])
+                asst_id = uuid.UUID(data["id"])
                 
                 # Verify DB
                 msg = await db_messages.fetch_message(asst_id, conn=mock_pool.conn)

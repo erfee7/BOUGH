@@ -20,10 +20,10 @@
                 ref="textareaRef"
                 :value="modelValue" 
                 @input="handleInput"
-                @keydown.enter.exact.prevent="emit('send')"
+                @keydown.enter.exact.prevent="handleSend"
                 placeholder="Type a message... (Enter to send)"
             ></textarea>
-            <button v-if="!isStreaming" @click="emit('send')" :disabled="!modelValue.trim()" class="send-btn">
+            <button v-if="!isStreaming" @click="handleSend" :disabled="!modelValue.trim()" class="send-btn">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.send"></svg>
             </button>
             <button v-else @click="emit('cancel')" class="stop-btn">
@@ -61,6 +61,11 @@ function handleInput(event: Event) {
     const target = event.target as HTMLTextAreaElement;
     emit('update:modelValue', target.value);
     adjustHeight();
+}
+
+function handleSend() {
+    emit('send');
+    showDevPrompt.value = false;
 }
 </script>
 

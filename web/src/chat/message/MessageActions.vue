@@ -15,11 +15,16 @@
             <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.check"></svg>
         </button>
 
-        <button @click="emit('start-edit')" class="btn-icon" title="Edit message" :disabled="!isInteractive">
+        <button @click="emit('start-edit')" class="btn-icon" title="Edit message" :disabled="!isInteractive || role === 'system'">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.pencil"></svg>
         </button>
+
         <button @click="emit('generate')" :disabled="!isInteractive" class="btn-icon" :title="role === 'user' ? 'Generate response' : 'Continue from here'">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.sparkles"></svg>
+        </button>
+
+        <button v-if="role === 'assistant'" @click="emit('inspect')" class="btn-icon" :class="{ 'active': isInspecting }" :title="isInspecting ? 'Hide metadata' : 'Inspect metadata'">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.info"></svg>
         </button>
     </div>
 </template>
@@ -32,13 +37,16 @@ const props = defineProps<{
     siblingInfo: { count: number, currentIndex: number },
     isInteractive: boolean,
     role: string,
-    content: string | null
+    content: string | null,
+    source: string,
+    isInspecting: boolean
 }>();
 
 const emit = defineEmits<{
     (e: 'switch-sibling', direction: 'prev' | 'next'): void,
     (e: 'start-edit'): void,
-    (e: 'generate'): void
+    (e: 'generate'): void,
+    (e: 'inspect'): void
 }>();
 
 const isCopied = ref(false);
@@ -87,5 +95,11 @@ async function copyToClipboard() {
 .nav-btn {
     font-size: 18px;
     line-height: 1;
+}
+
+.btn-icon.active {
+    background: var(--bg-tertiary);
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
 }
 </style>

@@ -68,19 +68,23 @@ export function useMessages() {
                 });
                 if (!devResponse.ok) throw new Error('Failed to append developer message');
                 const devData = await devResponse.json();
-                const devMsgId = devData.message_id;
                 
-                messages.value.push({
-                    id: devMsgId,
-                    parent_id: currentParentId,
-                    role: 'developer',
-                    content: developerContent,
-                    reasoning: null,
-                    status: 'complete',
-                    created_at: new Date().toISOString()
-                });
-                currentParentId = devMsgId;
-                activeLeafId.value = devMsgId;
+                const devMsg: Message = {
+                    id: devData.id,
+                    parent_id: devData.parent_id,
+                    role: devData.role,
+                    content: devData.content,
+                    reasoning: devData.reasoning ?? null,
+                    status: devData.status,
+                    creation_data: devData.creation_data,
+                    error_data: devData.error_data,
+                    metadata: devData.metadata,
+                    created_at: devData.created_at
+                };
+                
+                messages.value.push(devMsg);
+                currentParentId = devMsg.id;
+                activeLeafId.value = devMsg.id;
             }
             
             // Step B: Append the user message
@@ -91,25 +95,27 @@ export function useMessages() {
             });
             if (!response.ok) throw new Error('Failed to append message');
             const data = await response.json();
-            const newMsgId = data.message_id;
             
-            // Add the new user message to our local UI state immediately
-            messages.value.push({
-                id: newMsgId,
-                parent_id: currentParentId,
-                role: 'user',
-                content: content,
-                reasoning: null,
-                status: 'complete',
-                created_at: new Date().toISOString()
-            });
+            const userMsg: Message = {
+                id: data.id,
+                parent_id: data.parent_id,
+                role: data.role,
+                content: data.content,
+                reasoning: data.reasoning ?? null,
+                status: data.status,
+                creation_data: data.creation_data,
+                error_data: data.error_data,
+                metadata: data.metadata,
+                created_at: data.created_at
+            };
             
-            activeLeafId.value = newMsgId;
+            messages.value.push(userMsg);
+            activeLeafId.value = userMsg.id;
             
             // Step C: Trigger generation
-            await generateMessage(newMsgId);
+            await generateMessage(userMsg.id);
             
-            return newMsgId;
+            return userMsg.id;
         }
         catch (error) {
             console.error("Error sending message:", error);
@@ -128,20 +134,22 @@ export function useMessages() {
             
             if (!response.ok) throw new Error('Failed to start generation');
             const data = await response.json();
-            const assistantMsgId = data.message_id;
             
-            // Add a placeholder assistant message to the UI
-            messages.value.push({
-                id: assistantMsgId,
-                parent_id: parentId,
-                role: 'assistant',
-                content: '', // Starts empty
-                reasoning: '',
-                status: 'pending',
-                created_at: new Date().toISOString()
-            });
+            const assistantMsg: Message = {
+                id: data.id,
+                parent_id: data.parent_id,
+                role: data.role,
+                content: data.content,
+                reasoning: data.reasoning ?? null,
+                status: data.status,
+                creation_data: data.creation_data,
+                error_data: data.error_data,
+                metadata: data.metadata,
+                created_at: data.created_at
+            };
             
-            activeLeafId.value = assistantMsgId;
+            messages.value.push(assistantMsg);
+            activeLeafId.value = assistantMsg.id;
 
             // Bump the conversation to the top of the sidebar
             if (currentConversationId.value) {
@@ -149,7 +157,7 @@ export function useMessages() {
             }
             
             // Start listening to the SSE stream
-            startStreaming(assistantMsgId);
+            startStreaming(assistantMsg.id);
             
         }
         catch (error) {
@@ -322,26 +330,29 @@ export function useMessages() {
             });
             if (!response.ok) throw new Error('Failed to append message');
             const data = await response.json();
-            const newMsgId = data.message_id;
             
-            messages.value.push({
-                id: newMsgId,
-                parent_id: parentId,
-                role: role,
-                content: content,
-                reasoning: null,
-                status: 'complete',
-                created_at: new Date().toISOString()
-            });
+            const newMsg: Message = {
+                id: data.id,
+                parent_id: data.parent_id,
+                role: data.role,
+                content: data.content,
+                reasoning: data.reasoning ?? null,
+                status: data.status,
+                creation_data: data.creation_data,
+                error_data: data.error_data,
+                metadata: data.metadata,
+                created_at: data.created_at
+            };
             
-            activeLeafId.value = newMsgId;
+            messages.value.push(newMsg);
+            activeLeafId.value = newMsg.id;
 
             // Bump the conversation to the top of the sidebar
             if (currentConversationId.value) {
                 bumpLocalConversation(currentConversationId.value);
             }
             
-            return newMsgId;
+            return newMsg.id;
         } catch (error) {
             console.error("Error appending message:", error);
             return null;

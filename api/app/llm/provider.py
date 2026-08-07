@@ -108,11 +108,18 @@ async def generate_stream(
     except Exception as e:
         # Catching generic Exception to ensure the background task doesn't die abruptly
         logger.error("LLM provider stream failed: %s", e)
+        
+        # Extract the structured body if it exists (OpenAI SDK puts the JSON dict in e.body)
+        error_body = {}
+        if hasattr(e, 'body') and isinstance(e.body, dict):
+            error_body = e.body
+            
         yield {
             "type": "error", 
             "error_data": {
                 "message": str(e), 
-                "type": type(e).__name__
+                "type": type(e).__name__,
+                "body": error_body
             }
         }
 

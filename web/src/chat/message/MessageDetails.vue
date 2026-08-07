@@ -1,0 +1,188 @@
+<template>
+    <div class="message-details">
+        <!-- Generation in progress -->
+        <div v-if="status === 'pending' || status === 'streaming'" class="empty-details">
+            Generating... Metadata will be available upon completion.
+        </div>
+
+        <!-- Warning for edited messages -->
+        <div v-else-if="creationData?.source === 'user'" class="empty-details">
+            Message edited by user. Metadata is not available.
+        </div>
+
+        <!-- Normal stats layout -->
+        <template v-else>
+            <!-- Model -->
+            <div class="detail-row" v-if="model">
+                <span class="detail-label">Model</span>
+                <span class="detail-value">{{ model }}</span>
+            </div>
+
+            <!-- Parameters (Smart GUI) -->
+            <div class="detail-row" v-if="parameterChips.length > 0">
+                <span class="detail-label">Parameters</span>
+                <div class="param-chips">
+                    <span v-for="chip in parameterChips" :key="chip.label" class="param-chip">
+                        {{ chip.label }}: {{ chip.value }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tokens -->
+            <div class="detail-row" v-if="promptTokens !== null || completionTokens !== null">
+                <span class="detail-label">Tokens</span>
+                <div class="token-breakdown">
+                    <span v-if="promptTokens !== null">In: {{ promptTokens }}</span>
+                    <span v-if="completionTokens !== null">
+                        Out: {{ completionTokens }}
+                        <span v-if="reasoningTokens > 0" class="sub-token">(Reasoning: {{ reasoningTokens }})</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Generation Time & Speed -->
+            <div class="detail-row" v-if="generationTime !== null">
+                <span class="detail-label">Speed</span>
+                <div class="speed-breakdown">
+                    <span>{{ generationTime.toFixed(2) }}s</span>
+                    <span v-if="throughput !== null">{{ throughput.toFixed(2) }} tok/s</span>
+                </div>
+            </div>
+
+            <!-- Cost -->
+            <div class="detail-row" v-if="cost !== null">
+                <span class="detail-label">Cost</span>
+                <span class="detail-value">${{ formattedCost }}</span>
+            </div>
+        </template>
+    </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+
+const props = defineProps<{
+    creationData?: any,
+    metadata?: any,
+    status?: string
+}>();
+
+const model = computed(() => props.creationData?.model);
+
+// Smart GUI for arbitrary parameters
+const parameterChips = computed(() => {
+    const params = props.creationData?.parameters;
+    if (!params || typeof params !== 'object' || Object.keys(params).length === 0) {
+        return [];
+    }
+    return Object.entries(params).map(([key, value]) => {
+        // Prettify label (e.g., "top_p" -> "Top P", "temperature" -> "Temperature")
+        let label = key.replace(/_/g, ' ');
+        label = label.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        
+        // Format value (trim trailing zeros for numbers)
+        let val = value;
+        if (typeof val === 'number' && !Number.isInteger(val)) {
+            val = parseFloat(val.toFixed(2));
+        }
+        return { label, value: val };
+    });
+});
+
+const promptTokens = computed(() => props.metadata?.prompt_tokens ?? null);
+const completionTokens = computed(() => props.metadata?.completion_tokens ?? null);
+const reasoningTokens = computed(() => props.metadata?.completion_tokens_details?.reasoning_tokens ?? 0);
+
+const cost = computed(() => props.metadata?.cost ?? null);
+const formattedCost = computed(() => {
+    if (cost.value === null) return '0';
+    // Show 6 decimal places for precise LLM costs
+    return cost.value.toFixed(6);
+});
+
+// Time & Throughput
+const generationTime = computed(() => props.metadata?.server_metrics?.generation_time ?? null);
+const throughput = computed(() => {
+    if (generationTime.value !== null && generationTime.value > 0 && completionTokens.value !== null) {
+        return completionTokens.value / generationTime.value;
+    }
+    return null;
+});
+</script>
+
+<style scoped>
+.message-details {
+    position: absolute;
+    bottom: 100%;
+    left: 57px; /* Offset slightly from the left edge */
+    margin-bottom: 8px;
+    
+    background: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    
+    /* Give it more space to breathe */
+    min-width: 260px;
+    max-width: 360px; 
+    
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 12px;
+    letter-spacing: normal;
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.detail-value {
+    color: var(--text-primary);
+    font-family: monospace;
+    /* Ensure long model names wrap properly instead of overflowing */
+    overflow-wrap: anywhere;
+    word-break: break-all;
+}
+
+.param-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.param-chip {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    font-size: 12px;
+    color: var(--accent-blue);
+}
+
+.token-breakdown, .speed-breakdown {
+    display: flex;
+    gap: 16px;
+    color: var(--text-primary);
+    font-family: monospace;
+}
+
+.sub-token {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-left: 4px;
+}
+</style>

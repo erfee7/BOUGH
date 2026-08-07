@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import uuid
+import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncGenerator
 
@@ -84,6 +85,8 @@ async def get_stream(message_id: uuid.UUID) -> AsyncGenerator[dict[str, Any], No
 
 async def _run_generation(message_id: uuid.UUID, messages_history: list, state: StreamState) -> None:
     """The background worker. Consumes LLM provider events and updates DB/memory."""
+    start_time = time.time() # Record start time
+    
     try:
         await db_messages.update_message(message_id, status='streaming')
         logger.info("Stream generation started for message %s", message_id)
@@ -125,6 +128,11 @@ async def _run_generation(message_id: uuid.UUID, messages_history: list, state: 
                     
             elif event_type == "done":
                 metadata = event.get("metadata", {})
+                
+                # Inject our server-side generation time
+                generation_time = time.time() - start_time
+                metadata["server_metrics"] = {"generation_time": generation_time}
+                
                 await db_messages.update_message(
                     message_id, 
                     status='complete', 
