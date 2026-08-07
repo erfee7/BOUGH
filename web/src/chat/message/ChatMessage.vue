@@ -72,6 +72,10 @@
                         <span v-else-if="isPrompt" class="empty-prompt">Empty prompt</span>
                         <span v-else>Empty</span>
                     </div>
+                    <ErrorBlock 
+                        v-if="!isPrompt && message.status === 'error'" 
+                        :errorData="message.error_data" 
+                    />
                     <div class="actions-container" ref="actionsContainerRef">
                         <MessageActions 
                             :siblingInfo="siblingInfo" 
@@ -107,6 +111,7 @@ import EditArea from './EditArea.vue';
 import ReasoningBlock from './ReasoningBlock.vue';
 import MessageActions from './MessageActions.vue';
 import MessageDetails from './MessageDetails.vue';
+import ErrorBlock from './ErrorBlock.vue';
 import { ICONS } from '@/icons';
 import { handleMarkdownDblClick, handleMarkdownCopy } from '@/chat/markdownInteractions';
 import { formatRelativeTime, formatAbsoluteTime } from '@/utils/time';
