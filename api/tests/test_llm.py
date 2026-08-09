@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from app.llm.provider import generate_stream, generate_completion
 
-TEST_METADATA = {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}
+_TEST_METADATA = {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}
 TEET_PARAMETERS = {"temperature": 0.5, "reasoning": {"effort": "low"}}
 
 # --- Helper Functions to Mock OpenAI SDK Chunks ---
@@ -58,7 +58,7 @@ async def mock_stream_success():
     choice6 = MagicMock()
     choice6.delta.model_dump.return_value = {"content": None, "reasoning": None}
     usage = MagicMock()
-    usage.model_dump.return_value = TEST_METADATA
+    usage.model_dump.return_value = _TEST_METADATA
     chunk6 = MagicMock(choices=[choice6], usage=usage)
     yield chunk6
 
@@ -102,7 +102,7 @@ async def test_generate_stream_success():
     assert events[2] == {"type": "token", "content": " to"}
     assert events[3] == {"type": "token", "content": " see"}
     assert events[4] == {"type": "token", "content": " you"}
-    assert events[5] == {"type": "done", "metadata": TEST_METADATA}
+    assert events[5] == {"type": "done", "metadata": _TEST_METADATA}
 
 @pytest.mark.asyncio
 async def test_generate_stream_custom_parameters():
@@ -158,7 +158,7 @@ async def test_generate_completion_success():
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content="Test Title"))]
     mock_response.usage = MagicMock()
-    mock_response.usage.model_dump.return_value = TEST_METADATA
+    mock_response.usage.model_dump.return_value = _TEST_METADATA
     
     mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
     

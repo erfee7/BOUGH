@@ -7,10 +7,10 @@ from unittest.mock import patch
 from app.main import app
 from app.db import prompts as db_prompts
 
-TEST_PROMPT_NAME = "Test Prompt"
-TEST_PROMPT_CONTENT = "You are a test assistant."
-TEST_PROMPT_ROLE = "system"
-TEST_PROMPT_DESCRIPTION = "A test description"
+_TEST_PROMPT_NAME = "Test Prompt"
+_TEST_PROMPT_CONTENT = "You are a test assistant."
+_TEST_PROMPT_ROLE = "system"
+_TEST_PROMPT_DESCRIPTION = "A test description"
 
 @pytest.mark.asyncio
 async def test_create_prompt_endpoint(mock_pool):
@@ -19,10 +19,10 @@ async def test_create_prompt_endpoint(mock_pool):
     with patch('app.db.connection.get_pool', return_value=mock_pool):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             payload = {
-                "name": TEST_PROMPT_NAME,
-                "content": TEST_PROMPT_CONTENT,
-                "role": TEST_PROMPT_ROLE,
-                "description": TEST_PROMPT_DESCRIPTION
+                "name": _TEST_PROMPT_NAME,
+                "content": _TEST_PROMPT_CONTENT,
+                "role": _TEST_PROMPT_ROLE,
+                "description": _TEST_PROMPT_DESCRIPTION
             }
             response = await client.post("/api/chat/prompts", json=payload)
             
@@ -30,27 +30,27 @@ async def test_create_prompt_endpoint(mock_pool):
             data = response.json()
             
             # Validate response structure
-            assert data["name"] == TEST_PROMPT_NAME
-            assert data["content"] == TEST_PROMPT_CONTENT
-            assert data["role"] == TEST_PROMPT_ROLE
-            assert data["description"] == TEST_PROMPT_DESCRIPTION
+            assert data["name"] == _TEST_PROMPT_NAME
+            assert data["content"] == _TEST_PROMPT_CONTENT
+            assert data["role"] == _TEST_PROMPT_ROLE
+            assert data["description"] == _TEST_PROMPT_DESCRIPTION
             assert "id" in data
             
             # Verify it actually wrote to the DB using the transactional connection
             prompt_id = uuid.UUID(data["id"])
             db_prompt = await db_prompts.fetch_prompt(prompt_id, conn=mock_pool.conn)
             assert db_prompt is not None
-            assert db_prompt['name'] == TEST_PROMPT_NAME
+            assert db_prompt['name'] == _TEST_PROMPT_NAME
 
 @pytest.mark.asyncio
 async def test_get_prompt_endpoint(mock_pool):
     """Tests the GET /api/chat/prompts/{id} endpoint."""
     # Setup: Directly insert a prompt into our transaction
     prompt_id = await db_prompts.create_prompt(
-        name=TEST_PROMPT_NAME,
-        content=TEST_PROMPT_CONTENT,
-        role=TEST_PROMPT_ROLE,
-        description=TEST_PROMPT_DESCRIPTION,
+        name=_TEST_PROMPT_NAME,
+        content=_TEST_PROMPT_CONTENT,
+        role=_TEST_PROMPT_ROLE,
+        description=_TEST_PROMPT_DESCRIPTION,
         conn=mock_pool.conn
     )
     
@@ -64,8 +64,8 @@ async def test_get_prompt_endpoint(mock_pool):
             
             # Validate structure
             assert data["id"] == str(prompt_id)
-            assert data["name"] == TEST_PROMPT_NAME
-            assert data["role"] == TEST_PROMPT_ROLE
+            assert data["name"] == _TEST_PROMPT_NAME
+            assert data["role"] == _TEST_PROMPT_ROLE
 
 @pytest.mark.asyncio
 async def test_get_prompt_not_found(mock_pool):
@@ -198,10 +198,10 @@ async def test_create_prompt_invalid_role(mock_pool):
     with patch('app.db.connection.get_pool', return_value=mock_pool):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             payload = {
-                "name": TEST_PROMPT_NAME,
-                "content": TEST_PROMPT_CONTENT,
+                "name": _TEST_PROMPT_NAME,
+                "content": _TEST_PROMPT_CONTENT,
                 "role": "user", # 'user' is forbidden for prompts
-                "description": TEST_PROMPT_DESCRIPTION
+                "description": _TEST_PROMPT_DESCRIPTION
             }
             response = await client.post("/api/chat/prompts", json=payload)
             assert response.status_code == 422
