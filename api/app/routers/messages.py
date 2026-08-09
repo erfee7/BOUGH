@@ -15,10 +15,12 @@ from app.schemas.chat import (
     MessageResponse
 )
 
-
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix = "/api/chat", tags = ["messages"])
+
+# Request fields controlled by server; clients cannot override them via the parameters bag
+RESERVED_PARAMETERS = {"model", "messages", "stream", "stream_options"}
 
 def _format_sse(data: dict) -> str:
     """Formats a dictionary into a standard Server-Sent Event string."""
@@ -71,10 +73,18 @@ async def generate_message(parent_id: uuid.UUID, payload: MessageGenerateRequest
             conversation_id = p_msg_record['conversation_id']
             target_model = payload.model or os.getenv("DEFAULT_MODEL", "openrouter/free")
             
+            # Strip reserved keys so the parameters bag cannot shadow the fields we control.
+            # The filtered dict is recorded in creation_data exactly as it will be sent.
+            raw_parameters = payload.parameters or {}
+            stripped_keys = RESERVED_PARAMETERS & raw_parameters.keys()
+            if stripped_keys:
+                logger.warning("Stripped reserved generation parameters: %s", sorted(stripped_keys))
+            parameters = {k: v for k, v in raw_parameters.items() if k not in RESERVED_PARAMETERS}
+            
             creation_data = {
                 "source": "model",
                 "model": target_model,
-                "parameters": payload.parameters or {}
+                "parameters": parameters
             }
             
             # Create the empty assistant message
@@ -97,7 +107,7 @@ async def generate_message(parent_id: uuid.UUID, payload: MessageGenerateRequest
             history = await db_messages.fetch_message_history(parent_id, conn = conn)
             
     # Trigger background stream OUTSIDE the transaction so the DB is guaranteed committed first
-    stream_manager.start_stream(assistant_msg_id, history)
+    stream_manager.start_stream(assistant_msg_id, history, model = target_model, parameters = parameters)
     
     return MessageResponse.model_validate(assistant_msg_record)
 

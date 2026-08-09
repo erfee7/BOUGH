@@ -11,7 +11,7 @@ MOCK_METADATA = {"prompt_tokens": 10, "completion_tokens": 3, "total_tokens": 13
 MOCK_ERROR_DATA = {"message": "API Failed", "type": "APIError"}
 
 # --- Mock Provider Helper ---
-async def mock_generate_stream_success(history):
+async def mock_generate_stream_success(history, model = None, parameters = None):
     """Simulates a provider that yields tokens, pauses, yields more, then finishes."""
     yield {"type": "reasoning", "content": "A"}
     yield {"type": "token", "content": "1"}
@@ -23,14 +23,14 @@ async def mock_generate_stream_success(history):
     yield {"type": "token", "content": "2"}
     yield {"type": "done", "metadata": MOCK_METADATA}
 
-async def mock_generate_stream_error(history):
+async def mock_generate_stream_error(history, model = None, parameters = None):
     """Simulates a provider that fails mid-stream."""
     yield {"type": "reasoning", "content": "Part"}
     yield {"type": "token", "content": "Partial"}
     await asyncio.sleep(0.05)
     yield {"type": "error", "error_data": MOCK_ERROR_DATA}
 
-async def mock_generate_stream_cancellable(history):
+async def mock_generate_stream_cancellable(history, model = None, parameters = None):
     """Simulates a provider that yields a token, pauses, yields another, then finishes."""
     yield {"type": "token", "content": "1"}
     await asyncio.sleep(0.2)  # Long pause to allow cancellation mid-stream
@@ -86,6 +86,32 @@ async def test_get_stream_catch_up_and_live():
             assert events[1] == {"type": "reasoning", "content": "B"}
             assert events[2] == {"type": "token", "content": "2"}
             assert events[3] == {"type": "done", "metadata": MOCK_METADATA}
+
+@pytest.mark.asyncio
+async def test_start_stream_passes_model_and_parameters_to_provider():
+    """Tests that model and parameters from start_stream reach the provider's generate_stream."""
+    message_id = uuid.uuid4()
+    captured_args = {}
+    
+    async def capturing_mock(history, model = None, parameters = None):
+        captured_args['model'] = model
+        captured_args['parameters'] = parameters
+        yield {"type": "done", "metadata": {}}
+    
+    with patch('app.core.stream_manager.db_messages.update_message', new_callable = AsyncMock):
+        with patch('app.core.stream_manager.generate_stream', new = capturing_mock):
+            start_stream(
+                message_id, 
+                [{"role": "user", "content": "Hi"}], 
+                model = "test-model", 
+                parameters = {"temperature": 0.5}
+            )
+            
+            # Wait for the background task to run
+            await asyncio.sleep(0.1)
+            
+            assert captured_args['model'] == "test-model"
+            assert captured_args['parameters'] == {"temperature": 0.5}
 
 @pytest.mark.asyncio
 async def test_run_generation_success_db_update():

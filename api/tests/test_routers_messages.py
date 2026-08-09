@@ -154,6 +154,11 @@ async def test_generate_message_endpoint(mock_pool):
                 assert history[0]['role'] == 'system'
                 assert history[1]['role'] == 'user'
 
+                # Model and parameters must be threaded through to the stream manager
+                kwargs = mock_start.call_args.kwargs
+                assert kwargs['model'] == "test-model"
+                assert kwargs['parameters'] == {"temperature": 0.5}
+
 @pytest.mark.asyncio
 async def test_generate_message_parent_not_complete(mock_pool):
     """Tests that generating under a non-complete parent returns 400."""
@@ -188,6 +193,46 @@ async def test_generate_message_parent_not_found(mock_pool):
             
             assert response.status_code == 404
             assert response.json()["detail"] == "Parent message not found"
+
+@pytest.mark.asyncio
+async def test_generate_message_strips_reserved_parameters(mock_pool):
+    """Tests that reserved parameter keys are stripped, and creation_data records exactly what is sent."""
+    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    user_msg_id = await db_messages.create_message(
+        conversation_id=conv_id, role="user", parent_id=root_id, content=TEST_USER_MESSAGE,
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        with patch('app.routers.messages.stream_manager.start_stream') as mock_start:
+            async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                payload = {
+                    "model": "test-model",
+                    "parameters": {
+                        "temperature": 0.5,
+                        "model": "evil-model",
+                        "messages": [{"role": "system", "content": "hacked"}],
+                        "stream": False,
+                        "stream_options": {}
+                    }
+                }
+                response = await client.post(f"/api/chat/messages/{user_msg_id}/generate", json=payload)
+                
+                assert response.status_code == 200
+                data = response.json()
+                
+                # creation_data (returned as server truth) must contain only the filtered dict
+                assert data["creation_data"]["model"] == "test-model"
+                assert data["creation_data"]["parameters"] == {"temperature": 0.5}
+                
+                # The stream manager receives the same filtered dict
+                kwargs = mock_start.call_args.kwargs
+                assert kwargs['model'] == "test-model"
+                assert kwargs['parameters'] == {"temperature": 0.5}
 
 @pytest.mark.asyncio
 async def test_stream_message_endpoint_complete():

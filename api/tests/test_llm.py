@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 from app.llm.provider import generate_stream, generate_completion
 
 TEST_METADATA = {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}
+TEET_PARAMETERS = {"temperature": 0.5, "reasoning": {"effort": "low"}}
 
 # --- Helper Functions to Mock OpenAI SDK Chunks ---
 
@@ -87,13 +88,13 @@ async def test_generate_stream_success():
     ):
         events.append(event)
         
-    # Assert
     # Verify we passed the correct stream options to the SDK
     mock_client.chat.completions.create.assert_called_once_with(
         model="test-model",
         messages=[{"role": "user", "content": "I need a Bough"}],
         stream=True,
-        stream_options={"include_usage": True}
+        stream_options={"include_usage": True},
+        extra_body=None
     )
     assert len(events) == 6
     assert events[0] == {"type": "reasoning", "content": "Sir!"}
@@ -102,6 +103,28 @@ async def test_generate_stream_success():
     assert events[3] == {"type": "token", "content": " see"}
     assert events[4] == {"type": "token", "content": " you"}
     assert events[5] == {"type": "done", "metadata": TEST_METADATA}
+
+@pytest.mark.asyncio
+async def test_generate_stream_custom_parameters():
+    """Tests that custom parameters are passed through to the provider via extra_body."""
+    mock_client = AsyncMock()
+    mock_client.chat.completions.create = AsyncMock(return_value=MockAsyncStream(mock_stream_no_usage()))
+    
+    async for _ in generate_stream(
+        messages_history=[{"role": "user", "content": "Hi"}],
+        model="test-model",
+        parameters=TEET_PARAMETERS,
+        client=mock_client
+    ):
+        pass
+        
+    mock_client.chat.completions.create.assert_called_once_with(
+        model="test-model",
+        messages=[{"role": "user", "content": "Hi"}],
+        stream=True,
+        stream_options={"include_usage": True},
+        extra_body=TEET_PARAMETERS
+    )
 
 @pytest.mark.asyncio
 async def test_generate_stream_error():

@@ -52,11 +52,15 @@ def _format_history(messages_history: list[dict[str, Any]]) -> list[dict[str, st
 
 async def generate_stream(
     messages_history: list[dict[str, Any]], 
-    model: str | None = None, 
+    model: str | None = None,
+    parameters: dict[str, Any] | None = None,
     client: AsyncOpenAI | None = None
 ) -> AsyncGenerator[dict[str, Any], None]:
     """
     Calls the LLM provider and yields structured events.
+    
+    Custom parameters are merged into the request body as-is (via extra_body).
+    Reserved keys are already filtered at the router layer.
     
     Yields:
         {"type": "token", "content": "..."} for text chunks.
@@ -80,7 +84,8 @@ async def generate_stream(
             model=target_model,
             messages=formatted_history,
             stream=True,
-            stream_options={"include_usage": True}
+            stream_options={"include_usage": True},
+            extra_body=parameters or None
         )
         
         try:
