@@ -64,24 +64,7 @@ export function useChatEngine() {
     }
 
     async function cancel() {
-        if (!messageStore.activeLeafId || !messageStore.isStreaming) return;
-        const messageId = messageStore.activeLeafId;
-        
-        // 1. Abort the local SSE listener
-        messageStore.stopStreaming();
-        
-        // 2. Update local state immediately so UI unlocks
-        const msgIndex = messageStore.messages.findIndex(m => m.id === messageId);
-        if (msgIndex !== -1) {
-            messageStore.messages[msgIndex].status = 'canceled';
-        }
-        
-        // 3. Tell the backend to stop the LLM and save partial content
-        try {
-            await fetch(`/api/chat/messages/${messageId}/cancel`, { method: 'POST' });
-        } catch (error) {
-            console.error("Error canceling message:", error);
-        }
+        messageStore.cancelGeneration();
     }
 
     return {

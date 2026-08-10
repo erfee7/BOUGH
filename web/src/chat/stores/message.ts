@@ -401,12 +401,34 @@ export const useMessageStore = defineStore('message', () => {
         }
     }
 
+    // 7. Cancel an active generation
+    async function cancelGeneration() {
+        if (!activeLeafId.value || !isStreaming.value) return;
+        const messageId = activeLeafId.value;
+        
+        // Abort the local SSE listener
+        stopStreaming();
+        
+        // Update local state immediately so UI unlocks
+        const msgIndex = messages.value.findIndex(m => m.id === messageId);
+        if (msgIndex !== -1) {
+            messages.value[msgIndex].status = 'canceled';
+        }
+        
+        // Tell the backend to stop the LLM and save partial content
+        try {
+            await fetch(`/api/chat/messages/${messageId}/cancel`, { method: 'POST' });
+        } catch (error) {
+            console.error("Error canceling message:", error);
+        }
+    }
+
     return {
         messages,
         activeLeafId,
         isStreaming,
         streamRefreshInterval,
-        activePath, // Expose getter
+        activePath,
         loadConversation,
         sendMessage,
         generateMessage,
@@ -414,6 +436,7 @@ export const useMessageStore = defineStore('message', () => {
         startStreaming,
         stopStreaming,
         appendMessage,
-        switchSibling // Expose action
+        switchSibling,
+        cancelGeneration
     };
 });
