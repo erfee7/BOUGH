@@ -21,7 +21,8 @@ export function usePromptLibrary(isVisible: Ref<boolean>) {
 
     watch(isVisible, (visible) => {
         if (visible) {
-            promptStore.fetchPrompts();
+            // Force refresh when opening the modal to sync any external changes
+            promptStore.fetchPrompts(true); 
         }
     });
 
@@ -51,7 +52,6 @@ export function usePromptLibrary(isVisible: Ref<boolean>) {
     }
 
     return {
-        prompts: promptStore.prompts,
         newPrompt,
         editingId,
         editData,

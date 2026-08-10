@@ -9,11 +9,9 @@ export function usePromptSelection(
 ) {
     const promptStore = usePromptStore();
 
-    // Fetch all prompts if the store is empty on mount
+    // Ask the store to load data if it hasn't yet
     onMounted(() => {
-        if (promptStore.prompts.length === 0) {
-            promptStore.fetchPrompts();
-        }
+        promptStore.fetchPrompts();
     });
 
     const filteredPrompts = computed(() => {
