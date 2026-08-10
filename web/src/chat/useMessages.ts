@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import { Message } from '@/types';
 import { useConversations } from './useConversations';
+import { useGenerationConfig } from './useGenerationConfig';
 
 const messages = ref<Message[]>([]);
 const activeLeafId = ref<string | null>(null);
@@ -15,6 +16,7 @@ export function useMessages() {
     
     // Get access to the conversation bump function and ID
     const { currentConversationId, bumpLocalConversation } = useConversations();
+    const { buildGeneratePayload } = useGenerationConfig();
     
     // 0. Stop the ongoing streaming for switching conversations or canceling a generation
     function stopStreaming() {
@@ -126,10 +128,11 @@ export function useMessages() {
     // 3. Trigger LLM generation
     async function generateMessage(parentId: string) {
         try {
+            const payload = buildGeneratePayload();
             const response = await fetch(`/api/chat/messages/${parentId}/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}) // Empty body for now, uses default model
+                body: JSON.stringify(payload) // Empty body for now, uses default model
             });
             
             if (!response.ok) throw new Error('Failed to start generation');

@@ -4,6 +4,7 @@
             @openPromptLibrary="isPromptLibraryVisible = true" 
         />
         <main class="main-area">
+            <GenerationConfigBar />
             <NewChatArea 
                 v-if="!currentConversationId" 
                 @openLibrary="isPromptLibraryVisible = true"
@@ -26,6 +27,7 @@ import Sidebar from './chat/sidebar/Sidebar.vue';
 import NewChatArea from './chat/NewChatArea.vue';
 import ChatArea from './chat/ChatArea.vue';
 import PromptLibraryModal from './chat/prompts/PromptLibraryModal.vue';
+import GenerationConfigBar from './chat/generation_config/GenerationConfigBar.vue';
 import { useMessages } from './chat/useMessages';
 import { useConversations } from './chat/useConversations';
 import { useChatEngine } from './chat/useChatEngine';
