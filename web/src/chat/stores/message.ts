@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Message } from '@/types';
 import { useConversationStore } from './conversation';
 import { useGenerationConfigStore } from './generationConfig';
+import { getActivePath, getSiblingInfo, getMostRecentDescendantLeaf, compareMessages } from '../branchingUtils';
 
 export const useMessageStore = defineStore('message', () => {
     const conversationStore = useConversationStore();
@@ -17,6 +18,13 @@ export const useMessageStore = defineStore('message', () => {
     const streamRefreshInterval = ref(50);
 
     let abortController: AbortController | null = null;
+
+    // --- Getters ---
+    const activePath = computed(() => {
+        return getActivePath(messages.value, activeLeafId.value);
+    });
+
+    // --- Actions ---
 
     // 0. Stop the ongoing streaming for switching conversations or canceling a generation
     function stopStreaming() {
@@ -362,17 +370,50 @@ export const useMessageStore = defineStore('message', () => {
         }
     }
 
+    // 6. Switch to a sibling branch (and descend to its most recent leaf)
+    async function switchSibling(messageId: string, direction: 'prev' | 'next') {
+        const { count, currentIndex } = getSiblingInfo(messageId, messages.value);
+        if (count <= 1) return;
+
+        let targetIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
+        if (targetIndex < 0 || targetIndex >= count) return;
+
+        const targetMsg = messages.value.find(m => m.id === messageId);
+        if (!targetMsg || !targetMsg.parent_id) return;
+
+        const siblings = messages.value
+            .filter(m => m.parent_id === targetMsg.parent_id)
+            .sort(compareMessages);
+        
+        const targetSibling = siblings[targetIndex];
+        const targetLeafId = getMostRecentDescendantLeaf(targetSibling.id, messages.value);
+
+        stopStreaming();
+        activeLeafId.value = targetLeafId;
+        
+        if (conversationStore.currentConversationId) {
+            conversationStore.updateActiveLeaf(conversationStore.currentConversationId, targetLeafId);
+        }
+
+        const targetLeafMsg = messages.value.find(m => m.id === targetLeafId);
+        if (targetLeafMsg && (targetLeafMsg.status === 'pending' || targetLeafMsg.status === 'streaming')) {
+            startStreaming(targetLeafId);
+        }
+    }
+
     return {
         messages,
         activeLeafId,
         isStreaming,
         streamRefreshInterval,
+        activePath, // Expose getter
         loadConversation,
         sendMessage,
         generateMessage,
         clearMessages,
         startStreaming,
         stopStreaming,
-        appendMessage
+        appendMessage,
+        switchSibling // Expose action
     };
 });

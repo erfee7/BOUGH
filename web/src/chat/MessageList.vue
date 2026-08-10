@@ -1,14 +1,14 @@
 <template>
     <div class="messages-container" ref="messagesContainer">
         <ChatMessage 
-            v-for="msg in activePath" 
+            v-for="msg in messageStore.activePath" 
             :key="msg.id"
             :message="msg" 
             :siblingInfo="getSiblingInfoUtil(msg.id, messageStore.messages)"
             :isEditing="editingMessageId === msg.id"
             :editingText="editingText"
             @update:editingText="editingText = $event"
-            @switch-sibling="(direction: 'prev' | 'next') => switchSibling(msg.id, direction)"
+            @switch-sibling="(direction: 'prev' | 'next') => messageStore.switchSibling(msg.id, direction)"
             @generate="messageStore.generateMessage(msg.id)"
             @start-edit="startEdit(msg)"
             @cancel-edit="cancelEdit()"
@@ -19,21 +19,19 @@
 
 <script setup lang="ts">
 import ChatMessage from './message/ChatMessage.vue';
-import { useBranching } from './useBranching';
 import { useMessageStore } from './stores/message';
+import { useMessageEdit } from './useMessageEdit';
 import { getSiblingInfo as getSiblingInfoUtil } from './branchingUtils.js';
 
 const messageStore = useMessageStore();
 
 const { 
-    activePath, 
     editingMessageId, 
     editingText, 
-    switchSibling, 
     startEdit, 
     cancelEdit, 
     saveEdit
-} = useBranching();
+} = useMessageEdit();
 </script>
 
 <style scoped>
