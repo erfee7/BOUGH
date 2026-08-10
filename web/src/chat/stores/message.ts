@@ -1,30 +1,34 @@
+import { defineStore, storeToRefs } from 'pinia';
 import { ref } from 'vue';
 import { Message } from '@/types';
-import { useConversations } from './useConversations';
-import { useGenerationConfig } from './useGenerationConfig';
+import { useConversationStore } from './conversation';
+import { useGenerationConfigStore } from './generationConfig';
 
-const messages = ref<Message[]>([]);
-const activeLeafId = ref<string | null>(null);
-const isStreaming = ref(false);
+export const useMessageStore = defineStore('message', () => {
+    const conversationStore = useConversationStore();
+    const generationConfigStore = useGenerationConfigStore();
 
-// Adjustable UI refresh rate in milliseconds (0 = update on every token, 50 = 20fps)
-export const streamRefreshInterval = ref(50);
+    const { bumpLocalConversation } = conversationStore;
+    const { buildGeneratePayload } = generationConfigStore;
+    const { currentConversationId } = storeToRefs(conversationStore);
 
-let abortController: AbortController | null = null;
-
-export function useMessages() {
     
-    // Get access to the conversation bump function and ID
-    const { currentConversationId, bumpLocalConversation } = useConversations();
-    const { buildGeneratePayload } = useGenerationConfig();
-    
+    const messages = ref<Message[]>([]);
+    const activeLeafId = ref<string | null>(null);
+    const isStreaming = ref(false);
+
+    // Adjustable UI refresh rate in milliseconds (0 = update on every token, 50 = 20fps)
+    const streamRefreshInterval = ref(50);
+
+    let abortController: AbortController | null = null;
+
     // 0. Stop the ongoing streaming for switching conversations or canceling a generation
     function stopStreaming() {
-    if (abortController) {
-        abortController.abort();
-        abortController = null;
-    }
-    isStreaming.value = false;
+        if (abortController) {
+            abortController.abort();
+            abortController = null;
+        }
+        isStreaming.value = false;
     }
 
     // 1. Load an existing conversation and its history
@@ -132,7 +136,7 @@ export function useMessages() {
             const response = await fetch(`/api/chat/messages/${parentId}/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload) // Empty body for now, uses default model
+                body: JSON.stringify(payload) 
             });
             
             if (!response.ok) throw new Error('Failed to start generation');
@@ -362,18 +366,17 @@ export function useMessages() {
         }
     }
 
-    // Return the reactive state and functions so the UI component can use them
     return {
         messages,
         activeLeafId,
         isStreaming,
+        streamRefreshInterval,
         loadConversation,
         sendMessage,
         generateMessage,
         clearMessages,
         startStreaming,
         stopStreaming,
-        appendMessage,
-        streamRefreshInterval
+        appendMessage
     };
-}
+});

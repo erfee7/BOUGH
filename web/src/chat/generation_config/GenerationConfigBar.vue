@@ -44,16 +44,13 @@
 </template>
 
 <script setup lang="ts">
-import { useGenerationConfig } from '../useGenerationConfig';
+import { useGenerationConfigStore } from '../stores/generationConfig';
 import { ICONS } from '@/icons';
+import { storeToRefs } from 'pinia';
 
-const { 
-    model, 
-    reasoningEffort, 
-    customParams, 
-    addParam, 
-    removeParam 
-} = useGenerationConfig();
+const generationConfigStore = useGenerationConfigStore();
+const { model, reasoningEffort, customParams } = storeToRefs(generationConfigStore);
+const { addParam, removeParam } = generationConfigStore;
 </script>
 
 <style scoped>

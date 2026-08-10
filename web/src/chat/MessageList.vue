@@ -20,12 +20,13 @@
 <script setup lang="ts">
 import ChatMessage from './message/ChatMessage.vue';
 import { useBranching } from './useBranching';
-import { useMessages } from './useMessages.js';
+import { useMessageStore } from './stores/message';
 import { getSiblingInfo as getSiblingInfoUtil } from './branchingUtils.js';
+import { storeToRefs } from 'pinia';
 
-const { messages,
-        generateMessage
- } = useMessages();
+const messageStore = useMessageStore();
+const { messages } = storeToRefs(messageStore);
+const { generateMessage } = messageStore;
 
 const { 
     activePath, 

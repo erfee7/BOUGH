@@ -17,16 +17,16 @@
 <script setup lang="ts">
 import MessageList from './MessageList.vue';
 import InputArea from './InputArea.vue';
-import { useMessages } from './useMessages';
+import { useMessageStore } from './stores/message';
 import { useChatEngine } from './useChatEngine';
+import { storeToRefs } from 'pinia';
 
 const emit = defineEmits<{ 
     (e: 'openLibrary'): void
 }>();
 
-const {
-    isStreaming
-} = useMessages();
+const messageStore = useMessageStore();
+const { isStreaming } = storeToRefs(messageStore);
 
 const { 
     inputText, 

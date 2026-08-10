@@ -48,14 +48,18 @@
 </template>
 
 <script setup lang="ts">
-import { useConversations } from '@/chat/useConversations';
+import { useConversationStore } from '@/chat/stores/conversation';
 import { useTitleEdit } from './useTitleEdit';
 import ConversationMenu from './ConversationMenu.vue';
 import { ICONS } from '@/icons';
+import { storeToRefs } from 'pinia';
 
 const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>();
 
-const { conversations, currentConversationId, selectConversation, generatingTitleIds, generateTitle, touchConversation, deleteConversation } = useConversations();
+const conversationStore = useConversationStore();
+const { conversations, currentConversationId, generatingTitleIds } = storeToRefs(conversationStore);
+const { selectConversation, generateTitle, touchConversation, deleteConversation } = conversationStore;
+
 const { editingId, editText, startEditing, saveEdit, cancelEdit } = useTitleEdit();
 
 // Custom directive to auto-focus and select text when the input is mounted

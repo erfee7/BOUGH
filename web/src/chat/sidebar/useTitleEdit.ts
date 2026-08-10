@@ -1,9 +1,12 @@
 import { ref } from 'vue';
-import { useConversations } from '@/chat/useConversations';
+import { storeToRefs } from 'pinia';
+import { useConversationStore } from '@/chat/stores/conversation';
 import { ConversationSummary } from '@/types';
 
 export function useTitleEdit() {
-    const { conversations, updateTitle } = useConversations();
+    const conversationStore = useConversationStore();
+    const { conversations } = storeToRefs(conversationStore);
+    const { updateTitle } = conversationStore;
 
     const editingId = ref<string | null>(null);
     const editText = ref<string>('');

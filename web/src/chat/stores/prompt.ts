@@ -1,11 +1,11 @@
+import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { Prompt } from '@/types';
 
-const prompts = ref<Prompt[]>([]);
-const isLoading = ref(false);
+export const usePromptStore = defineStore('prompt', () => {
+    const prompts = ref<Prompt[]>([]);
+    const isLoading = ref(false);
 
-export function usePrompts() {
-    
     async function fetchPrompts() {
         isLoading.value = true;
         try {
@@ -65,4 +65,4 @@ export function usePrompts() {
         updatePrompt,
         deletePrompt
     };
-}
+});

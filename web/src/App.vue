@@ -28,16 +28,12 @@ import NewChatArea from './chat/NewChatArea.vue';
 import ChatArea from './chat/ChatArea.vue';
 import PromptLibraryModal from './chat/prompts/PromptLibraryModal.vue';
 import GenerationConfigBar from './chat/generation_config/GenerationConfigBar.vue';
-import { useMessages } from './chat/useMessages';
-import { useConversations } from './chat/useConversations';
+import { useConversationStore } from './chat/stores/conversation';
 import { useChatEngine } from './chat/useChatEngine';
+import { storeToRefs } from 'pinia';
 
-const {
-} = useMessages();
-
-const {
-    currentConversationId
-} = useConversations();
+const conversationStore = useConversationStore();
+const { currentConversationId } = storeToRefs(conversationStore);
 
 const { 
     isPromptLibraryVisible,

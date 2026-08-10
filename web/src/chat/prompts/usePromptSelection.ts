@@ -1,5 +1,6 @@
 import { ref, computed, onMounted, watch, type Ref } from 'vue';
-import { usePrompts } from './usePrompts';
+import { storeToRefs } from 'pinia';
+import { usePromptStore } from '@/chat/stores/prompt';
 import { Prompt } from '@/types';
 
 export function usePromptSelection(
@@ -7,7 +8,9 @@ export function usePromptSelection(
     modelValue: Ref<string>, 
     updateModelValue: (val: string) => void
 ) {
-    const { prompts, fetchPrompts } = usePrompts();
+    const promptStore = usePromptStore();
+    const { prompts } = storeToRefs(promptStore);
+    const { fetchPrompts } = promptStore;
 
     // Fetch all prompts if the store is empty on mount
     onMounted(() => {

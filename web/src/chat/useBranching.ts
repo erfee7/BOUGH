@@ -1,23 +1,19 @@
 import { ref, computed } from 'vue';
-import { useMessages } from './useMessages';
-import { useConversations } from './useConversations';
+import { storeToRefs } from 'pinia';
+import { useMessageStore } from './stores/message';
+import { useConversationStore } from './stores/conversation';
 import { getActivePath, getSiblingInfo, getMostRecentDescendantLeaf, compareMessages } from './branchingUtils';
 import { Message } from '@/types';
 
 export function useBranching() {
-    const { 
-        messages, 
-        activeLeafId, 
-        stopStreaming, 
-        startStreaming, 
-        generateMessage, 
-        appendMessage 
-    } = useMessages();
+    const messageStore = useMessageStore();
+    const conversationStore = useConversationStore();
     
-    const { 
-        currentConversationId, 
-        updateActiveLeaf 
-    } = useConversations();
+    const { messages, activeLeafId } = storeToRefs(messageStore);
+    const { stopStreaming, startStreaming, generateMessage, appendMessage } = messageStore;
+    
+    const { currentConversationId } = storeToRefs(conversationStore);
+    const { updateActiveLeaf } = conversationStore;
 
     const editingMessageId = ref<string | null>(null);
     const editingText = ref('');

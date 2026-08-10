@@ -1,9 +1,12 @@
 import { ref, watch, type Ref } from 'vue';
-import { usePrompts } from './usePrompts';
+import { storeToRefs } from 'pinia';
+import { usePromptStore } from '@/chat/stores/prompt';
 import { Prompt } from '@/types';
 
 export function usePromptLibrary(isVisible: Ref<boolean>) {
-    const { prompts, fetchPrompts, createPrompt, updatePrompt, deletePrompt } = usePrompts();
+    const promptStore = usePromptStore();
+    const { prompts } = storeToRefs(promptStore);
+    const { fetchPrompts, createPrompt, updatePrompt, deletePrompt } = promptStore;
 
     const newPrompt = ref({
         name: '',

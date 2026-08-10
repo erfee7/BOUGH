@@ -1,25 +1,30 @@
 import { ref } from 'vue';
-import { useConversations } from './useConversations';
-import { useMessages } from './useMessages';
+import { storeToRefs } from 'pinia';
+import { useConversationStore } from './stores/conversation';
+import { useMessageStore } from './stores/message';
 
 export function useChatEngine() {
+    const conversationStore = useConversationStore();
+    const messageStore = useMessageStore();
+    
+    // State via storeToRefs
+    const { currentConversationId } = storeToRefs(conversationStore);
+    const { messages, activeLeafId, isStreaming } = storeToRefs(messageStore);
+    
+    // Actions directly
     const { 
-        currentConversationId, 
         fetchAllConversations, 
         createConversation, 
         selectConversation, 
         generateTitle 
-    } = useConversations();
+    } = conversationStore;
     
     const { 
-        messages, 
-        activeLeafId, 
-        isStreaming, 
         loadConversation, 
         sendMessage, 
         clearMessages, 
         stopStreaming 
-    } = useMessages();
+    } = messageStore;
 
     const inputText = ref('');
     const systemPrompt = ref('');

@@ -1,12 +1,13 @@
+import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { CustomParam, GenerationPayload } from '@/types';
 
-// Module-level singleton state (in-memory only for now)
-const model = ref('');
-const reasoningEffort = ref<'none' | 'minimal' | 'low'| 'medium'| 'high'| 'xhigh'| 'max' | null>(null);
-const customParams = ref<CustomParam[]>([]);
-export function useGenerationConfig() {
-    
+export const useGenerationConfigStore = defineStore('generationConfig', () => {
+    // Module-level singleton state (in-memory only for now)
+    const model = ref('');
+    const reasoningEffort = ref<'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | null>(null);
+    const customParams = ref<CustomParam[]>([]);
+
     function parseParamValue(raw: string): unknown {
         if (raw === '') return '';
         try {
@@ -61,4 +62,4 @@ export function useGenerationConfig() {
         addParam,
         removeParam
     };
-}
+});
