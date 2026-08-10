@@ -9,11 +9,11 @@
         <div class="conversation-list-container">
             <ul class="conversation-list">
                 <li 
-                    v-for="conv in conversations" 
+                    v-for="conv in conversationStore.conversations" 
                     :key="conv.id" 
-                    @click="selectConversation(conv.id)"
+                    @click="conversationStore.selectConversation(conv.id)"
                     @dblclick="startEditing(conv)"
-                    :class="{ 'active': conv.id === currentConversationId }"
+                    :class="{ 'active': conv.id === conversationStore.currentConversationId }"
                 >
                     <input 
                         v-if="editingId === conv.id"
@@ -32,7 +32,7 @@
                             @rename="startEditing(conv)"
                             @generate-title="handleGenerateTitle(conv.id)"
                             @touch="handleTouch(conv.id)"
-                            @delete="deleteConversation(conv.id)"
+                            @delete="conversationStore.deleteConversation(conv.id)"
                         />
                     </div>
                 </li>
@@ -52,14 +52,10 @@ import { useConversationStore } from '@/chat/stores/conversation';
 import { useTitleEdit } from './useTitleEdit';
 import ConversationMenu from './ConversationMenu.vue';
 import { ICONS } from '@/icons';
-import { storeToRefs } from 'pinia';
 
 const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>();
 
 const conversationStore = useConversationStore();
-const { conversations, currentConversationId, generatingTitleIds } = storeToRefs(conversationStore);
-const { selectConversation, generateTitle, touchConversation, deleteConversation } = conversationStore;
-
 const { editingId, editText, startEditing, saveEdit, cancelEdit } = useTitleEdit();
 
 // Custom directive to auto-focus and select text when the input is mounted
@@ -71,19 +67,19 @@ const vFocus = {
 };
 
 function handleNewChat() {
-    selectConversation(null);
+    conversationStore.selectConversation(null);
 }
 
 function isGenerating(id: string) {
-    return generatingTitleIds.value.includes(id);
+    return conversationStore.generatingTitleIds.includes(id);
 }
 
 function handleGenerateTitle(id: string) {
-    generateTitle(id, true);
+    conversationStore.generateTitle(id, true);
 }
 
 function handleTouch(id: string) {
-    touchConversation(id);
+    conversationStore.touchConversation(id);
 }
 </script>
 

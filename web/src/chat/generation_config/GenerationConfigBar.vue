@@ -4,7 +4,7 @@
             <label class="config-label">Model</label>
             <input 
                 type="text" 
-                v-model="model" 
+                v-model="generationConfigStore.model" 
                 placeholder="Server default" 
                 class="config-input"
             />
@@ -12,7 +12,7 @@
         
         <div class="config-group">
             <label class="config-label">Reasoning</label>
-            <select v-model="reasoningEffort" class="config-select">
+            <select v-model="generationConfigStore.reasoningEffort" class="config-select">
                 <option :value="null">Default</option>
                 <option value="minimal">Minimal</option>
                 <option value="low">Low</option>
@@ -26,15 +26,15 @@
         <div class="config-group params-group">
             <label class="config-label">Params</label>
             <div class="params-container">
-                <div v-for="param in customParams" :key="param.id" class="param-chip">
+                <div v-for="param in generationConfigStore.customParams" :key="param.id" class="param-chip">
                     <input type="text" v-model="param.key" placeholder="key" class="param-input key-input">
                     <span class="param-separator">:</span>
                     <input type="text" v-model="param.rawValue" placeholder="value" class="param-input value-input">
-                    <button @click="removeParam(param.id)" class="param-remove-btn">
+                    <button @click="generationConfigStore.removeParam(param.id)" class="param-remove-btn">
                         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.x"></svg>
                     </button>
                 </div>
-                <button @click="addParam" class="add-param-btn">
+                <button @click="generationConfigStore.addParam" class="add-param-btn">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.plus"></svg>
                     Add
                 </button>
@@ -46,11 +46,8 @@
 <script setup lang="ts">
 import { useGenerationConfigStore } from '../stores/generationConfig';
 import { ICONS } from '@/icons';
-import { storeToRefs } from 'pinia';
 
 const generationConfigStore = useGenerationConfigStore();
-const { model, reasoningEffort, customParams } = storeToRefs(generationConfigStore);
-const { addParam, removeParam } = generationConfigStore;
 </script>
 
 <style scoped>

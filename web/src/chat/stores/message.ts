@@ -1,4 +1,4 @@
-import { defineStore, storeToRefs } from 'pinia';
+import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { Message } from '@/types';
 import { useConversationStore } from './conversation';
@@ -7,10 +7,6 @@ import { useGenerationConfigStore } from './generationConfig';
 export const useMessageStore = defineStore('message', () => {
     const conversationStore = useConversationStore();
     const generationConfigStore = useGenerationConfigStore();
-
-    const { bumpLocalConversation } = conversationStore;
-    const { buildGeneratePayload } = generationConfigStore;
-    const { currentConversationId } = storeToRefs(conversationStore);
 
     
     const messages = ref<Message[]>([]);
@@ -132,7 +128,7 @@ export const useMessageStore = defineStore('message', () => {
     // 3. Trigger LLM generation
     async function generateMessage(parentId: string) {
         try {
-            const payload = buildGeneratePayload();
+            const payload = generationConfigStore.buildGeneratePayload();
             const response = await fetch(`/api/chat/messages/${parentId}/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -159,8 +155,8 @@ export const useMessageStore = defineStore('message', () => {
             activeLeafId.value = assistantMsg.id;
 
             // Bump the conversation to the top of the sidebar
-            if (currentConversationId.value) {
-                bumpLocalConversation(currentConversationId.value);
+            if (conversationStore.currentConversationId) {
+                conversationStore.bumpLocalConversation(conversationStore.currentConversationId);
             }
             
             // Start listening to the SSE stream
@@ -355,8 +351,8 @@ export const useMessageStore = defineStore('message', () => {
             activeLeafId.value = newMsg.id;
 
             // Bump the conversation to the top of the sidebar
-            if (currentConversationId.value) {
-                bumpLocalConversation(currentConversationId.value);
+            if (conversationStore.currentConversationId) {
+                conversationStore.bumpLocalConversation(conversationStore.currentConversationId);
             }
             
             return newMsg.id;

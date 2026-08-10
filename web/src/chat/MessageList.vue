@@ -4,12 +4,12 @@
             v-for="msg in activePath" 
             :key="msg.id"
             :message="msg" 
-            :siblingInfo="getSiblingInfoUtil(msg.id, messages)"
+            :siblingInfo="getSiblingInfoUtil(msg.id, messageStore.messages)"
             :isEditing="editingMessageId === msg.id"
             :editingText="editingText"
             @update:editingText="editingText = $event"
             @switch-sibling="(direction: 'prev' | 'next') => switchSibling(msg.id, direction)"
-            @generate="generateMessage(msg.id)"
+            @generate="messageStore.generateMessage(msg.id)"
             @start-edit="startEdit(msg)"
             @cancel-edit="cancelEdit()"
             @save-edit="(shouldGenerate: boolean) => saveEdit(msg, shouldGenerate)"
@@ -22,11 +22,8 @@ import ChatMessage from './message/ChatMessage.vue';
 import { useBranching } from './useBranching';
 import { useMessageStore } from './stores/message';
 import { getSiblingInfo as getSiblingInfoUtil } from './branchingUtils.js';
-import { storeToRefs } from 'pinia';
 
 const messageStore = useMessageStore();
-const { messages } = storeToRefs(messageStore);
-const { generateMessage } = messageStore;
 
 const { 
     activePath, 

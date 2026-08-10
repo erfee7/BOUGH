@@ -16,7 +16,7 @@
             @update:developerPrompt="developerPrompt = $event"
             @send="send"
             @openLibrary="emit('openLibrary')"
-            :isStreaming="isStreaming"
+            :isStreaming="messageStore.isStreaming"
         />
     </div>
 </template>
@@ -26,14 +26,12 @@ import InputArea from './InputArea.vue';
 import PromptSelector from './prompts/PromptSelector.vue';
 import { useMessageStore } from './stores/message';
 import { useChatEngine } from './useChatEngine';
-import { storeToRefs } from 'pinia';
 
 const emit = defineEmits<{ 
     (e: 'openLibrary'): void
 }>();
 
 const messageStore = useMessageStore();
-const { isStreaming } = storeToRefs(messageStore);
 
 const { 
     inputText, 

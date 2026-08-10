@@ -1,12 +1,9 @@
 import { ref, watch, type Ref } from 'vue';
-import { storeToRefs } from 'pinia';
 import { usePromptStore } from '@/chat/stores/prompt';
 import { Prompt } from '@/types';
 
 export function usePromptLibrary(isVisible: Ref<boolean>) {
     const promptStore = usePromptStore();
-    const { prompts } = storeToRefs(promptStore);
-    const { fetchPrompts, createPrompt, updatePrompt, deletePrompt } = promptStore;
 
     const newPrompt = ref({
         name: '',
@@ -24,13 +21,13 @@ export function usePromptLibrary(isVisible: Ref<boolean>) {
 
     watch(isVisible, (visible) => {
         if (visible) {
-            fetchPrompts();
+            promptStore.fetchPrompts();
         }
     });
 
     async function handleCreate() {
         if (!newPrompt.value.name || !newPrompt.value.content) return;
-        await createPrompt(newPrompt.value);
+        await promptStore.createPrompt(newPrompt.value);
         newPrompt.value = { name: '', role: 'system', content: '', description: '' };
     }
 
@@ -45,16 +42,16 @@ export function usePromptLibrary(isVisible: Ref<boolean>) {
 
     async function handleUpdate() {
         if (!editingId.value) return;
-        await updatePrompt(editingId.value, editData.value);
+        await promptStore.updatePrompt(editingId.value, editData.value);
         editingId.value = null;
     }
 
     async function handleDelete(id: string) {
-        await deletePrompt(id);
+        await promptStore.deletePrompt(id);
     }
 
     return {
-        prompts,
+        prompts: promptStore.prompts,
         newPrompt,
         editingId,
         editData,

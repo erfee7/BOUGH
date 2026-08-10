@@ -1,30 +1,10 @@
 import { ref } from 'vue';
-import { storeToRefs } from 'pinia';
 import { useConversationStore } from './stores/conversation';
 import { useMessageStore } from './stores/message';
 
 export function useChatEngine() {
     const conversationStore = useConversationStore();
     const messageStore = useMessageStore();
-    
-    // State via storeToRefs
-    const { currentConversationId } = storeToRefs(conversationStore);
-    const { messages, activeLeafId, isStreaming } = storeToRefs(messageStore);
-    
-    // Actions directly
-    const { 
-        fetchAllConversations, 
-        createConversation, 
-        selectConversation, 
-        generateTitle 
-    } = conversationStore;
-    
-    const { 
-        loadConversation, 
-        sendMessage, 
-        clearMessages, 
-        stopStreaming 
-    } = messageStore;
 
     const inputText = ref('');
     const systemPrompt = ref('');
@@ -36,47 +16,47 @@ export function useChatEngine() {
     let skipWatch = false;
 
     function initialize() {
-        fetchAllConversations();
+        conversationStore.fetchAllConversations();
     }
 
     function handleNavigation(newId: string | null) {
-        stopStreaming();
+        messageStore.stopStreaming();
         if (skipWatch) {
             skipWatch = false;
             return;
         }
         if (newId) {
-            loadConversation(newId);
+            messageStore.loadConversation(newId);
         } else {
-            clearMessages();
+            messageStore.clearMessages();
             systemPrompt.value = ''; // Reset system prompt for new chat
         }
     }
 
     async function send() {
-        if (!inputText.value.trim() || isStreaming.value) return;
+        if (!inputText.value.trim() || messageStore.isStreaming) return;
         const text = inputText.value;
         inputText.value = '';
         
-        if (!currentConversationId.value) {
+        if (!conversationStore.currentConversationId) {
             // Use the selected/written system prompt (empty string if null)
             const sysPrompt = systemPrompt.value.trim() || null;
-            const result = await createConversation(null, sysPrompt);
+            const result = await conversationStore.createConversation(null, sysPrompt);
             if (!result) return;
             
             skipWatch = true; 
-            selectConversation(result.conversationId);
-            activeLeafId.value = result.rootMessageId;
+            conversationStore.selectConversation(result.conversationId);
+            messageStore.activeLeafId = result.rootMessageId;
             
             const devPrompt = developerPrompt.value.trim() || null;
-            const userMsgId = await sendMessage(text, devPrompt);
+            const userMsgId = await messageStore.sendMessage(text, devPrompt);
             
-            if (userMsgId && currentConversationId.value) {
-                generateTitle(currentConversationId.value, false);
+            if (userMsgId && conversationStore.currentConversationId) {
+                conversationStore.generateTitle(conversationStore.currentConversationId, false);
             }
         } else {
             const devPrompt = developerPrompt.value.trim() || null;
-            await sendMessage(text, devPrompt);
+            await messageStore.sendMessage(text, devPrompt);
         }
         
         // Clear developer prompt after sending
@@ -84,16 +64,16 @@ export function useChatEngine() {
     }
 
     async function cancel() {
-        if (!activeLeafId.value || !isStreaming.value) return;
-        const messageId = activeLeafId.value;
+        if (!messageStore.activeLeafId || !messageStore.isStreaming) return;
+        const messageId = messageStore.activeLeafId;
         
         // 1. Abort the local SSE listener
-        stopStreaming();
+        messageStore.stopStreaming();
         
         // 2. Update local state immediately so UI unlocks
-        const msgIndex = messages.value.findIndex(m => m.id === messageId);
+        const msgIndex = messageStore.messages.findIndex(m => m.id === messageId);
         if (msgIndex !== -1) {
-            messages.value[msgIndex].status = 'canceled';
+            messageStore.messages[msgIndex].status = 'canceled';
         }
         
         // 3. Tell the backend to stop the LLM and save partial content

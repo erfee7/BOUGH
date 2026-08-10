@@ -1,12 +1,9 @@
 import { ref } from 'vue';
-import { storeToRefs } from 'pinia';
 import { useConversationStore } from '@/chat/stores/conversation';
 import { ConversationSummary } from '@/types';
 
 export function useTitleEdit() {
     const conversationStore = useConversationStore();
-    const { conversations } = storeToRefs(conversationStore);
-    const { updateTitle } = conversationStore;
 
     const editingId = ref<string | null>(null);
     const editText = ref<string>('');
@@ -18,9 +15,9 @@ export function useTitleEdit() {
 
     function saveEdit() {
         if (editingId.value) {
-            const conv = conversations.value.find(c => c.id === editingId.value);
+            const conv = conversationStore.conversations.find(c => c.id === editingId.value);
             if (conv && (conv.title || '') !== editText.value.trim()) {
-                updateTitle(editingId.value, editText.value);
+                conversationStore.updateTitle(editingId.value, editText.value);
             }
             editingId.value = null;
         }

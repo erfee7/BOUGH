@@ -1,5 +1,4 @@
 import { ref, computed } from 'vue';
-import { storeToRefs } from 'pinia';
 import { useMessageStore } from './stores/message';
 import { useConversationStore } from './stores/conversation';
 import { getActivePath, getSiblingInfo, getMostRecentDescendantLeaf, compareMessages } from './branchingUtils';
@@ -8,47 +7,41 @@ import { Message } from '@/types';
 export function useBranching() {
     const messageStore = useMessageStore();
     const conversationStore = useConversationStore();
-    
-    const { messages, activeLeafId } = storeToRefs(messageStore);
-    const { stopStreaming, startStreaming, generateMessage, appendMessage } = messageStore;
-    
-    const { currentConversationId } = storeToRefs(conversationStore);
-    const { updateActiveLeaf } = conversationStore;
 
     const editingMessageId = ref<string | null>(null);
     const editingText = ref('');
 
     const activePath = computed(() => {
-        return getActivePath(messages.value, activeLeafId.value);
+        return getActivePath(messageStore.messages, messageStore.activeLeafId);
     });
 
     async function switchSibling(messageId: string, direction: 'prev' | 'next') {
-        const { count, currentIndex } = getSiblingInfo(messageId, messages.value);
+        const { count, currentIndex } = getSiblingInfo(messageId, messageStore.messages);
         if (count <= 1) return;
 
         let targetIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
         if (targetIndex < 0 || targetIndex >= count) return;
 
-        const targetMsg = messages.value.find(m => m.id === messageId);
+        const targetMsg = messageStore.messages.find(m => m.id === messageId);
         if (!targetMsg || !targetMsg.parent_id) return;
 
-        const siblings = messages.value
+        const siblings = messageStore.messages
             .filter(m => m.parent_id === targetMsg.parent_id)
             .sort(compareMessages);
         
         const targetSibling = siblings[targetIndex];
-        const targetLeafId = getMostRecentDescendantLeaf(targetSibling.id, messages.value);
+        const targetLeafId = getMostRecentDescendantLeaf(targetSibling.id, messageStore.messages);
 
-        stopStreaming();
-        activeLeafId.value = targetLeafId;
+        messageStore.stopStreaming();
+        messageStore.activeLeafId = targetLeafId;
         
-        if (currentConversationId.value) {
-            updateActiveLeaf(currentConversationId.value, targetLeafId);
+        if (conversationStore.currentConversationId) {
+            conversationStore.updateActiveLeaf(conversationStore.currentConversationId, targetLeafId);
         }
 
-        const targetLeafMsg = messages.value.find(m => m.id === targetLeafId);
+        const targetLeafMsg = messageStore.messages.find(m => m.id === targetLeafId);
         if (targetLeafMsg && (targetLeafMsg.status === 'pending' || targetLeafMsg.status === 'streaming')) {
-            startStreaming(targetLeafId);
+            messageStore.startStreaming(targetLeafId);
         }
     }
 
@@ -68,11 +61,11 @@ export function useBranching() {
             return;
         }
 
-        const newMsgId = await appendMessage(message.parent_id!, editingText.value, message.role as 'user' | 'assistant');
+        const newMsgId = await messageStore.appendMessage(message.parent_id!, editingText.value, message.role as 'user' | 'assistant');
         cancelEdit();
 
         if (newMsgId && shouldGenerate) {
-            generateMessage(newMsgId);
+            messageStore.generateMessage(newMsgId);
         }
     }
 

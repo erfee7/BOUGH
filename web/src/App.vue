@@ -6,7 +6,7 @@
         <main class="main-area">
             <GenerationConfigBar />
             <NewChatArea 
-                v-if="!currentConversationId" 
+                v-if="!conversationStore.currentConversationId" 
                 @openLibrary="isPromptLibraryVisible = true"
             />
             <ChatArea 
@@ -30,10 +30,8 @@ import PromptLibraryModal from './chat/prompts/PromptLibraryModal.vue';
 import GenerationConfigBar from './chat/generation_config/GenerationConfigBar.vue';
 import { useConversationStore } from './chat/stores/conversation';
 import { useChatEngine } from './chat/useChatEngine';
-import { storeToRefs } from 'pinia';
 
 const conversationStore = useConversationStore();
-const { currentConversationId } = storeToRefs(conversationStore);
 
 const { 
     isPromptLibraryVisible,
@@ -45,7 +43,7 @@ onMounted(() => {
     initialize();
 });
 
-watch(currentConversationId, (newId) => {
+watch(() => conversationStore.currentConversationId, (newId) => {
     handleNavigation(newId);
 });
 </script>

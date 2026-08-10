@@ -1,5 +1,4 @@
 import { ref, computed, onMounted, watch, type Ref } from 'vue';
-import { storeToRefs } from 'pinia';
 import { usePromptStore } from '@/chat/stores/prompt';
 import { Prompt } from '@/types';
 
@@ -9,18 +8,16 @@ export function usePromptSelection(
     updateModelValue: (val: string) => void
 ) {
     const promptStore = usePromptStore();
-    const { prompts } = storeToRefs(promptStore);
-    const { fetchPrompts } = promptStore;
 
     // Fetch all prompts if the store is empty on mount
     onMounted(() => {
-        if (prompts.value.length === 0) {
-            fetchPrompts();
+        if (promptStore.prompts.length === 0) {
+            promptStore.fetchPrompts();
         }
     });
 
     const filteredPrompts = computed(() => {
-        return prompts.value.filter((p: Prompt) => p.role === role);
+        return promptStore.prompts.filter((p: Prompt) => p.role === role);
     });
 
     const selectedMode = ref<string>('none');
