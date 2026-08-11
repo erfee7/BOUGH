@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.db.connection import init_pool, close_pool
-from app.routers import conversations, messages, prompts
+from app.routers import conversations, messages, prompts, generation_presets
 # Configure root logger for radical transparency
 logging.basicConfig(
     level=logging.INFO,
@@ -28,6 +28,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(conversations.router)
 app.include_router(messages.router)
 app.include_router(prompts.router)
+app.include_router(generation_presets.router)
 
 @app.get("/api/health")
 async def health_check():
