@@ -10,7 +10,7 @@
         </div>
         
         <div class="action-bar">
-            <button @click="showDevPrompt = !showDevPrompt" class="btn-icon toggle-dev-btn" :class="{ 'active': showDevPrompt }" title="Toggle Developer Prompt">
+            <button @click="toggleDevPrompt" class="btn-icon toggle-dev-btn" :class="{ 'active': showDevPrompt }" title="Toggle Developer Prompt">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.terminal"></svg>
             </button>
         </div>
@@ -61,6 +61,14 @@ function handleInput(event: Event) {
     const target = event.target as HTMLTextAreaElement;
     emit('update:modelValue', target.value);
     adjustHeight();
+}
+
+function toggleDevPrompt() {
+    showDevPrompt.value = !showDevPrompt.value;
+    // If hiding the panel, clear the prompt text so it doesn't get sent invisibly
+    if (!showDevPrompt.value) {
+        emit('update:developerPrompt', '');
+    }
 }
 
 function handleSend() {
