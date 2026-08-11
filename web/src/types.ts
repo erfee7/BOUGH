@@ -38,3 +38,12 @@ export interface GenerationPayload {
     model?: string;
     parameters?: Record<string, unknown>;
 }
+
+export interface GenerationPreset {
+    id: string;
+    name: string;
+    model: string | null;
+    parameters: Record<string, any>;
+    created_at: string;
+    updated_at: string;
+}

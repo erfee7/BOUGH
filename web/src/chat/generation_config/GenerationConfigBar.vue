@@ -1,5 +1,20 @@
 <template>
     <div class="generation-config-bar">
+        <!-- Preset Group -->
+        <div class="config-group">
+            <label class="config-label">Preset</label>
+            <select v-model="selectedPresetId" @change="handlePresetChange" class="config-select">
+                <option value="default">Default</option>
+                <option v-for="p in presetStore.presets" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+            <button @click="showPresetModal = true" class="btn-icon" title="Manage Presets">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.settings"></svg>
+            </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Model Group -->
         <div class="config-group">
             <label class="config-label">Model</label>
             <input 
@@ -10,6 +25,7 @@
             />
         </div>
         
+        <!-- Reasoning Group -->
         <div class="config-group">
             <label class="config-label">Reasoning</label>
             <select v-model="generationConfigStore.reasoningEffort" class="config-select">
@@ -23,6 +39,7 @@
             </select>
         </div>
         
+        <!-- Params Group -->
         <div class="config-group params-group">
             <label class="config-label">Params</label>
             <div class="params-container">
@@ -40,14 +57,41 @@
                 </button>
             </div>
         </div>
+
+        <PresetModal 
+            :isVisible="showPresetModal" 
+            @close="showPresetModal = false" 
+        />
     </div>
 </template>
 
 <script setup lang="ts">
+import { ref, watch, onMounted } from 'vue';
 import { useGenerationConfigStore } from '../stores/generationConfig';
+import { usePresetStore } from '../stores/preset';
 import { ICONS } from '@/icons';
+import PresetModal from './PresetModal.vue';
 
 const generationConfigStore = useGenerationConfigStore();
+const presetStore = usePresetStore();
+
+const showPresetModal = ref(false);
+const selectedPresetId = ref('default');
+
+onMounted(() => {
+    presetStore.fetchPresets();
+});
+
+function handlePresetChange() {
+    if (selectedPresetId.value === 'default') {
+        generationConfigStore.clearConfig();
+    } else {
+        const preset = presetStore.presets.find(p => p.id === selectedPresetId.value);
+        if (preset) {
+            generationConfigStore.loadPreset(preset);
+        }
+    }
+}
 </script>
 
 <style scoped>
@@ -96,6 +140,13 @@ const generationConfigStore = useGenerationConfigStore();
 .config-input {
     width: 180px;
     cursor: text;
+}
+
+.divider {
+    width: 1px;
+    height: 24px;
+    background-color: var(--border-default);
+    flex-shrink: 0;
 }
 
 .params-container {

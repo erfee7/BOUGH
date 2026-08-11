@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { CustomParam, GenerationPayload } from '@/types';
+import { CustomParam, GenerationPayload, GenerationPreset } from '@/types';
 
 export const useGenerationConfigStore = defineStore('generationConfig', () => {
     // Module-level singleton state (in-memory only for now)
@@ -53,6 +53,58 @@ export const useGenerationConfigStore = defineStore('generationConfig', () => {
         customParams.value = customParams.value.filter(p => p.id !== id);
     }
 
+    function clearConfig() {
+        model.value = '';
+        reasoningEffort.value = null;
+        customParams.value = [];
+    }
+
+    const VALID_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+
+    function loadPreset(preset: GenerationPreset) {
+        model.value = preset.model || '';
+        const params = preset.parameters || {};
+        
+        if (params.reasoning && typeof params.reasoning === 'object' && 'effort' in params.reasoning) {
+            const effort = params.reasoning.effort;
+            // Validate that the DB value is actually one of our supported options
+            if (typeof effort === 'string' && (VALID_EFFORTS as readonly string[]).includes(effort)) {
+                reasoningEffort.value = effort as typeof reasoningEffort.value;
+            } else {
+                reasoningEffort.value = null; // Fallback if DB has an unknown/invalid effort
+            }
+        } else {
+            reasoningEffort.value = null;
+        }
+        
+        customParams.value = Object.entries(params)
+            .filter(([key]) => key !== 'reasoning')
+            .map(([key, val]) => ({
+                id: crypto.randomUUID(),
+                key: key,
+                rawValue: typeof val === 'object' ? JSON.stringify(val) : String(val)
+            }));
+    }
+
+    function buildPresetData(name: string) {
+        const parameters: Record<string, unknown> = {};
+        
+        for (const p of customParams.value) {
+            if (p.key.trim()) {
+                parameters[p.key.trim()] = parseParamValue(p.rawValue);
+            }
+        }
+        if (reasoningEffort.value) {
+            parameters['reasoning'] = { effort: reasoningEffort.value };
+        }
+        
+        return {
+            name: name.trim(),
+            model: model.value.trim() || null,
+            parameters: parameters
+        };
+    }
+
     return {
         model,
         reasoningEffort,
@@ -60,6 +112,9 @@ export const useGenerationConfigStore = defineStore('generationConfig', () => {
         parseParamValue,
         buildGeneratePayload,
         addParam,
-        removeParam
+        removeParam,
+        clearConfig,
+        loadPreset,
+        buildPresetData
     };
 });

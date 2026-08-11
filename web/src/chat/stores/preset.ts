@@ -1,0 +1,57 @@
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import { GenerationPreset } from '@/types';
+
+export const usePresetStore = defineStore('preset', () => {
+    const presets = ref<GenerationPreset[]>([]);
+    const isLoading = ref(false);
+    const isInitialized = ref(false);
+
+    async function fetchPresets(force: boolean = false) {
+        if (isInitialized.value && !force) return;
+        
+        isLoading.value = true;
+        try {
+            const response = await fetch('/api/chat/presets');
+            if (!response.ok) throw new Error('Failed to fetch presets');
+            presets.value = await response.json();
+            isInitialized.value = true;
+        } catch (error) {
+            console.error("Error fetching presets:", error);
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
+    async function createPreset(data: { name: string, model: string | null, parameters: Record<string, unknown> }) {
+        try {
+            const response = await fetch('/api/chat/presets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) throw new Error('Failed to create preset');
+            await fetchPresets(true);
+        } catch (error) {
+            console.error("Error creating preset:", error);
+        }
+    }
+
+    async function deletePreset(id: string) {
+        try {
+            const response = await fetch(`/api/chat/presets/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Failed to delete preset');
+            await fetchPresets(true);
+        } catch (error) {
+            console.error("Error deleting preset:", error);
+        }
+    }
+
+    return {
+        presets,
+        isLoading,
+        fetchPresets,
+        createPreset,
+        deletePreset
+    };
+});
