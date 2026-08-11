@@ -11,23 +11,19 @@ export function useChatEngine() {
     const developerPrompt = ref('');
     const isPromptLibraryVisible = ref(false);
 
-    // Used to bypass the watcher when transitioning from "new chat" to "chat created"
-    // to prevent the watcher from fetching the DB and wiping the in-flight user message.
-    let skipWatch = false;
-
     function initialize() {
         conversationStore.fetchAllConversations();
     }
 
-    function handleNavigation(newId: string | null) {
+    // Explicit navigation function replaces the implicit watcher
+    async function navigate(id: string | null) {
         messageStore.stopStreaming();
-        if (skipWatch) {
-            skipWatch = false;
-            return;
-        }
-        if (newId) {
-            messageStore.loadConversation(newId);
+        
+        if (id) {
+            conversationStore.selectConversation(id);
+            await messageStore.loadConversation(id);
         } else {
+            conversationStore.selectConversation(null);
             messageStore.clearMessages();
             systemPrompt.value = ''; // Reset system prompt for new chat
         }
@@ -44,9 +40,9 @@ export function useChatEngine() {
             const result = await conversationStore.createConversation(null, sysPrompt);
             if (!result) return;
             
-            skipWatch = true; 
-            conversationStore.selectConversation(result.conversationId);
-            messageStore.activeLeafId = result.rootMessageId;
+            // Explicitly navigate to the new conversation to hydrate the root system message
+            // This guarantees the root message is in the local array before we append the user message.
+            await navigate(result.conversationId);
             
             const devPrompt = developerPrompt.value.trim() || null;
             const userMsgId = await messageStore.sendMessage(text, devPrompt);
@@ -73,7 +69,7 @@ export function useChatEngine() {
         developerPrompt,
         isPromptLibraryVisible,
         initialize,
-        handleNavigation,
+        navigate,
         send,
         cancel
     };

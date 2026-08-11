@@ -2,6 +2,7 @@
     <div class="app-layout">
         <Sidebar 
             @openPromptLibrary="isPromptLibraryVisible = true" 
+            @navigate="navigate"
         />
         <main class="main-area">
             <GenerationConfigBar />
@@ -22,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { onMounted } from 'vue';
 import Sidebar from './chat/sidebar/Sidebar.vue';
 import NewChatArea from './chat/NewChatArea.vue';
 import ChatArea from './chat/ChatArea.vue';
@@ -36,15 +37,11 @@ const conversationStore = useConversationStore();
 const { 
     isPromptLibraryVisible,
     initialize, 
-    handleNavigation
+    navigate
 } = useChatEngine();
 
 onMounted(() => {
     initialize();
-});
-
-watch(() => conversationStore.currentConversationId, (newId) => {
-    handleNavigation(newId);
 });
 </script>
 

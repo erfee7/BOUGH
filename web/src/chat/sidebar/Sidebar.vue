@@ -11,7 +11,7 @@
                 <li 
                     v-for="conv in conversationStore.conversations" 
                     :key="conv.id" 
-                    @click="conversationStore.selectConversation(conv.id)"
+                    @click="handleSelect(conv.id)"
                     @dblclick="startEditing(conv)"
                     :class="{ 'active': conv.id === conversationStore.currentConversationId }"
                 >
@@ -32,7 +32,7 @@
                             @rename="startEditing(conv)"
                             @generate-title="handleGenerateTitle(conv.id)"
                             @touch="handleTouch(conv.id)"
-                            @delete="conversationStore.deleteConversation(conv.id)"
+                            @delete="handleDelete(conv.id)"
                         />
                     </div>
                 </li>
@@ -53,7 +53,10 @@ import { useTitleEdit } from './useTitleEdit';
 import ConversationMenu from './ConversationMenu.vue';
 import { ICONS } from '@/icons';
 
-const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>();
+const emit = defineEmits<{ 
+    (e: 'openPromptLibrary'): void,
+    (e: 'navigate', id: string | null): void 
+}>();
 
 const conversationStore = useConversationStore();
 const { editingId, editText, startEditing, saveEdit, cancelEdit } = useTitleEdit();
@@ -66,10 +69,6 @@ const vFocus = {
     }
 };
 
-function handleNewChat() {
-    conversationStore.selectConversation(null);
-}
-
 function isGenerating(id: string) {
     return conversationStore.generatingTitleIds.includes(id);
 }
@@ -80,6 +79,23 @@ function handleGenerateTitle(id: string) {
 
 function handleTouch(id: string) {
     conversationStore.touchConversation(id);
+}
+
+function handleNewChat() {
+    emit('navigate', null);
+}
+
+function handleSelect(id: string) {
+    emit('navigate', id);
+}
+
+async function handleDelete(id: string) {
+    const wasActive = conversationStore.currentConversationId === id;
+    await conversationStore.deleteConversation(id);
+    // If we deleted the active conversation, explicitly navigate to New Chat state
+    if (wasActive) {
+        emit('navigate', null);
+    }
 }
 </script>
 
