@@ -60,6 +60,7 @@ const generationConfigStore = useGenerationConfigStore();
     background: var(--bg-primary);
     overflow-x: auto;
     white-space: nowrap;
+    flex-shrink: 0; /* Prevents the bar from being squashed by the message list */
 }
 
 .config-group {
@@ -110,6 +111,7 @@ const generationConfigStore = useGenerationConfigStore();
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
     padding: 2px 4px 2px 8px;
+    flex-shrink: 0; /* Prevent chips from squishing inside their container */
 }
 
 .param-input {
@@ -166,6 +168,7 @@ const generationConfigStore = useGenerationConfigStore();
     font-size: 12px;
     cursor: pointer;
     transition: border-color 0.2s, color 0.2s;
+    flex-shrink: 0;
 }
 
 .add-param-btn:hover {
