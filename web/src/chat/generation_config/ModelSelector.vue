@@ -95,7 +95,8 @@ function togglePopover() {
                 popoverStyle.value = {
                     top: `${rect.bottom + 4}px`,
                     left: `${rect.left}px`,
-                    width: `${rect.width}px`
+                    // Give the popover a minimum width so the search box isn't cramped
+                    width: `${Math.max(rect.width, 360)}px`
                 };
             }
             searchInputRef.value?.focus();
@@ -189,6 +190,7 @@ onUnmounted(() => {
 
 .model-search-input {
     flex: 1;
+    box-sizing: border-box; /* Ensure padding/border doesn't expand it beyond flex bounds */
     background: var(--bg-secondary);
     color: var(--text-primary);
     border: 1px solid var(--border-default);
