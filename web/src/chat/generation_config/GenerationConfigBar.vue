@@ -2,8 +2,17 @@
     <div class="generation-config-bar">
         <!-- Preset Group -->
         <div class="config-group">
-            <label class="config-label">Preset</label>
-            <select :value="generationConfigStore.loadedPresetId" @change="handlePresetChange" class="config-select">
+            <select 
+                :value="generationConfigStore.loadedPresetId" 
+                @change="handlePresetChange" 
+                class="preset-select"
+                :class="{
+                    'is-preset': generationConfigStore.loadedPresetId !== 'default' && generationConfigStore.loadedPresetId !== 'custom',
+                    'is-default': generationConfigStore.loadedPresetId === 'default',
+                    'is-dirty': generationConfigStore.loadedPresetId === 'custom' || generationConfigStore.isDirty
+                }"
+            >
+                <!-- Hidden option for binding the dirty state, never shown in the dropdown list -->
                 <option v-if="generationConfigStore.loadedPresetId === 'custom'" value="custom" hidden>Custom</option>
                 <option value="default">Default</option>
                 <option v-for="p in presetStore.presets" :key="p.id" :value="p.id">
@@ -172,19 +181,59 @@ async function handleUpdate() {
 }
 
 .config-select {
-    width: 140px;           /* Fixed width to prevent layout shifting */
-    min-width: 140px;
-    max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis; /* Truncate long preset names with '...' */
     white-space: nowrap;
 }
 
+/* Preset Badge Styles */
+.preset-select {
+    width: 200px;
+    min-width: 200px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    
+    /* Chunky Badge Base */
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.preset-select:focus {
+    border-color: var(--accent-blue);
+}
+
+/* State Colors */
+.preset-select.is-preset {
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+.preset-select.is-default {
+    color: var(--text-muted);
+}
+
+.preset-select.is-dirty {
+    color: var(--accent-yellow);
+    border-color: var(--accent-yellow);
+}
+
+/* Divider Enhancements */
 .divider {
-    width: 1px;
-    height: 24px;
-    background-color: var(--border-default);
+    width: 2px; /* Thicker */
+    height: 28px; /* Taller */
+    background-color: var(--border-hover); /* Brighter */
     flex-shrink: 0;
+    margin: 0 4px; /* Give it some breathing room */
 }
 
 .params-container {
