@@ -63,8 +63,14 @@ const newPresetName = ref('');
 async function handleCreate() {
     if (!newPresetName.value.trim()) return;
     const data = generationConfigStore.buildPresetData(newPresetName.value);
-    await presetStore.createPreset(data);
-    newPresetName.value = '';
+    const newPreset = await presetStore.createPreset(data);
+    
+    if (newPreset) {
+        // Immediately load the new preset so the config bar reflects it as active & clean
+        generationConfigStore.loadPreset(newPreset);
+        newPresetName.value = '';
+        emit('close');
+    }
 }
 
 function handleLoad(preset: GenerationPreset) {

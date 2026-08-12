@@ -23,7 +23,7 @@ export const usePresetStore = defineStore('preset', () => {
         }
     }
 
-    async function createPreset(data: { name: string, model: string | null, parameters: Record<string, unknown> }) {
+    async function createPreset(data: { name: string, model: string | null, parameters: Record<string, unknown> }): Promise<GenerationPreset | null> {
         try {
             const response = await fetch('/api/chat/presets', {
                 method: 'POST',
@@ -31,9 +31,14 @@ export const usePresetStore = defineStore('preset', () => {
                 body: JSON.stringify(data)
             });
             if (!response.ok) throw new Error('Failed to create preset');
-            await fetchPresets(true);
+            
+            // Capture the newly created preset returned by the backend
+            const newPreset = await response.json() as GenerationPreset;
+            await fetchPresets(true); // Refresh the list for the dropdown
+            return newPreset;
         } catch (error) {
             console.error("Error creating preset:", error);
+            return null;
         }
     }
 

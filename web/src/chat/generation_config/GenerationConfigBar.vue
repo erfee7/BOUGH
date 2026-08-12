@@ -19,6 +19,15 @@
                     {{ p.name }}{{ generationConfigStore.loadedPresetId === p.id && generationConfigStore.isDirty ? ' *' : '' }}
                 </option>
             </select>
+            <!-- Revert button: only visible if the preset is dirty and is a saved preset -->
+            <button 
+                :disabled="!generationConfigStore.isDirty || generationConfigStore.loadedPresetId === 'default' || generationConfigStore.loadedPresetId === 'custom'"
+                @click="handleRevert" 
+                class="btn-icon" 
+                title="Revert to saved preset"
+            >
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.undo_2"></svg>
+            </button>
             <button 
                 :disabled="generationConfigStore.loadedPresetId === 'default' || generationConfigStore.loadedPresetId === 'custom'" 
                 @click="handleUpdate" 
@@ -125,6 +134,17 @@ async function handleUpdate() {
     
     // Mark as clean so the asterisk goes away
     generationConfigStore.isDirty = false; 
+}
+
+function handleRevert() {
+    const id = generationConfigStore.loadedPresetId;
+    if (id === 'default' || id === 'custom') return;
+    
+    const preset = presetStore.presets.find(p => p.id === id);
+    if (preset) {
+        // loadPreset automatically resets isDirty to false
+        generationConfigStore.loadPreset(preset);
+    }
 }
 </script>
 
