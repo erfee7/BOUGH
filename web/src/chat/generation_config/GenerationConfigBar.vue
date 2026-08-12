@@ -171,6 +171,15 @@ async function handleUpdate() {
     cursor: text;
 }
 
+.config-select {
+    width: 140px;           /* Fixed width to prevent layout shifting */
+    min-width: 140px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Truncate long preset names with '...' */
+    white-space: nowrap;
+}
+
 .divider {
     width: 1px;
     height: 24px;
