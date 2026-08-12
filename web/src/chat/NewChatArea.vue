@@ -16,7 +16,7 @@
             @update:developerPrompt="developerPrompt = $event"
             @send="send"
             @openLibrary="emit('openLibrary')"
-            :isStreaming="isStreaming"
+            :isStreaming="messageStore.isStreaming"
         />
     </div>
 </template>
@@ -24,16 +24,14 @@
 <script setup lang="ts">
 import InputArea from './InputArea.vue';
 import PromptSelector from './prompts/PromptSelector.vue';
-import { useMessages } from './useMessages';
+import { useMessageStore } from './stores/message';
 import { useChatEngine } from './useChatEngine';
 
 const emit = defineEmits<{ 
     (e: 'openLibrary'): void
 }>();
 
-const {
-    isStreaming
-} = useMessages();
+const messageStore = useMessageStore();
 
 const { 
     inputText, 
@@ -46,7 +44,8 @@ const {
 <style scoped>
 .welcome-container {
     position: relative;
-    height: 100%;
+    flex: 1; /* Take remaining space instead of 100% */
+    min-height: 0; /* Allow shrinking for internal scroll */
     width: 100%;
     margin: 0 auto;
     display: flex;

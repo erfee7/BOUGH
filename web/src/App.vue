@@ -2,10 +2,12 @@
     <div class="app-layout">
         <Sidebar 
             @openPromptLibrary="isPromptLibraryVisible = true" 
+            @navigate="navigate"
         />
         <main class="main-area">
+            <GenerationConfigBar />
             <NewChatArea 
-                v-if="!currentConversationId" 
+                v-if="!conversationStore.currentConversationId" 
                 @openLibrary="isPromptLibraryVisible = true"
             />
             <ChatArea 
@@ -21,34 +23,25 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { onMounted } from 'vue';
 import Sidebar from './chat/sidebar/Sidebar.vue';
 import NewChatArea from './chat/NewChatArea.vue';
 import ChatArea from './chat/ChatArea.vue';
 import PromptLibraryModal from './chat/prompts/PromptLibraryModal.vue';
-import { useMessages } from './chat/useMessages';
-import { useConversations } from './chat/useConversations';
+import GenerationConfigBar from './chat/generation_config/GenerationConfigBar.vue';
+import { useConversationStore } from './chat/stores/conversation';
 import { useChatEngine } from './chat/useChatEngine';
 
-const {
-} = useMessages();
-
-const {
-    currentConversationId
-} = useConversations();
+const conversationStore = useConversationStore();
 
 const { 
     isPromptLibraryVisible,
     initialize, 
-    handleNavigation
+    navigate
 } = useChatEngine();
 
 onMounted(() => {
     initialize();
-});
-
-watch(currentConversationId, (newId) => {
-    handleNavigation(newId);
 });
 </script>
 

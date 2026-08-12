@@ -23,7 +23,7 @@ class StreamState:
 # Module-level registry for active streams
 _active_streams: dict[uuid.UUID, StreamState] = {}
 
-def start_stream(message_id: uuid.UUID, messages_history: list) -> None:
+def start_stream(message_id: uuid.UUID, messages_history: list, model: str | None = None, parameters: dict[str, Any] | None = None) -> None:
     """Spawns a background task to handle LLM generation and streaming."""
     if message_id in _active_streams:
         logger.warning("Stream for message %s is already active.", message_id)
@@ -33,7 +33,7 @@ def start_stream(message_id: uuid.UUID, messages_history: list) -> None:
     _active_streams[message_id] = state
     
     # Detach the generation from the HTTP request lifecycle
-    asyncio.create_task(_run_generation(message_id, messages_history, state))
+    asyncio.create_task(_run_generation(message_id, messages_history, state, model, parameters))
     logger.info("Started background stream generation for message %s", message_id)
 
 def cancel_stream(message_id: uuid.UUID) -> bool:
@@ -83,7 +83,7 @@ async def get_stream(message_id: uuid.UUID) -> AsyncGenerator[dict[str, Any], No
             # Signal the client to close the connection
             break
 
-async def _run_generation(message_id: uuid.UUID, messages_history: list, state: StreamState) -> None:
+async def _run_generation(message_id: uuid.UUID, messages_history: list, state: StreamState, model: str | None = None, parameters: dict[str, Any] | None = None) -> None:
     """The background worker. Consumes LLM provider events and updates DB/memory."""
     start_time = time.time() # Record start time
     
@@ -91,7 +91,7 @@ async def _run_generation(message_id: uuid.UUID, messages_history: list, state: 
         await db_messages.update_message(message_id, status='streaming')
         logger.info("Stream generation started for message %s", message_id)
         
-        async for event in generate_stream(messages_history):
+        async for event in generate_stream(messages_history, model = model, parameters = parameters):
             # Check for cancellation before processing the chunk
             if state.cancel_requested:
                 await db_messages.update_message(

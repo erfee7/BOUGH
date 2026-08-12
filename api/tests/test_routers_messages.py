@@ -9,19 +9,19 @@ from app.main import app
 from app.db import conversations as db_conversations
 from app.db import messages as db_messages
 
-TEST_CONVERSATION_TITLE = "Msg API Test"
-TEST_SYSTEM_PROMPT = "You are a test assistant."
-TEST_USER_MESSAGE = "User input"
-TEST_ASSISTANT_MESSAGE = "Manual assistant text"
-TEST_ERROR_DATA = {'message': 'API Died', 'type': 'APIError'}
+_TEST_CONVERSATION_TITLE = "Msg API Test"
+_TEST_SYSTEM_PROMPT = "You are a test assistant."
+_TEST_USER_MESSAGE = "User input"
+_TEST_ASSISTANT_MESSAGE = "Manual assistant text"
+_TEST_ERROR_DATA = {'message': 'API Died', 'type': 'APIError'}
 
 @pytest.mark.asyncio
 async def test_append_message_endpoint(mock_pool):
     """Tests POST /api/chat/messages/{parent_id}/append."""
     # Setup: Create conv and root msg directly in DB
-    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
     root_id = await db_messages.create_message(
-        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT, 
         status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
 
@@ -31,7 +31,7 @@ async def test_append_message_endpoint(mock_pool):
     # Action: Call API
     with patch('app.routers.messages.get_pool', return_value=mock_pool):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            payload = {"content": TEST_USER_MESSAGE, "role": "user"}
+            payload = {"content": _TEST_USER_MESSAGE, "role": "user"}
             response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
             
             assert response.status_code == 200
@@ -43,7 +43,7 @@ async def test_append_message_endpoint(mock_pool):
             assert msg['parent_id'] == root_id
             assert msg['role'] == "user"
             assert msg['status'] == "complete"
-            assert msg['content'] == TEST_USER_MESSAGE
+            assert msg['content'] == _TEST_USER_MESSAGE
             assert msg['creation_data'] == {"source": "user"}
             
             conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
@@ -53,15 +53,15 @@ async def test_append_message_endpoint(mock_pool):
 @pytest.mark.asyncio
 async def test_append_message_assistant_role(mock_pool):
     """Tests appending an assistant message (e.g., manual edit)."""
-    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
     root_id = await db_messages.create_message(
-        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT, 
         status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
     
     with patch('app.routers.messages.get_pool', return_value=mock_pool):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            payload = {"content": TEST_ASSISTANT_MESSAGE, "role": "assistant"}
+            payload = {"content": _TEST_ASSISTANT_MESSAGE, "role": "assistant"}
             response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
             
             assert response.status_code == 200
@@ -70,15 +70,15 @@ async def test_append_message_assistant_role(mock_pool):
             
             msg = await db_messages.fetch_message(new_msg_id, conn=mock_pool.conn)
             assert msg['role'] == "assistant"
-            assert msg['content'] == TEST_ASSISTANT_MESSAGE
+            assert msg['content'] == _TEST_ASSISTANT_MESSAGE
             assert msg['creation_data'] == {"source": "user"}
 
 @pytest.mark.asyncio
 async def test_append_message_invalid_role(mock_pool):
     """Tests that appending a message with an invalid role returns 422."""
-    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
     root_id = await db_messages.create_message(
-        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT, 
         status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
     
@@ -104,13 +104,13 @@ async def test_append_message_parent_not_found(mock_pool):
 async def test_generate_message_endpoint(mock_pool):
     """Tests POST /api/chat/messages/{parent_id}/generate."""
     # Setup: Create conv, root, and user msg
-    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
     root_id = await db_messages.create_message(
-        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT, 
         status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
     user_msg_id = await db_messages.create_message(
-        conversation_id=conv_id, role="user", parent_id=root_id, content=TEST_USER_MESSAGE,
+        conversation_id=conv_id, role="user", parent_id=root_id, content=_TEST_USER_MESSAGE,
         status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
 
@@ -154,16 +154,21 @@ async def test_generate_message_endpoint(mock_pool):
                 assert history[0]['role'] == 'system'
                 assert history[1]['role'] == 'user'
 
+                # Model and parameters must be threaded through to the stream manager
+                kwargs = mock_start.call_args.kwargs
+                assert kwargs['model'] == "test-model"
+                assert kwargs['parameters'] == {"temperature": 0.5}
+
 @pytest.mark.asyncio
 async def test_generate_message_parent_not_complete(mock_pool):
     """Tests that generating under a non-complete parent returns 400."""
-    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
     root_id = await db_messages.create_message(
-        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT, 
         status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
     pending_user_msg = await db_messages.create_message(
-        conversation_id=conv_id, role="user", parent_id=root_id, content=TEST_USER_MESSAGE,
+        conversation_id=conv_id, role="user", parent_id=root_id, content=_TEST_USER_MESSAGE,
         status="pending", creation_data={"source": "user"}, conn=mock_pool.conn
     )
     
@@ -188,6 +193,46 @@ async def test_generate_message_parent_not_found(mock_pool):
             
             assert response.status_code == 404
             assert response.json()["detail"] == "Parent message not found"
+
+@pytest.mark.asyncio
+async def test_generate_message_strips_reserved_parameters(mock_pool):
+    """Tests that reserved parameter keys are stripped, and creation_data records exactly what is sent."""
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT, 
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    user_msg_id = await db_messages.create_message(
+        conversation_id=conv_id, role="user", parent_id=root_id, content=_TEST_USER_MESSAGE,
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        with patch('app.routers.messages.stream_manager.start_stream') as mock_start:
+            async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                payload = {
+                    "model": "test-model",
+                    "parameters": {
+                        "temperature": 0.5,
+                        "model": "evil-model",
+                        "messages": [{"role": "system", "content": "hacked"}],
+                        "stream": False,
+                        "stream_options": {}
+                    }
+                }
+                response = await client.post(f"/api/chat/messages/{user_msg_id}/generate", json=payload)
+                
+                assert response.status_code == 200
+                data = response.json()
+                
+                # creation_data (returned as server truth) must contain only the filtered dict
+                assert data["creation_data"]["model"] == "test-model"
+                assert data["creation_data"]["parameters"] == {"temperature": 0.5}
+                
+                # The stream manager receives the same filtered dict
+                kwargs = mock_start.call_args.kwargs
+                assert kwargs['model'] == "test-model"
+                assert kwargs['parameters'] == {"temperature": 0.5}
 
 @pytest.mark.asyncio
 async def test_stream_message_endpoint_complete():
@@ -254,13 +299,13 @@ async def test_stream_message_not_found(mock_pool):
 @pytest.mark.asyncio
 async def test_generate_message_parent_canceled(mock_pool):
     """Tests that generating under a canceled parent is allowed (e.g., continuing from partial)."""
-    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
     root_id = await db_messages.create_message(
-        conversation_id=conv_id, role="system", content=TEST_SYSTEM_PROMPT, 
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT, 
         status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
     )
     canceled_user_msg = await db_messages.create_message(
-        conversation_id=conv_id, role="user", parent_id=root_id, content=TEST_USER_MESSAGE,
+        conversation_id=conv_id, role="user", parent_id=root_id, content=_TEST_USER_MESSAGE,
         status="canceled", creation_data={"source": "user"}, conn=mock_pool.conn
     )
     
@@ -276,7 +321,7 @@ async def test_generate_message_parent_canceled(mock_pool):
 @pytest.mark.asyncio
 async def test_cancel_message_endpoint(mock_pool):
     """Tests POST /api/chat/messages/{id}/cancel."""
-    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
     msg_id = await db_messages.create_message(
         conversation_id=conv_id, role="assistant", parent_id=None, content="Partial",
         status="streaming", creation_data={"source": "model"}, conn=mock_pool.conn
@@ -324,7 +369,7 @@ async def test_stream_message_endpoint_error():
     mock_msg = {
         'id': uuid.uuid4(), 'status': 'error', 'content': 'Partial gen',
         'reasoning': 'Partial think',
-        'metadata': None, 'error_data': TEST_ERROR_DATA
+        'metadata': None, 'error_data': _TEST_ERROR_DATA
     }
     with patch('app.routers.messages.db_messages.fetch_message', new_callable=AsyncMock, return_value=mock_msg):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -333,5 +378,5 @@ async def test_stream_message_endpoint_error():
             assert response.status_code == 200
             lines = response.text.strip().split("\n\n")
             assert len(lines) == 2
-            assert lines[0] == f'data: {json.dumps({"type": "error", "content": "Partial gen", "reasoning": "Partial think", "error_data": TEST_ERROR_DATA})}'
+            assert lines[0] == f'data: {json.dumps({"type": "error", "content": "Partial gen", "reasoning": "Partial think", "error_data": _TEST_ERROR_DATA})}'
             assert lines[1] == "data: [DONE]"

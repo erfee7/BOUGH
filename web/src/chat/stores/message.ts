@@ -1,28 +1,38 @@
-import { ref } from 'vue';
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
 import { Message } from '@/types';
-import { useConversations } from './useConversations';
+import { useConversationStore } from './conversation';
+import { useGenerationConfigStore } from './generationConfig';
+import { getActivePath, getSiblingInfo, getMostRecentDescendantLeaf, compareMessages } from '../branchingUtils';
 
-const messages = ref<Message[]>([]);
-const activeLeafId = ref<string | null>(null);
-const isStreaming = ref(false);
+export const useMessageStore = defineStore('message', () => {
+    const conversationStore = useConversationStore();
+    const generationConfigStore = useGenerationConfigStore();
 
-// Adjustable UI refresh rate in milliseconds (0 = update on every token, 50 = 20fps)
-export const streamRefreshInterval = ref(50);
-
-let abortController: AbortController | null = null;
-
-export function useMessages() {
     
-    // Get access to the conversation bump function and ID
-    const { currentConversationId, bumpLocalConversation } = useConversations();
-    
+    const messages = ref<Message[]>([]);
+    const activeLeafId = ref<string | null>(null);
+    const isStreaming = ref(false);
+
+    // Adjustable UI refresh rate in milliseconds (0 = update on every token, 50 = 20fps)
+    const streamRefreshInterval = ref(50);
+
+    let abortController: AbortController | null = null;
+
+    // --- Getters ---
+    const activePath = computed(() => {
+        return getActivePath(messages.value, activeLeafId.value);
+    });
+
+    // --- Actions ---
+
     // 0. Stop the ongoing streaming for switching conversations or canceling a generation
     function stopStreaming() {
-    if (abortController) {
-        abortController.abort();
-        abortController = null;
-    }
-    isStreaming.value = false;
+        if (abortController) {
+            abortController.abort();
+            abortController = null;
+        }
+        isStreaming.value = false;
     }
 
     // 1. Load an existing conversation and its history
@@ -126,10 +136,11 @@ export function useMessages() {
     // 3. Trigger LLM generation
     async function generateMessage(parentId: string) {
         try {
+            const payload = generationConfigStore.buildGeneratePayload();
             const response = await fetch(`/api/chat/messages/${parentId}/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}) // Empty body for now, uses default model
+                body: JSON.stringify(payload) 
             });
             
             if (!response.ok) throw new Error('Failed to start generation');
@@ -152,8 +163,8 @@ export function useMessages() {
             activeLeafId.value = assistantMsg.id;
 
             // Bump the conversation to the top of the sidebar
-            if (currentConversationId.value) {
-                bumpLocalConversation(currentConversationId.value);
+            if (conversationStore.currentConversationId) {
+                conversationStore.bumpLocalConversation(conversationStore.currentConversationId);
             }
             
             // Start listening to the SSE stream
@@ -348,8 +359,8 @@ export function useMessages() {
             activeLeafId.value = newMsg.id;
 
             // Bump the conversation to the top of the sidebar
-            if (currentConversationId.value) {
-                bumpLocalConversation(currentConversationId.value);
+            if (conversationStore.currentConversationId) {
+                conversationStore.bumpLocalConversation(conversationStore.currentConversationId);
             }
             
             return newMsg.id;
@@ -359,11 +370,65 @@ export function useMessages() {
         }
     }
 
-    // Return the reactive state and functions so the UI component can use them
+    // 6. Switch to a sibling branch (and descend to its most recent leaf)
+    async function switchSibling(messageId: string, direction: 'prev' | 'next') {
+        const { count, currentIndex } = getSiblingInfo(messageId, messages.value);
+        if (count <= 1) return;
+
+        let targetIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
+        if (targetIndex < 0 || targetIndex >= count) return;
+
+        const targetMsg = messages.value.find(m => m.id === messageId);
+        if (!targetMsg || !targetMsg.parent_id) return;
+
+        const siblings = messages.value
+            .filter(m => m.parent_id === targetMsg.parent_id)
+            .sort(compareMessages);
+        
+        const targetSibling = siblings[targetIndex];
+        const targetLeafId = getMostRecentDescendantLeaf(targetSibling.id, messages.value);
+
+        stopStreaming();
+        activeLeafId.value = targetLeafId;
+        
+        if (conversationStore.currentConversationId) {
+            conversationStore.updateActiveLeaf(conversationStore.currentConversationId, targetLeafId);
+        }
+
+        const targetLeafMsg = messages.value.find(m => m.id === targetLeafId);
+        if (targetLeafMsg && (targetLeafMsg.status === 'pending' || targetLeafMsg.status === 'streaming')) {
+            startStreaming(targetLeafId);
+        }
+    }
+
+    // 7. Cancel an active generation
+    async function cancelGeneration() {
+        if (!activeLeafId.value || !isStreaming.value) return;
+        const messageId = activeLeafId.value;
+        
+        // Abort the local SSE listener
+        stopStreaming();
+        
+        // Update local state immediately so UI unlocks
+        const msgIndex = messages.value.findIndex(m => m.id === messageId);
+        if (msgIndex !== -1) {
+            messages.value[msgIndex].status = 'canceled';
+        }
+        
+        // Tell the backend to stop the LLM and save partial content
+        try {
+            await fetch(`/api/chat/messages/${messageId}/cancel`, { method: 'POST' });
+        } catch (error) {
+            console.error("Error canceling message:", error);
+        }
+    }
+
     return {
         messages,
         activeLeafId,
         isStreaming,
+        streamRefreshInterval,
+        activePath,
         loadConversation,
         sendMessage,
         generateMessage,
@@ -371,6 +436,7 @@ export function useMessages() {
         startStreaming,
         stopStreaming,
         appendMessage,
-        streamRefreshInterval
+        switchSibling,
+        cancelGeneration
     };
-}
+});

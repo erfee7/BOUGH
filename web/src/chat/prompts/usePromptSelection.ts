@@ -1,5 +1,5 @@
 import { ref, computed, onMounted, watch, type Ref } from 'vue';
-import { usePrompts } from './usePrompts';
+import { usePromptStore } from '@/chat/stores/prompt';
 import { Prompt } from '@/types';
 
 export function usePromptSelection(
@@ -7,17 +7,15 @@ export function usePromptSelection(
     modelValue: Ref<string>, 
     updateModelValue: (val: string) => void
 ) {
-    const { prompts, fetchPrompts } = usePrompts();
+    const promptStore = usePromptStore();
 
-    // Fetch all prompts if the store is empty on mount
+    // Ask the store to load data if it hasn't yet
     onMounted(() => {
-        if (prompts.value.length === 0) {
-            fetchPrompts();
-        }
+        promptStore.fetchPrompts();
     });
 
     const filteredPrompts = computed(() => {
-        return prompts.value.filter((p: Prompt) => p.role === role);
+        return promptStore.prompts.filter((p: Prompt) => p.role === role);
     });
 
     const selectedMode = ref<string>('none');

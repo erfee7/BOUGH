@@ -1,7 +1,9 @@
 import logging
 import os
+import time
 from typing import Any, AsyncGenerator
 
+import httpx
 from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
@@ -24,7 +26,7 @@ def _get_client() -> AsyncOpenAI:
         
     # Define the OpenRouter attribution headers
     default_headers = {
-        "X-Title": "BOUGH",
+        "X-OpenRouter-Title": "BOUGH",
         "HTTP-Referer": "https://github.com/erfee7/BOUGH", 
     }
         
@@ -52,11 +54,15 @@ def _format_history(messages_history: list[dict[str, Any]]) -> list[dict[str, st
 
 async def generate_stream(
     messages_history: list[dict[str, Any]], 
-    model: str | None = None, 
+    model: str | None = None,
+    parameters: dict[str, Any] | None = None,
     client: AsyncOpenAI | None = None
 ) -> AsyncGenerator[dict[str, Any], None]:
     """
     Calls the LLM provider and yields structured events.
+    
+    Custom parameters are merged into the request body as-is (via extra_body).
+    Reserved keys are already filtered at the router layer.
     
     Yields:
         {"type": "token", "content": "..."} for text chunks.
@@ -80,7 +86,8 @@ async def generate_stream(
             model=target_model,
             messages=formatted_history,
             stream=True,
-            stream_options={"include_usage": True}
+            stream_options={"include_usage": True},
+            extra_body=parameters or None
         )
         
         try:
@@ -161,3 +168,45 @@ async def generate_completion(
             "usage": {},
             "error": str(e)
         }
+
+# Module-level cache for models list
+_models_cache: list[dict] | None = None
+_models_cache_at: float | None = None
+_MODELS_CACHE_TTL = 24 * 3600  # 24 hours in seconds
+
+async def list_models(force: bool = False) -> list[dict]:
+    """
+    Fetches the list of available models from the provider.
+    Uses an in-memory cache with a 24h TTL. Fails honestly if the fetch fails.
+    """
+    global _models_cache, _models_cache_at
+    now = time.time()
+    
+    if not force and _models_cache is not None and _models_cache_at is not None:
+        if now - _models_cache_at < _MODELS_CACHE_TTL:
+            logger.info("Returning models from in-memory cache.")
+            return _models_cache
+            
+    logger.info("Fetching fresh models from provider (force=%s)...", force)
+    base_url = os.getenv("PROVIDER_BASE_URL", "https://openrouter.ai/api/v1")
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{base_url}/models")
+            response.raise_for_status()
+            data = response.json()
+            
+        # Minimal mapping: just id and name
+        models = [
+            {"id": m["id"], "name": m["name"]}
+            for m in data.get("data", [])
+        ]
+        
+        _models_cache = models
+        _models_cache_at = time.time()
+        logger.info("Successfully fetched and cached %d models.", len(models))
+        return models
+        
+    except Exception as e:
+        logger.error("Failed to fetch models from provider: %s", e)
+        raise Exception("Failed to fetch models from provider.") from e

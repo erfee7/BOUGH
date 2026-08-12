@@ -1,77 +1,58 @@
 import { ref } from 'vue';
-import { useConversations } from './useConversations';
-import { useMessages } from './useMessages';
+import { useConversationStore } from './stores/conversation';
+import { useMessageStore } from './stores/message';
 
 export function useChatEngine() {
-    const { 
-        currentConversationId, 
-        fetchAllConversations, 
-        createConversation, 
-        selectConversation, 
-        generateTitle 
-    } = useConversations();
-    
-    const { 
-        messages, 
-        activeLeafId, 
-        isStreaming, 
-        loadConversation, 
-        sendMessage, 
-        clearMessages, 
-        stopStreaming 
-    } = useMessages();
+    const conversationStore = useConversationStore();
+    const messageStore = useMessageStore();
 
     const inputText = ref('');
     const systemPrompt = ref('');
     const developerPrompt = ref('');
     const isPromptLibraryVisible = ref(false);
 
-    // Used to bypass the watcher when transitioning from "new chat" to "chat created"
-    // to prevent the watcher from fetching the DB and wiping the in-flight user message.
-    let skipWatch = false;
-
     function initialize() {
-        fetchAllConversations();
+        conversationStore.fetchAllConversations();
     }
 
-    function handleNavigation(newId: string | null) {
-        stopStreaming();
-        if (skipWatch) {
-            skipWatch = false;
-            return;
-        }
-        if (newId) {
-            loadConversation(newId);
+    // Explicit navigation function replaces the implicit watcher
+    async function navigate(id: string | null) {
+        messageStore.stopStreaming();
+        
+        if (id) {
+            conversationStore.selectConversation(id);
+            await messageStore.loadConversation(id);
         } else {
-            clearMessages();
+            conversationStore.selectConversation(null);
+            messageStore.clearMessages();
             systemPrompt.value = ''; // Reset system prompt for new chat
         }
     }
 
     async function send() {
-        if (!inputText.value.trim() || isStreaming.value) return;
+        if (!inputText.value.trim() || messageStore.isStreaming) return;
         const text = inputText.value;
         inputText.value = '';
         
-        if (!currentConversationId.value) {
+        if (!conversationStore.currentConversationId) {
             // Use the selected/written system prompt (empty string if null)
             const sysPrompt = systemPrompt.value.trim() || null;
-            const result = await createConversation(null, sysPrompt);
+            const result = await conversationStore.createConversation(null, sysPrompt);
             if (!result) return;
             
-            skipWatch = true; 
-            selectConversation(result.conversationId);
-            activeLeafId.value = result.rootMessageId;
+            // Explicitly navigate to the new conversation to hydrate the root system message
+            // This guarantees the root message is in the local array before we append the user message.
+            await navigate(result.conversationId);
             
             const devPrompt = developerPrompt.value.trim() || null;
-            const userMsgId = await sendMessage(text, devPrompt);
+            const userMsgId = await messageStore.sendMessage(text, devPrompt);
             
-            if (userMsgId && currentConversationId.value) {
-                generateTitle(currentConversationId.value, false);
+            if (userMsgId && conversationStore.currentConversationId) {
+                conversationStore.generateTitle(conversationStore.currentConversationId, false);
             }
         } else {
             const devPrompt = developerPrompt.value.trim() || null;
-            await sendMessage(text, devPrompt);
+            await messageStore.sendMessage(text, devPrompt);
         }
         
         // Clear developer prompt after sending
@@ -79,24 +60,7 @@ export function useChatEngine() {
     }
 
     async function cancel() {
-        if (!activeLeafId.value || !isStreaming.value) return;
-        const messageId = activeLeafId.value;
-        
-        // 1. Abort the local SSE listener
-        stopStreaming();
-        
-        // 2. Update local state immediately so UI unlocks
-        const msgIndex = messages.value.findIndex(m => m.id === messageId);
-        if (msgIndex !== -1) {
-            messages.value[msgIndex].status = 'canceled';
-        }
-        
-        // 3. Tell the backend to stop the LLM and save partial content
-        try {
-            await fetch(`/api/chat/messages/${messageId}/cancel`, { method: 'POST' });
-        } catch (error) {
-            console.error("Error canceling message:", error);
-        }
+        messageStore.cancelGeneration();
     }
 
     return {
@@ -105,7 +69,7 @@ export function useChatEngine() {
         developerPrompt,
         isPromptLibraryVisible,
         initialize,
-        handleNavigation,
+        navigate,
         send,
         cancel
     };

@@ -9,11 +9,11 @@
         <div class="conversation-list-container">
             <ul class="conversation-list">
                 <li 
-                    v-for="conv in conversations" 
+                    v-for="conv in conversationStore.conversations" 
                     :key="conv.id" 
-                    @click="selectConversation(conv.id)"
+                    @click="handleSelect(conv.id)"
                     @dblclick="startEditing(conv)"
-                    :class="{ 'active': conv.id === currentConversationId }"
+                    :class="{ 'active': conv.id === conversationStore.currentConversationId }"
                 >
                     <input 
                         v-if="editingId === conv.id"
@@ -32,7 +32,7 @@
                             @rename="startEditing(conv)"
                             @generate-title="handleGenerateTitle(conv.id)"
                             @touch="handleTouch(conv.id)"
-                            @delete="deleteConversation(conv.id)"
+                            @delete="handleDelete(conv.id)"
                         />
                     </div>
                 </li>
@@ -48,14 +48,17 @@
 </template>
 
 <script setup lang="ts">
-import { useConversations } from '@/chat/useConversations';
+import { useConversationStore } from '@/chat/stores/conversation';
 import { useTitleEdit } from './useTitleEdit';
 import ConversationMenu from './ConversationMenu.vue';
 import { ICONS } from '@/icons';
 
-const emit = defineEmits<{ (e: 'openPromptLibrary'): void }>();
+const emit = defineEmits<{ 
+    (e: 'openPromptLibrary'): void,
+    (e: 'navigate', id: string | null): void 
+}>();
 
-const { conversations, currentConversationId, selectConversation, generatingTitleIds, generateTitle, touchConversation, deleteConversation } = useConversations();
+const conversationStore = useConversationStore();
 const { editingId, editText, startEditing, saveEdit, cancelEdit } = useTitleEdit();
 
 // Custom directive to auto-focus and select text when the input is mounted
@@ -66,20 +69,33 @@ const vFocus = {
     }
 };
 
-function handleNewChat() {
-    selectConversation(null);
-}
-
 function isGenerating(id: string) {
-    return generatingTitleIds.value.includes(id);
+    return conversationStore.generatingTitleIds.includes(id);
 }
 
 function handleGenerateTitle(id: string) {
-    generateTitle(id, true);
+    conversationStore.generateTitle(id, true);
 }
 
 function handleTouch(id: string) {
-    touchConversation(id);
+    conversationStore.touchConversation(id);
+}
+
+function handleNewChat() {
+    emit('navigate', null);
+}
+
+function handleSelect(id: string) {
+    emit('navigate', id);
+}
+
+async function handleDelete(id: string) {
+    const wasActive = conversationStore.currentConversationId === id;
+    await conversationStore.deleteConversation(id);
+    // If we deleted the active conversation, explicitly navigate to New Chat state
+    if (wasActive) {
+        emit('navigate', null);
+    }
 }
 </script>
 

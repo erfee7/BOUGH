@@ -48,6 +48,16 @@ class PromptUpdateRequest(BaseModel):
     role: Literal['system', 'developer'] | None = None
     description: str | None = None
 
+class PresetCreateRequest(BaseModel):
+    name: str
+    model: str | None = None
+    parameters: dict | None = None
+
+class PresetUpdateRequest(BaseModel):
+    name: str | None = None
+    model: str | None = None
+    parameters: dict | None = None
+
 # --- Response Models ---
 
 class MessageResponse(BaseModel):
@@ -77,6 +87,18 @@ class PromptResponse(BaseModel):
     description: str | None = None
     created_at: datetime
     updated_at: datetime
+
+class PresetResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    model: str | None = None
+    parameters: dict
+    created_at: datetime
+    updated_at: datetime
+
+class ModelResponse(BaseModel):
+    id: str
+    name: str
 
 class ConversationCreateRequestResponse(BaseModel):
     conversation: ConversationResponse

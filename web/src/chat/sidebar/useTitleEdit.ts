@@ -1,9 +1,9 @@
 import { ref } from 'vue';
-import { useConversations } from '@/chat/useConversations';
+import { useConversationStore } from '@/chat/stores/conversation';
 import { ConversationSummary } from '@/types';
 
 export function useTitleEdit() {
-    const { conversations, updateTitle } = useConversations();
+    const conversationStore = useConversationStore();
 
     const editingId = ref<string | null>(null);
     const editText = ref<string>('');
@@ -15,9 +15,9 @@ export function useTitleEdit() {
 
     function saveEdit() {
         if (editingId.value) {
-            const conv = conversations.value.find(c => c.id === editingId.value);
+            const conv = conversationStore.conversations.find(c => c.id === editingId.value);
             if (conv && (conv.title || '') !== editText.value.trim()) {
-                updateTitle(editingId.value, editText.value);
+                conversationStore.updateTitle(editingId.value, editText.value);
             }
             editingId.value = null;
         }

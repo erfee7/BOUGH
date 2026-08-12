@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 -- Prompts Table
-CREATE TABLE prompts (
+CREATE TABLE IF NOT EXISTS prompts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     content TEXT NOT NULL,
@@ -35,8 +35,18 @@ CREATE TABLE prompts (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Generation Presets Table
+CREATE TABLE IF NOT EXISTS generation_presets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    model TEXT, -- Nullable, NULL means server default
+    parameters JSONB NOT NULL DEFAULT '{}', -- Raw wire-shaped bag
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- Indexes for fast traversal
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages (conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages (parent_id);
 CREATE INDEX IF NOT EXISTS idx_prompts_role ON prompts (role);
+CREATE INDEX IF NOT EXISTS idx_generation_presets_name ON generation_presets (name);

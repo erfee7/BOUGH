@@ -1,12 +1,12 @@
+import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { ConversationSummary } from '@/types';
 
-const conversations = ref<ConversationSummary[]>([]);
-const currentConversationId = ref<string | null>(null);
-const generatingTitleIds = ref<string[]>([]);
+export const useConversationStore = defineStore('conversation', () => {
+    const conversations = ref<ConversationSummary[]>([]);
+    const currentConversationId = ref<string | null>(null);
+    const generatingTitleIds = ref<string[]>([]);
 
-export function useConversations() {
-    
     async function fetchAllConversations() {
         try {
             const response = await fetch('/api/chat/conversations');
@@ -153,19 +153,18 @@ export function useConversations() {
         }
     }
 
-// Update the return statement:
     return {
         conversations,
         currentConversationId,
+        generatingTitleIds,
         fetchAllConversations,
         createConversation,
         selectConversation,
         touchConversation,
         deleteConversation,
         updateTitle,
-        generatingTitleIds,
         generateTitle,
         updateActiveLeaf,
         bumpLocalConversation
     };
-}
+});

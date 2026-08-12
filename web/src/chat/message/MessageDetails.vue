@@ -81,9 +81,15 @@ const parameterChips = computed(() => {
         label = label.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         
         // Format value (trim trailing zeros for numbers)
-        let val = value;
-        if (typeof val === 'number' && !Number.isInteger(val)) {
-            val = parseFloat(val.toFixed(2));
+        let val: string;
+        if (value === null) {
+            val = 'null';
+        } else if (typeof value === 'number' && !Number.isInteger(value)) {
+            val = String(parseFloat(value.toFixed(2)));
+        } else if (typeof value === 'object') {
+            val = JSON.stringify(value);
+        } else {
+            val = String(value);
         }
         return { label, value: val };
     });

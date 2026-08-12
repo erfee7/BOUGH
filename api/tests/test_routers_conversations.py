@@ -9,8 +9,8 @@ from app.main import app
 from app.db import conversations as db_conversations
 from app.db import messages as db_messages
 
-TEST_CONVERSATION_TITLE = "Conv API Test"
-TEST_SYSTEM_PROMPT = "You are a test assistant."
+_TEST_CONVERSATION_TITLE = "Conv API Test"
+_TEST_SYSTEM_PROMPT = "You are a test assistant."
 
 @pytest.mark.asyncio
 async def test_create_conversation_endpoint(mock_pool):
@@ -19,8 +19,8 @@ async def test_create_conversation_endpoint(mock_pool):
     with patch('app.routers.conversations.get_pool', return_value = mock_pool):
         async with httpx.AsyncClient(transport = ASGITransport(app = app), base_url = "http://test") as client:
             payload = {
-                "title": TEST_CONVERSATION_TITLE,
-                "system_prompt": TEST_SYSTEM_PROMPT
+                "title": _TEST_CONVERSATION_TITLE,
+                "system_prompt": _TEST_SYSTEM_PROMPT
             }
             response = await client.post("/api/chat/conversations", json = payload)
             
@@ -29,7 +29,7 @@ async def test_create_conversation_endpoint(mock_pool):
             
             # Validate response structure
             assert "conversation" in data
-            assert data["conversation"]["title"] == TEST_CONVERSATION_TITLE
+            assert data["conversation"]["title"] == _TEST_CONVERSATION_TITLE
             assert data["conversation"]["active_leaf_id"] == data["root_message_id"]
             
             # Verify it actually wrote to the DB using the transactional connection
@@ -38,24 +38,24 @@ async def test_create_conversation_endpoint(mock_pool):
             
             conv = await db_conversations.fetch_conversation(conv_id, conn = mock_pool.conn)
             assert conv is not None
-            assert conv['title'] == TEST_CONVERSATION_TITLE
+            assert conv['title'] == _TEST_CONVERSATION_TITLE
             assert conv['active_leaf_id'] == root_msg_id
             
             msg = await db_messages.fetch_message(root_msg_id, conn = mock_pool.conn)
             assert msg is not None
             assert msg['role'] == "system"
-            assert msg['content'] == TEST_SYSTEM_PROMPT
+            assert msg['content'] == _TEST_SYSTEM_PROMPT
             assert msg['creation_data'] == {"source": "user"}
 
 @pytest.mark.asyncio
 async def test_get_conversation_endpoint(mock_pool):
     """Tests the GET /api/chat/conversations/{id} endpoint."""
     # Setup: Directly insert a conversation and message into our transaction
-    conv_id = await db_conversations.create_conversation(title=TEST_CONVERSATION_TITLE, conn = mock_pool.conn)
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn = mock_pool.conn)
     msg_id = await db_messages.create_message(
         conversation_id = conv_id,
         role = "system",
-        content = TEST_SYSTEM_PROMPT,
+        content = _TEST_SYSTEM_PROMPT,
         status = "complete",
         creation_data = {"source": "user"},
         conn = mock_pool.conn
@@ -72,7 +72,7 @@ async def test_get_conversation_endpoint(mock_pool):
             
             # Validate conversation structure
             assert data["conversation"]["id"] == str(conv_id)
-            assert data["conversation"]["title"] == TEST_CONVERSATION_TITLE
+            assert data["conversation"]["title"] == _TEST_CONVERSATION_TITLE
             assert data["conversation"]["active_leaf_id"] == str(msg_id)
             
             # Validate messages structure
@@ -80,7 +80,7 @@ async def test_get_conversation_endpoint(mock_pool):
             msg = data["messages"][0]
             assert msg["id"] == str(msg_id)
             assert msg["role"] == "system"
-            assert msg["content"] == TEST_SYSTEM_PROMPT
+            assert msg["content"] == _TEST_SYSTEM_PROMPT
             assert msg["status"] == "complete"
 
 @pytest.mark.asyncio
@@ -129,7 +129,7 @@ async def test_update_conversation_title_endpoint(mock_pool):
     # Patch the get_pool in database layer to use our transactional FakePool
     with patch('app.db.connection.get_pool', return_value=mock_pool):
         async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            payload = {"title": TEST_CONVERSATION_TITLE}
+            payload = {"title": _TEST_CONVERSATION_TITLE}
             response = await client.patch(f"/api/chat/conversations/{conv_id}", json=payload)
             
             assert response.status_code == 200
@@ -137,12 +137,12 @@ async def test_update_conversation_title_endpoint(mock_pool):
             
             # Validate response structure
             assert data["id"] == str(conv_id)
-            assert data["title"] == TEST_CONVERSATION_TITLE
+            assert data["title"] == _TEST_CONVERSATION_TITLE
             
             # Verify it actually wrote to the DB
             conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
             assert conv is not None
-            assert conv['title'] == TEST_CONVERSATION_TITLE
+            assert conv['title'] == _TEST_CONVERSATION_TITLE
 
 @pytest.mark.asyncio
 async def test_update_conversation_title_empty_string(mock_pool):

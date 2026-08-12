@@ -1,17 +1,23 @@
+import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { Prompt } from '@/types';
 
-const prompts = ref<Prompt[]>([]);
-const isLoading = ref(false);
+export const usePromptStore = defineStore('prompt', () => {
+    const prompts = ref<Prompt[]>([]);
+    const isLoading = ref(false);
+    const isInitialized = ref(false);
 
-export function usePrompts() {
-    
-    async function fetchPrompts() {
+    async function fetchPrompts(force: boolean = false) {
+        // If we've already fetched and aren't forcing a refresh, do nothing.
+        // This prevents redundant calls when PromptSelector components mount/unmount.
+        if (isInitialized.value && !force) return;
+        
         isLoading.value = true;
         try {
             const response = await fetch('/api/chat/prompts');
             if (!response.ok) throw new Error('Failed to fetch prompts');
             prompts.value = await response.json();
+            isInitialized.value = true; // Mark as initialized only on success
         } catch (error) {
             console.error("Error fetching prompts:", error);
         } finally {
@@ -27,7 +33,7 @@ export function usePrompts() {
                 body: JSON.stringify(data)
             });
             if (!response.ok) throw new Error('Failed to create prompt');
-            await fetchPrompts(); // Refresh list
+            await fetchPrompts(true); // Force refresh to get the new list
         } catch (error) {
             console.error("Error creating prompt:", error);
         }
@@ -41,7 +47,7 @@ export function usePrompts() {
                 body: JSON.stringify(data)
             });
             if (!response.ok) throw new Error('Failed to update prompt');
-            await fetchPrompts(); // Refresh list
+            await fetchPrompts(true); // Force refresh
         } catch (error) {
             console.error("Error updating prompt:", error);
         }
@@ -51,7 +57,7 @@ export function usePrompts() {
         try {
             const response = await fetch(`/api/chat/prompts/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Failed to delete prompt');
-            await fetchPrompts(); // Refresh list
+            await fetchPrompts(true); // Force refresh
         } catch (error) {
             console.error("Error deleting prompt:", error);
         }
@@ -65,4 +71,4 @@ export function usePrompts() {
         updatePrompt,
         deletePrompt
     };
-}
+});

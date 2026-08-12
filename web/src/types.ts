@@ -27,3 +27,28 @@ export interface Prompt {
     created_at: string;
     updated_at: string;
 }
+
+export interface CustomParam {
+    id: string;
+    key: string;
+    rawValue: string;
+}
+
+export interface GenerationPayload {
+    model?: string;
+    parameters?: Record<string, unknown>;
+}
+
+export interface GenerationPreset {
+    id: string;
+    name: string;
+    model: string | null;
+    parameters: Record<string, any>;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+}

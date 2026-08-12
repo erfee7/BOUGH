@@ -27,7 +27,7 @@
                 <div class="prompt-list-container">
                     <h3>Saved Prompts</h3>
                     <ul class="prompt-list">
-                        <li v-for="p in prompts" :key="p.id" class="prompt-item">
+                        <li v-for="p in promptStore.prompts" :key="p.id" class="prompt-item">
                             <div v-if="editingId !== p.id" class="prompt-view">
                                 <div class="prompt-info">
                                     <strong>{{ p.name }}</strong> <span class="role-tag">{{ p.role }}</span>
@@ -69,15 +69,17 @@
 
 <script setup lang="ts">
 import { toRef } from 'vue';
+import { usePromptStore } from '@/chat/stores/prompt';
 import { usePromptLibrary } from './usePromptLibrary';
 import { ICONS } from '@/icons';
 
 const props = defineProps<{ isVisible: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void }>();
 
+const promptStore = usePromptStore();
 const isVisibleRef = toRef(props, 'isVisible');
+
 const { 
-    prompts, 
     newPrompt, 
     editingId, 
     editData, 

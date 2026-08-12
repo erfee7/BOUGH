@@ -259,6 +259,7 @@ function toggleExpand() {
     cursor: pointer;
     font-size: 14px;
     padding: 6px 0; /* Less padding, remove left padding to align with content */
+    margin-bottom: 0; /* Remove inherited margin to eliminate the gap below */
     align-items: center;
     transition: color 0.2s;
     color: var(--text-faded); /* Muted color */

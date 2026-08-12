@@ -1,15 +1,15 @@
 <template>
     <div class="messages-container" ref="messagesContainer">
         <ChatMessage 
-            v-for="msg in activePath" 
+            v-for="msg in messageStore.activePath" 
             :key="msg.id"
             :message="msg" 
-            :siblingInfo="getSiblingInfoUtil(msg.id, messages)"
+            :siblingInfo="getSiblingInfoUtil(msg.id, messageStore.messages)"
             :isEditing="editingMessageId === msg.id"
             :editingText="editingText"
             @update:editingText="editingText = $event"
-            @switch-sibling="(direction: 'prev' | 'next') => switchSibling(msg.id, direction)"
-            @generate="generateMessage(msg.id)"
+            @switch-sibling="(direction: 'prev' | 'next') => messageStore.switchSibling(msg.id, direction)"
+            @generate="messageStore.generateMessage(msg.id)"
             @start-edit="startEdit(msg)"
             @cancel-edit="cancelEdit()"
             @save-edit="(shouldGenerate: boolean) => saveEdit(msg, shouldGenerate)"
@@ -19,30 +19,26 @@
 
 <script setup lang="ts">
 import ChatMessage from './message/ChatMessage.vue';
-import { useBranching } from './useBranching';
-import { useMessages } from './useMessages.js';
+import { useMessageStore } from './stores/message';
+import { useMessageEdit } from './useMessageEdit';
 import { getSiblingInfo as getSiblingInfoUtil } from './branchingUtils.js';
 
-const { messages,
-        generateMessage
- } = useMessages();
+const messageStore = useMessageStore();
 
 const { 
-    activePath, 
     editingMessageId, 
     editingText, 
-    switchSibling, 
     startEdit, 
     cancelEdit, 
     saveEdit
-} = useBranching();
+} = useMessageEdit();
 </script>
 
 <style scoped>
 .messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 2%; /* Wider responsive padding */
+    padding: 0 2% 24px;
     scrollbar-width: thin;
     scrollbar-color: var(--bg-tertiary) transparent;
 }
