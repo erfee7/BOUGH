@@ -38,7 +38,7 @@ const {
 .messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 2%; /* Wider responsive padding */
+    padding: 0 2% 24px;
     scrollbar-width: thin;
     scrollbar-color: var(--bg-tertiary) transparent;
 }
