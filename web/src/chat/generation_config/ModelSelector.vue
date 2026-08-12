@@ -22,8 +22,9 @@
                     />
                     <button 
                         @click="handleRefresh" 
-                        class="model-refresh-btn"
+                        class="btn-icon"
                         :class="{ 'is-spinning': modelsStore.isLoading }"
+                        :disabled="modelsStore.isLoading"
                         title="Force refresh model list"
                     >
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.rotate_cw"></svg>
@@ -113,6 +114,8 @@ function selectModel(id: string) {
 }
 
 async function handleRefresh() {
+    // Guard against multiple clicks
+    if (modelsStore.isLoading) return;
     await modelsStore.fetchModels(true);
 }
 
@@ -205,23 +208,7 @@ onUnmounted(() => {
     border-color: var(--accent-blue);
 }
 
-.model-refresh-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-sm);
-}
-
-.model-refresh-btn:hover {
-    color: var(--accent-blue);
-}
-
-.model-refresh-btn.is-spinning svg {
+.btn-icon.is-spinning svg {
     animation: spin 0.8s linear infinite;
 }
 

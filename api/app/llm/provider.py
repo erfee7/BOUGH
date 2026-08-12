@@ -184,8 +184,10 @@ async def list_models(force: bool = False) -> list[dict]:
     
     if not force and _models_cache is not None and _models_cache_at is not None:
         if now - _models_cache_at < _MODELS_CACHE_TTL:
+            logger.info("Returning models from in-memory cache.")
             return _models_cache
             
+    logger.info("Fetching fresh models from provider (force=%s)...", force)
     base_url = os.getenv("PROVIDER_BASE_URL", "https://openrouter.ai/api/v1")
     
     try:
@@ -202,6 +204,7 @@ async def list_models(force: bool = False) -> list[dict]:
         
         _models_cache = models
         _models_cache_at = time.time()
+        logger.info("Successfully fetched and cached %d models.", len(models))
         return models
         
     except Exception as e:

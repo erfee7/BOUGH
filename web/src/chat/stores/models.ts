@@ -13,7 +13,9 @@ export const useModelsStore = defineStore('models', () => {
         
         isLoading.value = true;
         try {
-            const response = await fetch('/api/chat/models');
+            // Pass the force flag to the backend so it bypasses the 24h cache
+            const url = force ? '/api/chat/models?force=true' : '/api/chat/models';
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
