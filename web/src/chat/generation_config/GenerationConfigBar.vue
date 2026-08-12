@@ -37,12 +37,7 @@
         <!-- Model Group -->
         <div class="config-group">
             <label class="config-label">Model</label>
-            <input 
-                type="text" 
-                v-model="generationConfigStore.model" 
-                placeholder="Server default" 
-                class="config-input"
-            />
+            <ModelSelector />
         </div>
         
         <!-- Reasoning Group -->
@@ -91,6 +86,7 @@ import { useGenerationConfigStore } from '../stores/generationConfig';
 import { usePresetStore } from '../stores/preset';
 import { ICONS } from '@/icons';
 import PresetModal from './PresetModal.vue';
+import ModelSelector from './ModelSelector.vue';
 
 const generationConfigStore = useGenerationConfigStore();
 const presetStore = usePresetStore();
