@@ -37,6 +37,20 @@ export const usePresetStore = defineStore('preset', () => {
         }
     }
 
+    async function updatePreset(id: string, data: { name: string, model: string | null, parameters: Record<string, unknown> }) {
+        try {
+            const response = await fetch(`/api/chat/presets/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) throw new Error('Failed to update preset');
+            await fetchPresets(true); // Force refresh
+        } catch (error) {
+            console.error("Error updating preset:", error);
+        }
+    }
+
     async function deletePreset(id: string) {
         try {
             const response = await fetch(`/api/chat/presets/${id}`, { method: 'DELETE' });
@@ -52,6 +66,7 @@ export const usePresetStore = defineStore('preset', () => {
         isLoading,
         fetchPresets,
         createPreset,
+        updatePreset,
         deletePreset
     };
 });

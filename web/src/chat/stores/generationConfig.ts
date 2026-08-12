@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import { CustomParam, GenerationPayload, GenerationPreset } from '@/types';
 
 export const useGenerationConfigStore = defineStore('generationConfig', () => {
@@ -7,6 +7,22 @@ export const useGenerationConfigStore = defineStore('generationConfig', () => {
     const model = ref('');
     const reasoningEffort = ref<'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | null>(null);
     const customParams = ref<CustomParam[]>([]);
+
+   // Preset State Management
+    const loadedPresetId = ref<string>('default');
+    const isDirty = ref(false);
+    let isLoadingPreset = false;
+
+    // Watch for manual changes to mark state as "dirty"
+    watch([model, reasoningEffort, customParams], () => {
+        if (!isLoadingPreset) {
+            isDirty.value = true;
+            // If we tweak the "Default" config, it becomes a "Custom" unsaved state
+            if (loadedPresetId.value === 'default') {
+                loadedPresetId.value = 'custom';
+            }
+        }
+    }, { deep: true });
 
     function parseParamValue(raw: string): unknown {
         if (raw === '') return '';
@@ -54,14 +70,21 @@ export const useGenerationConfigStore = defineStore('generationConfig', () => {
     }
 
     function clearConfig() {
+        isLoadingPreset = true;
         model.value = '';
         reasoningEffort.value = null;
         customParams.value = [];
+        loadedPresetId.value = 'default';
+        isDirty.value = false;
+        nextTick(() => { isLoadingPreset = false; });
     }
 
     const VALID_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
 
     function loadPreset(preset: GenerationPreset) {
+        isLoadingPreset = true;
+        loadedPresetId.value = preset.id;
+        isDirty.value = false;
         model.value = preset.model || '';
         const params = preset.parameters || {};
         
@@ -84,6 +107,8 @@ export const useGenerationConfigStore = defineStore('generationConfig', () => {
                 key: key,
                 rawValue: typeof val === 'object' ? JSON.stringify(val) : String(val)
             }));
+        
+        nextTick(() => { isLoadingPreset = false; });
     }
 
     function buildPresetData(name: string) {
@@ -109,6 +134,8 @@ export const useGenerationConfigStore = defineStore('generationConfig', () => {
         model,
         reasoningEffort,
         customParams,
+        loadedPresetId,
+        isDirty,
         parseParamValue,
         buildGeneratePayload,
         addParam,
