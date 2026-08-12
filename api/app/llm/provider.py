@@ -1,7 +1,9 @@
 import logging
 import os
+import time
 from typing import Any, AsyncGenerator
 
+import httpx
 from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
@@ -24,7 +26,7 @@ def _get_client() -> AsyncOpenAI:
         
     # Define the OpenRouter attribution headers
     default_headers = {
-        "X-Title": "BOUGH",
+        "X-OpenRouter-Title": "BOUGH",
         "HTTP-Referer": "https://github.com/erfee7/BOUGH", 
     }
         
@@ -166,3 +168,42 @@ async def generate_completion(
             "usage": {},
             "error": str(e)
         }
+
+# Module-level cache for models list
+_models_cache: list[dict] | None = None
+_models_cache_at: float | None = None
+_MODELS_CACHE_TTL = 24 * 3600  # 24 hours in seconds
+
+async def list_models(force: bool = False) -> list[dict]:
+    """
+    Fetches the list of available models from the provider.
+    Uses an in-memory cache with a 24h TTL. Fails honestly if the fetch fails.
+    """
+    global _models_cache, _models_cache_at
+    now = time.time()
+    
+    if not force and _models_cache is not None and _models_cache_at is not None:
+        if now - _models_cache_at < _MODELS_CACHE_TTL:
+            return _models_cache
+            
+    base_url = os.getenv("PROVIDER_BASE_URL", "https://openrouter.ai/api/v1")
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{base_url}/models")
+            response.raise_for_status()
+            data = response.json()
+            
+        # Minimal mapping: just id and name
+        models = [
+            {"id": m["id"], "name": m["name"]}
+            for m in data.get("data", [])
+        ]
+        
+        _models_cache = models
+        _models_cache_at = time.time()
+        return models
+        
+    except Exception as e:
+        logger.error("Failed to fetch models from provider: %s", e)
+        raise Exception("Failed to fetch models from provider.") from e

@@ -96,6 +96,10 @@ class PresetResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+class ModelResponse(BaseModel):
+    id: str
+    name: str
+
 class ConversationCreateRequestResponse(BaseModel):
     conversation: ConversationResponse
     root_message_id: uuid.UUID

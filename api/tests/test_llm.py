@@ -1,7 +1,8 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from app.llm.provider import generate_stream, generate_completion
+from app.llm.provider import generate_stream, generate_completion, list_models
+import app.llm.provider as provider_module
 
 _TEST_METADATA = {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}
 TEET_PARAMETERS = {"temperature": 0.5, "reasoning": {"effort": "low"}}
@@ -199,3 +200,64 @@ async def test_generate_stream_no_usage():
     assert events[0] == {"type": "token", "content": "Hello"}
     # Ensure done is yielded with empty metadata, preventing frontend hangs
     assert events[1] == {"type": "done", "metadata": {}}
+
+@pytest.mark.asyncio
+async def test_list_models_fetch_and_cache():
+    """Tests that list_models fetches from the provider and caches the result."""
+    # Reset cache before test
+    provider_module._models_cache = None
+    provider_module._models_cache_at = None
+    
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {
+        "data": [
+            {"id": "m1", "name": "Model 1"},
+            {"id": "m2", "name": "Model 2"}
+        ]
+    }
+    
+    # Patch the env var AND the httpx client
+    with patch('app.llm.provider.httpx.AsyncClient') as mock_client_cls, \
+         patch.dict('os.environ', {'PROVIDER_BASE_URL': 'http://mock-provider/api/v1'}):
+        
+        mock_client_instance = AsyncMock()
+        mock_client_instance.get = AsyncMock(return_value=mock_response)
+        mock_client_cls.return_value.__aenter__.return_value = mock_client_instance
+        
+        # First call: should fetch
+        models = await list_models()
+        assert len(models) == 2
+        assert models[0] == {"id": "m1", "name": "Model 1"}
+        assert models[1] == {"id": "m2", "name": "Model 2"}
+        
+        # Assert against the mocked env var URL
+        mock_client_instance.get.assert_called_once_with("http://mock-provider/api/v1/models")
+        
+        # Second call: should use cache (get not called again)
+        models_cached = await list_models()
+        assert models_cached == models
+        mock_client_instance.get.assert_called_once_with("http://mock-provider/api/v1/models")
+
+@pytest.mark.asyncio
+async def test_list_models_force_refresh():
+    """Tests that force=True bypasses the cache."""
+    # Set a fake cache
+    provider_module._models_cache = [{"id": "old", "name": "Old"}]
+    
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {"data": [{"id": "new", "name": "New"}]}
+    
+    with patch('app.llm.provider.httpx.AsyncClient') as mock_client_cls, \
+         patch.dict('os.environ', {'PROVIDER_BASE_URL': 'http://mock-provider/api/v1'}):
+        
+        mock_client_instance = AsyncMock()
+        mock_client_instance.get = AsyncMock(return_value=mock_response)
+        mock_client_cls.return_value.__aenter__.return_value = mock_client_instance
+        
+        models = await list_models(force=True)
+        assert models == [{"id": "new", "name": "New"}]
+        
+        # Assert against the mocked env var URL
+        mock_client_instance.get.assert_called_once_with("http://mock-provider/api/v1/models")
