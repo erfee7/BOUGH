@@ -38,7 +38,8 @@ const {
 .chat-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1; /* Take remaining space instead of 100% */
+    min-height: 0; /* Allow shrinking for internal scroll */
     width: 100%;
     margin: 0 auto;
 }
