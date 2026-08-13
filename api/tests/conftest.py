@@ -4,7 +4,7 @@ import asyncpg
 import uuid
 from app.db.connection import init_pool, close_pool, get_pool
 from app.main import app
-from app.security import get_current_user
+from app.security import get_current_user_id
 
 # --- Database Core Fixtures ---
 
@@ -60,13 +60,7 @@ def mock_pool(db_transaction):
 @pytest.fixture(autouse=True)
 def mock_authentication():
     """Automatically bypasses authentication for all tests by default."""
-    mock_user = {
-        "id": uuid.uuid4(),
-        "username": "autouse_testuser",
-        "password_hash": "dummy_hash",
-        "is_active": True,
-        "created_at": "2023-01-01T00:00:00+00:00"
-    }
-    app.dependency_overrides[get_current_user] = lambda: mock_user
+    mock_user_id = uuid.uuid4()
+    app.dependency_overrides[get_current_user_id] = lambda: mock_user_id
     yield
     app.dependency_overrides.clear()

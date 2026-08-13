@@ -6,8 +6,9 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from app.main import app
-from app.security import get_current_user
+from app.security import get_current_user_id
 from app.db import users as db_users
+from app.db.connection import get_pool
 
 _TEST_USERNAME = "testuser"
 _TEST_PASSWORD = "testpassword123"
@@ -99,7 +100,7 @@ async def test_logout_clears_cookie(mock_pool):
 async def test_me_endpoint_unauthenticated():
     """Tests that /me fails without a cookie."""
     # Temporarily remove the autouse auth bypass to test the real 401 behavior
-    app.dependency_overrides.pop(get_current_user, None)
+    app.dependency_overrides.pop(get_current_user_id, None)
     
     async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/api/auth/me")
@@ -107,25 +108,18 @@ async def test_me_endpoint_unauthenticated():
 
 @pytest.mark.asyncio
 async def test_me_endpoint_authenticated(mock_pool):
-    """Tests /me with a mocked authenticated user."""
-    mock_user = {
-        "id": uuid.uuid4(),
-        "username": "me_user",
-        "password_hash": _TEST_HASH,
-        "is_active": True,
-        "created_at": "2023-01-01T00:00:00+00:00"
-    }
-    
-    # Override the dependency to return our mock user
-    app.dependency_overrides[get_current_user] = lambda: mock_user
+    """Tests /me with a mocked authenticated user ID that exists in DB."""
+    user_id = await db_users.create_user(username="me_user", password_hash=_TEST_HASH, conn=mock_pool.conn)
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
     
     try:
-        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/api/auth/me")
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert data["username"] == "me_user"
+        with patch('app.db.connection.get_pool', return_value=mock_pool):
+            async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/api/auth/me")
+                
+                assert response.status_code == 200
+                data = response.json()
+                assert data["username"] == "me_user"
     finally:
         # Clean up override
         app.dependency_overrides.clear()
@@ -140,15 +134,7 @@ async def test_change_password(mock_pool):
     # Create another session that should be killed
     other_session_id = await db_users.create_session(user_id, expires_at=datetime.now(timezone.utc) + timedelta(days=1), conn=mock_pool.conn)
     
-    mock_user = {
-        "id": user_id,
-        "username": "pwd_changer",
-        "password_hash": "old_hash",
-        "is_active": True,
-        "created_at": "2023-01-01T00:00:00+00:00"
-    }
-    
-    app.dependency_overrides[get_current_user] = lambda: mock_user
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
     
     try:
         with patch('app.db.connection.get_pool', return_value=mock_pool), \

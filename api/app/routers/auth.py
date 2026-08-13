@@ -3,7 +3,7 @@ import os
 import uuid
 from fastapi import APIRouter, HTTPException, Response, Depends, Cookie
 
-from app.security import verify_password, hash_password, get_current_user, create_user_session
+from app.security import verify_password, hash_password, get_current_user_id, create_user_session
 from app.db import users as db_users
 from app.schemas.auth import LoginRequest, ChangePasswordRequest, UserResponse
 
@@ -58,17 +58,26 @@ async def logout(response: Response, session_id: str | None = Cookie(None, alias
     return {"status": "ok"}
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(user: dict = Depends(get_current_user)):
+async def get_me(user_id: uuid.UUID = Depends(get_current_user_id)):
     """Returns the currently logged-in user's information."""
+    # Fetch the user explicitly here to get the details for the response
+    user = await db_users.fetch_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     return UserResponse.model_validate(user)
 
 @router.post("/change-password", response_model=UserResponse)
 async def change_password(
     payload: ChangePasswordRequest, 
-    user: dict = Depends(get_current_user),
+    user_id: uuid.UUID = Depends(get_current_user_id),
     session_id: str | None = Cookie(None, alias="session_id")
 ):
     """Changes the user's password and invalidates other sessions."""
+    # Fetch the user explicitly here because we need the password_hash
+    user = await db_users.fetch_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
     if not verify_password(user['password_hash'], payload.old_password):
         raise HTTPException(status_code=400, detail="Incorrect current password")
         
@@ -79,7 +88,5 @@ async def change_password(
     current_session_uuid = uuid.UUID(session_id) if session_id else None
     await db_users.delete_all_sessions_for_user(user['id'], exclude_session_id=current_session_uuid)
     
-    # Fetch fresh user data to return
-    updated_user = await db_users.fetch_user_by_id(user['id'])
-    logger.info("User %s changed password", updated_user['username'])
-    return UserResponse.model_validate(updated_user)
+    logger.info("User %s changed password", user['username'])
+    return UserResponse.model_validate(user)

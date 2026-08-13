@@ -4,8 +4,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
 from fastapi import HTTPException
 
-from app.security import hash_password, verify_password, get_current_user
-from app.db.users import fetch_session, fetch_user_by_id, delete_session
+from app.security import hash_password, verify_password, get_current_user_id
 
 def test_hash_and_verify_password():
     """Tests that hashing and verifying a password works correctly."""
@@ -25,23 +24,23 @@ def test_verify_password_invalid_hash():
     assert verify_password("not_a_real_hash", "any_password") is False
 
 @pytest.mark.asyncio
-async def test_get_current_user_no_cookie():
+async def test_get_current_user_id_no_cookie():
     """Tests that missing session_id cookie raises 401."""
     with pytest.raises(HTTPException) as exc_info:
-        await get_current_user(session_id=None)
+        await get_current_user_id(session_id=None)
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Not authenticated"
 
 @pytest.mark.asyncio
-async def test_get_current_user_invalid_uuid():
+async def test_get_current_user_id_invalid_uuid():
     """Tests that a non-UUID string raises 401."""
     with pytest.raises(HTTPException) as exc_info:
-        await get_current_user(session_id="not-a-uuid")
+        await get_current_user_id(session_id="not-a-uuid")
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Invalid session token"
 
 @pytest.mark.asyncio
-async def test_get_current_user_session_not_found():
+async def test_get_current_user_id_session_not_found():
     """Tests that a valid UUID not in DB raises 401."""
     random_uuid = str(uuid.uuid4())
     
@@ -49,14 +48,14 @@ async def test_get_current_user_session_not_found():
         mock_fetch.return_value = None
         
         with pytest.raises(HTTPException) as exc_info:
-            await get_current_user(session_id=random_uuid)
+            await get_current_user_id(session_id=random_uuid)
             
         assert exc_info.value.status_code == 401
         assert exc_info.value.detail == "Session not found"
         mock_fetch.assert_called_once_with(uuid.UUID(random_uuid))
 
 @pytest.mark.asyncio
-async def test_get_current_user_expired_session():
+async def test_get_current_user_id_expired_session():
     """Tests that an expired session raises 401 and triggers cleanup deletion."""
     random_uuid = str(uuid.uuid4())
     user_id = uuid.uuid4()
@@ -75,7 +74,7 @@ async def test_get_current_user_expired_session():
         mock_fetch_session.return_value = mock_session
         
         with pytest.raises(HTTPException) as exc_info:
-            await get_current_user(session_id=random_uuid)
+            await get_current_user_id(session_id=random_uuid)
             
         assert exc_info.value.status_code == 401
         assert exc_info.value.detail == "Session expired"
@@ -83,7 +82,7 @@ async def test_get_current_user_expired_session():
         mock_delete_session.assert_called_once_with(uuid.UUID(random_uuid))
 
 @pytest.mark.asyncio
-async def test_get_current_user_inactive_user():
+async def test_get_current_user_id_inactive_user():
     """Tests that an inactive user raises 401."""
     random_uuid = str(uuid.uuid4())
     user_id = uuid.uuid4()
@@ -95,10 +94,10 @@ async def test_get_current_user_inactive_user():
         "expires_at": future_time,
         "created_at": datetime.now(timezone.utc)
     }
+    # Notice: password_hash is intentionally absent here. The guard doesn't need it.
     mock_user = {
         "id": user_id,
         "username": "inactive_user",
-        "password_hash": "hash",
         "is_active": False,
         "created_at": datetime.now(timezone.utc)
     }
@@ -110,14 +109,14 @@ async def test_get_current_user_inactive_user():
         mock_fetch_user.return_value = mock_user
         
         with pytest.raises(HTTPException) as exc_info:
-            await get_current_user(session_id=random_uuid)
+            await get_current_user_id(session_id=random_uuid)
             
         assert exc_info.value.status_code == 401
         assert exc_info.value.detail == "User inactive or not found"
 
 @pytest.mark.asyncio
-async def test_get_current_user_success():
-    """Tests that a valid session and active user returns the user dict."""
+async def test_get_current_user_id_success():
+    """Tests that a valid session and active user returns the user_id UUID."""
     random_uuid = str(uuid.uuid4())
     user_id = uuid.uuid4()
     future_time = datetime.now(timezone.utc) + timedelta(days=1)
@@ -128,10 +127,10 @@ async def test_get_current_user_success():
         "expires_at": future_time,
         "created_at": datetime.now(timezone.utc)
     }
+    # Notice: password_hash is intentionally absent here. The guard doesn't need it.
     mock_user = {
         "id": user_id,
         "username": "active_user",
-        "password_hash": "hash",
         "is_active": True,
         "created_at": datetime.now(timezone.utc)
     }
@@ -142,8 +141,9 @@ async def test_get_current_user_success():
         mock_fetch_session.return_value = mock_session
         mock_fetch_user.return_value = mock_user
         
-        result = await get_current_user(session_id=random_uuid)
+        result = await get_current_user_id(session_id=random_uuid)
         
-        assert result == mock_user
+        # It should return exactly the UUID, not the whole dict
+        assert result == user_id
         mock_fetch_session.assert_called_once_with(uuid.UUID(random_uuid))
         mock_fetch_user.assert_called_once_with(user_id)

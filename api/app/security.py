@@ -28,10 +28,10 @@ def verify_password(password_hash: str, plain_password: str) -> bool:
         logger.warning("Password verification error: %s", e)
         return False
 
-async def get_current_user(session_id: str | None = Cookie(None, alias="session_id")) -> dict:
+async def get_current_user_id(session_id: str | None = Cookie(None, alias="session_id")) -> uuid.UUID:
     """
     FastAPI dependency to protect routes. 
-    Reads the session_id cookie, validates it against the DB, and returns the user dict.
+    Reads the session_id cookie, validates it against the DB, and returns the user_id.
     """
     if not session_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
@@ -54,7 +54,7 @@ async def get_current_user(session_id: str | None = Cookie(None, alias="session_
     if not user or not user['is_active']:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User inactive or not found")
         
-    return user
+    return user['id']  # Return ONLY the ID
 
 # Helper to create session and return expiry time
 async def create_user_session(user_id: uuid.UUID) -> tuple[str, datetime]:
