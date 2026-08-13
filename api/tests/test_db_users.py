@@ -112,18 +112,23 @@ async def test_delete_session(db_transaction: asyncpg.Connection):
 
 @pytest.mark.asyncio
 async def test_delete_all_sessions_for_user(db_transaction: asyncpg.Connection):
-    """Tests deleting all sessions for a user (force logout)."""
+    """Tests deleting all sessions for a user, with optional exclusion."""
     user_id = await create_user(username="multi_session_user", password_hash="hash", conn=db_transaction)
     
-    await create_session(user_id=user_id, expires_at=datetime.now(timezone.utc), conn=db_transaction)
-    await create_session(user_id=user_id, expires_at=datetime.now(timezone.utc), conn=db_transaction)
-    await create_session(user_id=user_id, expires_at=datetime.now(timezone.utc), conn=db_transaction)
+    session_id_1 = await create_session(user_id=user_id, expires_at=datetime.now(timezone.utc), conn=db_transaction)
+    session_id_2 = await create_session(user_id=user_id, expires_at=datetime.now(timezone.utc), conn=db_transaction)
+    session_id_3 = await create_session(user_id=user_id, expires_at=datetime.now(timezone.utc), conn=db_transaction)
     
+    # Delete all EXCEPT session_id_2
+    await delete_all_sessions_for_user(user_id=user_id, exclude_session_id=session_id_2, conn=db_transaction)
+    
+    assert await fetch_session(session_id=session_id_1, conn=db_transaction) is None
+    assert await fetch_session(session_id=session_id_2, conn=db_transaction) is not None # Kept alive
+    assert await fetch_session(session_id=session_id_3, conn=db_transaction) is None
+    
+    # Now delete the rest with no exclusion
     await delete_all_sessions_for_user(user_id=user_id, conn=db_transaction)
-    
-    # To verify they are gone, we can try to fetch one (but we don't have the ID).
-    # Instead, let's just ensure the function runs without error and affects rows.
-    # In a real scenario, the DB constraint handles this. We trust the SQL executed.
+    assert await fetch_session(session_id=session_id_2, conn=db_transaction) is None
 
 @pytest.mark.asyncio
 async def test_delete_expired_sessions(db_transaction: asyncpg.Connection):

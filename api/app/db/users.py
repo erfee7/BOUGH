@@ -79,11 +79,16 @@ async def delete_session(session_id: uuid.UUID, conn: asyncpg.Connection | None 
     logger.info("Deleted session ID: %s", session_id)
 
 @with_connection
-async def delete_all_sessions_for_user(user_id: uuid.UUID, conn: asyncpg.Connection | None = None) -> None:
-    """Deletes all sessions for a user (force logout everywhere)."""
-    query = "DELETE FROM sessions WHERE user_id = $1;"
-    await conn.execute(query, user_id)
-    logger.info("Deleted all sessions for user ID: %s", user_id)
+async def delete_all_sessions_for_user(user_id: uuid.UUID, exclude_session_id: uuid.UUID | None = None, conn: asyncpg.Connection | None = None) -> None:
+    """Deletes all sessions for a user (force logout), optionally keeping one alive."""
+    if exclude_session_id:
+        query = "DELETE FROM sessions WHERE user_id = $1 AND id != $2;"
+        await conn.execute(query, user_id, exclude_session_id)
+        logger.info("Deleted sessions for user %s excluding %s", user_id, exclude_session_id)
+    else:
+        query = "DELETE FROM sessions WHERE user_id = $1;"
+        await conn.execute(query, user_id)
+        logger.info("Deleted all sessions for user ID: %s", user_id)
 
 @with_connection
 async def delete_expired_sessions(conn: asyncpg.Connection | None = None) -> None:
