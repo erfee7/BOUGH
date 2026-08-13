@@ -82,8 +82,12 @@ async def test_logout_clears_cookie(mock_pool):
     session_id = await db_users.create_session(user_id, expires_at=datetime.now(timezone.utc) + timedelta(days=1), conn=mock_pool.conn)
     
     with patch('app.db.connection.get_pool', return_value=mock_pool):
-        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/api/auth/logout", cookies={"session_id": str(session_id)})
+        async with httpx.AsyncClient(
+            transport=ASGITransport(app=app), 
+            base_url="http://test", 
+            cookies={"session_id": str(session_id)}
+        ) as client:
+            response = await client.post("/api/auth/logout")
             
             assert response.status_code == 200
             
@@ -141,13 +145,13 @@ async def test_change_password(mock_pool):
              patch('app.routers.auth.verify_password', return_value=True), \
              patch('app.routers.auth.hash_password', return_value="new_hash"):
             
-            async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            async with httpx.AsyncClient(
+                transport=ASGITransport(app=app), 
+                base_url="http://test", 
+                cookies={"session_id": str(current_session_id)}
+            ) as client:
                 payload = {"old_password": "old", "new_password": "new"}
-                response = await client.post(
-                    "/api/auth/change-password", 
-                    json=payload,
-                    cookies={"session_id": str(current_session_id)}
-                )
+                response = await client.post("/api/auth/change-password", json=payload)
                 
                 assert response.status_code == 200
                 
