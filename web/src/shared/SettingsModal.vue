@@ -21,19 +21,23 @@
                 <!-- Right Content Area -->
                 <div class="settings-pane">
                     <div v-if="activeTab === 'account'" class="account-section">
-                        <div class="user-info">
-                            <div class="user-avatar">👤</div>
-                            <div class="user-details">
-                                <span class="label">Signed in as</span>
-                                <span class="username">{{ username }}</span>
-                            </div>
+                        <div class="section-header">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.user"></svg>
+                            <h3 class="section-title">Account</h3>
+                        </div>
+                        
+                        <div class="detail-row">
+                            <span class="detail-label">Username</span>
+                            <span class="detail-value">{{ username }}</span>
                         </div>
                         
                         <div class="action-list">
                             <button class="action-btn" @click="isChangePasswordVisible = true">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.key_round"></svg>
                                 Change Password
                             </button>
                             <button class="action-btn danger" @click="emit('logout')">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.log_out"></svg>
                                 Logout
                             </button>
                         </div>
@@ -53,6 +57,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import ChangePasswordModal from './ChangePasswordModal.vue';
+import { ICONS } from '@/icons';
 
 const props = defineProps<{ username: string }>();
 const emit = defineEmits(['close', 'logout']);
@@ -73,6 +78,7 @@ const isChangePasswordVisible = ref(false);
 }
 .modal-content {
     background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
     border-radius: 12px;
     width: 640px;
     max-width: 90vw;
@@ -80,7 +86,7 @@ const isChangePasswordVisible = ref(false);
     max-height: 80vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     overflow: hidden;
 }
 .modal-header {
@@ -88,20 +94,23 @@ const isChangePasswordVisible = ref(false);
     justify-content: space-between;
     align-items: center;
     padding: 16px 24px;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-default);
     flex-shrink: 0;
 }
 .modal-header h2 {
     margin: 0;
-    font-size: 20px;
+    font-size: 18px;
+    font-weight: 600;
 }
 .close-btn {
     background: transparent;
     border: none;
-    font-size: 24px;
+    font-size: 20px;
     cursor: pointer;
     color: var(--text-secondary);
     padding: 0 4px;
+    display: flex;
+    align-items: center;
 }
 .close-btn:hover {
     color: var(--text-primary);
@@ -114,8 +123,8 @@ const isChangePasswordVisible = ref(false);
 }
 
 .settings-nav {
-    width: 180px;
-    border-right: 1px solid var(--border-color);
+    width: 160px;
+    border-right: 1px solid var(--border-default);
     padding: 12px 8px;
     flex-shrink: 0;
     background: var(--bg-primary);
@@ -124,12 +133,12 @@ const isChangePasswordVisible = ref(false);
     display: block;
     width: 100%;
     text-align: left;
-    padding: 10px 12px;
+    padding: 8px 12px;
     background: transparent;
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     font-size: 14px;
     font-weight: 500;
     box-sizing: border-box;
@@ -149,35 +158,37 @@ const isChangePasswordVisible = ref(false);
     overflow-y: auto;
 }
 
-.user-info {
+/* New Account Section Styles */
+.section-header {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 32px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--border-color);
+    gap: 8px;
+    color: var(--text-primary);
+    margin-bottom: 24px;
 }
-.user-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: var(--bg-tertiary);
+.section-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.detail-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 20px;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-default);
+    margin-bottom: 24px;
 }
-.user-details {
-    display: flex;
-    flex-direction: column;
-}
-.user-details .label {
-    font-size: 12px;
+.detail-label {
+    font-size: 14px;
     color: var(--text-secondary);
 }
-.user-details .username {
-    font-size: 16px;
+.detail-value {
+    font-size: 14px;
+    color: var(--text-primary);
     font-weight: 500;
+    font-family: 'JetBrains Mono', monospace; /* Monospace for technical truth */
 }
 
 .action-list {
@@ -186,12 +197,15 @@ const isChangePasswordVisible = ref(false);
     gap: 8px;
 }
 .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     text-align: left;
     padding: 10px 12px;
     background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-default);
     color: var(--text-primary);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 14px;
     transition: background 0.15s;
@@ -201,5 +215,9 @@ const isChangePasswordVisible = ref(false);
 }
 .action-btn.danger {
     color: var(--accent-red, #e34c4c);
+    border-color: transparent;
+}
+.action-btn.danger:hover {
+    background: rgba(227, 76, 76, 0.1);
 }
 </style>
