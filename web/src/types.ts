@@ -52,3 +52,10 @@ export interface ModelInfo {
   id: string;
   name: string;
 }
+
+export interface User {
+    id: string;
+    username: string;
+    is_active: boolean;
+    created_at: string;
+}
