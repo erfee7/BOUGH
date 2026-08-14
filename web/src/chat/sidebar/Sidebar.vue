@@ -44,6 +44,22 @@
                 Prompt Library
             </button>
         </div>
+        <div class="sidebar-footer">
+            <button class="btn-ghost library-btn" @click="emit('openPromptLibrary')">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.book_open"></svg>
+                Prompt Library
+            </button>
+            
+            <!-- Add Settings Menu Here -->
+            <div class="settings-container">
+                <SettingsMenu 
+                    v-if="authStore.user" 
+                    :username="authStore.user.username" 
+                    @logout="authStore.logout" 
+                    @openChangePassword="authStore.openChangePasswordModal" 
+                />
+            </div>
+        </div>
     </aside>
 </template>
 
@@ -52,6 +68,8 @@ import { useConversationStore } from '@/chat/stores/conversation';
 import { useTitleEdit } from './useTitleEdit';
 import ConversationMenu from './ConversationMenu.vue';
 import { ICONS } from '@/icons';
+import SettingsMenu from '@/shared/SettingsMenu.vue';
+import { useAuthStore } from '@/auth/stores/auth';
 
 const emit = defineEmits<{ 
     (e: 'openPromptLibrary'): void,
@@ -59,6 +77,7 @@ const emit = defineEmits<{
 }>();
 
 const conversationStore = useConversationStore();
+const authStore = useAuthStore();
 const { editingId, editText, startEditing, saveEdit, cancelEdit } = useTitleEdit();
 
 // Custom directive to auto-focus and select text when the input is mounted
@@ -190,6 +209,9 @@ async function handleDelete(id: string) {
 .sidebar-footer {
     padding: 16px;
     border-top: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Spacing between library button and settings menu */
 }
 
 .library-btn {
@@ -198,5 +220,11 @@ async function handleDelete(id: string) {
     align-items: center;
     justify-content: center;
     gap: 8px;
+}
+
+.settings-container {
+    border-top: 1px solid var(--border-default);
+    padding-top: 8px;
+    margin-top: 8px;
 }
 </style>

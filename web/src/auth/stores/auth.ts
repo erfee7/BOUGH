@@ -7,6 +7,7 @@ export const useAuthStore = defineStore('auth', () => {
     const user = ref<User | null>(null);
     const isAuthenticated = computed(() => !!user.value);
     const isInitializing = ref(true);
+    const isChangePasswordModalVisible = ref(false);
 
     // Called on app startup (via router guard) to restore session from HttpOnly cookie
     async function initialize() {
@@ -62,13 +63,46 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    // --- New Modal & Password Actions ---
+    function openChangePasswordModal() {
+        isChangePasswordModalVisible.value = true;
+    }
+
+    function closeChangePasswordModal() {
+        isChangePasswordModalVisible.value = false;
+    }
+
+    async function changePassword(oldPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+        try {
+            const response = await fetch('/api/auth/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+            });
+            
+            if (response.ok) {
+                closeChangePasswordModal();
+                return { success: true };
+            } else {
+                const data = await response.json();
+                return { success: false, error: data.detail || 'Failed to change password' };
+            }
+        } catch (error) {
+            return { success: false, error: 'Network error' };
+        }
+    }
+
     return {
         user,
         isAuthenticated,
         isInitializing,
+        isChangePasswordModalVisible,
         initialize,
         login,
         logout,
-        handleExpiredSession
+        handleExpiredSession,
+        openChangePasswordModal,
+        closeChangePasswordModal,
+        changePassword
     };
 });

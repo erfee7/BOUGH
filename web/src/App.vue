@@ -1,7 +1,12 @@
 <template>
     <RouterView />
+    <!-- Global Auth Modals -->
+    <ChangePasswordModal v-if="authStore.isChangePasswordModalVisible" />
 </template>
 
 <script setup lang="ts">
-// App.vue is now completely deaf and blind, just rendering the router.
+import { useAuthStore } from '@/auth/stores/auth';
+import ChangePasswordModal from '@/auth/ChangePasswordModal.vue';
+
+const authStore = useAuthStore();
 </script>
