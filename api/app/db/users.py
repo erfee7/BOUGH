@@ -25,6 +25,13 @@ async def fetch_user_by_id(user_id: uuid.UUID, conn: asyncpg.Connection | None =
     return None
 
 @with_connection
+async def fetch_all_users(conn: asyncpg.Connection | None = None) -> list[dict]:
+    """Fetches all users."""
+    query = "SELECT id, username, is_active, created_at FROM users ORDER BY created_at DESC;"
+    records = await conn.fetch(query)
+    return [dict(r) for r in records]
+
+@with_connection
 async def create_user(username: str, password_hash: str, conn: asyncpg.Connection | None = None) -> uuid.UUID:
     """Creates a new user. Returns the created user ID."""
     query = """

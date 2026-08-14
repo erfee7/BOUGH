@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from app.db.users import (
     fetch_user_by_username,
     fetch_user_by_id,
+    fetch_all_users,
     create_user,
     update_password,
     set_user_active_status,
@@ -57,6 +58,25 @@ async def test_fetch_missing_user(db_transaction: asyncpg.Connection):
     
     result = await fetch_user_by_username(username="ghost_user", conn=db_transaction)
     assert result is None
+
+@pytest.mark.asyncio
+async def test_fetch_all_users(db_transaction: asyncpg.Connection):
+    """Tests fetching all users."""
+    # Clear any existing users in the transaction to get a clean count
+    await db_transaction.execute("DELETE FROM users;")
+    
+    await create_user(username="user_a", password_hash="hash1", conn=db_transaction)
+    await create_user(username="user_b", password_hash="hash2", conn=db_transaction)
+    
+    users = await fetch_all_users(conn=db_transaction)
+    
+    assert len(users) == 2
+    assert isinstance(users, list)
+    assert all(isinstance(item, dict) for item in users)
+    
+    usernames = [u['username'] for u in users]
+    assert "user_a" in usernames
+    assert "user_b" in usernames
 
 @pytest.mark.asyncio
 async def test_update_password(db_transaction: asyncpg.Connection):
