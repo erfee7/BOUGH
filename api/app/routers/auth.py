@@ -1,6 +1,7 @@
 import logging
 import os
 import uuid
+import asyncio
 from fastapi import APIRouter, HTTPException, Response, Depends, Cookie
 
 from app.security import verify_password, hash_password, get_current_user_id, create_user_session
@@ -18,13 +19,14 @@ async def login(payload: LoginRequest, response: Response):
     await db_users.delete_expired_sessions()
     
     user = await db_users.fetch_user_by_username(payload.username)
-    if not user:
-        raise HTTPException(status_code=401, detail="Incorrect username or password")
     
-    if not user['is_active']:
-        raise HTTPException(status_code=401, detail="Account is disabled")
-        
-    if not verify_password(user['password_hash'], payload.password):
+    # We evaluate the password first. If the user is None, verify_password is skipped.
+    is_valid = verify_password(user['password_hash'], payload.password) if user else False
+    
+    # If the user doesn't exist, the password is wrong, or the account is disabled:
+    if not user or not is_valid or not user['is_active']:
+        # Delay all failed attempts to mitigate brute-force/timing attacks.
+        await asyncio.sleep(1)
         raise HTTPException(status_code=401, detail="Incorrect username or password")
     
     session_id_str, expires_at = await create_user_session(user['id'])

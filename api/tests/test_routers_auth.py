@@ -73,7 +73,7 @@ async def test_login_inactive_user(mock_pool):
             response = await client.post("/api/auth/login", json=payload)
             
             assert response.status_code == 401
-            assert response.json()["detail"] == "Account is disabled"
+            assert response.json()["detail"] == "Incorrect username or password"
 
 @pytest.mark.asyncio
 async def test_logout_clears_cookie(mock_pool):
