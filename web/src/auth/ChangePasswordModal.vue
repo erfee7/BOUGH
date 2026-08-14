@@ -1,38 +1,46 @@
 <template>
-    <div class="modal-backdrop" @click="close">
-        <div class="modal-content" @click.stop>
-            <h2>Change Password</h2>
-            <form @submit.prevent="handleSubmit" class="form-body">
-                <div class="form-group">
-                    <label>Current Password</label>
-                    <input type="password" v-model="oldPassword" required :disabled="isLoading" />
-                </div>
-                <div class="form-group">
-                    <label>New Password</label>
-                    <input type="password" v-model="newPassword" required :disabled="isLoading" />
-                </div>
-                <div class="form-group">
-                    <label>Confirm New Password</label>
-                    <input type="password" v-model="confirmPassword" required :disabled="isLoading" />
+    <!-- Teleport to body to prevent click events from bubbling to the parent modal -->
+    <Teleport to="body">
+        <div class="modal-backdrop" @click="emit('close')">
+            <div class="modal-content" @click.stop>
+                <div class="modal-header">
+                    <h2>Change Password</h2>
+                    <button class="close-btn" @click="emit('close')">×</button>
                 </div>
                 
-                <p v-if="localError" class="error-msg">{{ localError }}</p>
-                
-                <div class="modal-actions">
-                    <button type="button" @click="close" class="btn-secondary" :disabled="isLoading">Cancel</button>
-                    <button type="submit" class="btn-primary" :disabled="isLoading">
-                        {{ isLoading ? 'Saving...' : 'Save Changes' }}
-                    </button>
-                </div>
-            </form>
+                <form @submit.prevent="handleSubmit" class="form-body">
+                    <div class="form-group">
+                        <label>Current Password</label>
+                        <input type="password" v-model="oldPassword" required :disabled="isLoading" />
+                    </div>
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" v-model="newPassword" required :disabled="isLoading" />
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm New Password</label>
+                        <input type="password" v-model="confirmPassword" required :disabled="isLoading" />
+                    </div>
+                    
+                    <p v-if="localError" class="error-msg">{{ localError }}</p>
+                    
+                    <div class="modal-actions">
+                        <button type="button" @click="emit('close')" class="btn-secondary" :disabled="isLoading">Cancel</button>
+                        <button type="submit" class="btn-primary" :disabled="isLoading">
+                            {{ isLoading ? 'Saving...' : 'Save Changes' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
+    </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import { useAuthStore } from '@/auth/stores/auth';
 
+const emit = defineEmits(['close']);
 const authStore = useAuthStore();
 
 const oldPassword = ref('');
@@ -40,22 +48,6 @@ const newPassword = ref('');
 const confirmPassword = ref('');
 const isLoading = ref(false);
 const localError = ref<string | null>(null);
-
-// Reset form whenever the modal is opened
-watch(() => authStore.isChangePasswordModalVisible, (isVisible) => {
-    if (isVisible) {
-        oldPassword.value = '';
-        newPassword.value = '';
-        confirmPassword.value = '';
-        localError.value = null;
-    }
-});
-
-function close() {
-    if (!isLoading.value) {
-        authStore.closeChangePasswordModal();
-    }
-}
 
 async function handleSubmit() {
     localError.value = null;
@@ -71,7 +63,9 @@ async function handleSubmit() {
     isLoading.value = true;
     const result = await authStore.changePassword(oldPassword.value, newPassword.value);
     
-    if (!result.success) {
+    if (result.success) {
+        emit('close');
+    } else {
         localError.value = result.error || "Failed to change password.";
     }
     isLoading.value = false;
@@ -82,22 +76,37 @@ async function handleSubmit() {
 .modal-backdrop {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
+    /* Increased z-index so it sits above the Settings modal */
+    z-index: 10001; 
 }
 .modal-content {
     background: var(--bg-secondary);
     border-radius: 12px;
     padding: 24px;
-    width: 360px;
+    width: 400px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
-h2 {
-    margin-top: 0;
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
+}
+.modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+.close-btn {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0 4px;
 }
 .form-body {
     display: flex;

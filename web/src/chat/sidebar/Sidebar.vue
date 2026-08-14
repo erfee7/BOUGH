@@ -44,15 +44,10 @@
                 Prompt Library
             </button>
             
-            <!-- Add Settings Menu Here -->
-            <div class="settings-container">
-                <SettingsMenu 
-                    v-if="authStore.user" 
-                    :username="authStore.user.username" 
-                    @logout="authStore.logout" 
-                    @openChangePassword="authStore.openChangePasswordModal" 
-                />
-            </div>
+            <button class="btn-ghost settings-btn" @click="emit('openSettings')">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.settings"></svg>
+                Settings
+            </button>
         </div>
     </aside>
 </template>
@@ -62,16 +57,14 @@ import { useConversationStore } from '@/chat/stores/conversation';
 import { useTitleEdit } from './useTitleEdit';
 import ConversationMenu from './ConversationMenu.vue';
 import { ICONS } from '@/icons';
-import SettingsMenu from '@/shared/SettingsMenu.vue';
-import { useAuthStore } from '@/auth/stores/auth';
 
 const emit = defineEmits<{ 
     (e: 'openPromptLibrary'): void,
-    (e: 'navigate', id: string | null): void 
+    (e: 'navigate', id: string | null): void,
+    (e: 'openSettings'): void
 }>();
 
 const conversationStore = useConversationStore();
-const authStore = useAuthStore();
 const { editingId, editText, startEditing, saveEdit, cancelEdit } = useTitleEdit();
 
 // Custom directive to auto-focus and select text when the input is mounted
@@ -205,15 +198,21 @@ async function handleDelete(id: string) {
     border-top: 1px solid var(--border-default);
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Spacing between library button and settings menu */
+    gap: 8px;
 }
 
-.library-btn {
+.library-btn, .settings-btn {
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+}
+
+.settings-btn {
+    border-top: 1px solid var(--border-default);
+    padding-top: 16px;
+    margin-top: 8px;
 }
 
 .settings-container {

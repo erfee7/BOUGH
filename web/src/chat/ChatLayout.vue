@@ -3,6 +3,7 @@
         <Sidebar 
             @openPromptLibrary="isPromptLibraryVisible = true" 
             @navigate="navigate"
+            @openSettings="isSettingsVisible = true"
         />
         <main class="main-area">
             <GenerationConfigBar />
@@ -19,26 +20,42 @@
             :isVisible="isPromptLibraryVisible" 
             @close="isPromptLibraryVisible = false" 
         />
+        <SettingsModal 
+            v-if="isSettingsVisible && authStore.user" 
+            :username="authStore.user.username" 
+            @close="isSettingsVisible = false" 
+            @logout="handleLogout"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import Sidebar from './sidebar/Sidebar.vue';
 import NewChatArea from './NewChatArea.vue';
 import ChatArea from './ChatArea.vue';
 import PromptLibraryModal from './prompts/PromptLibraryModal.vue';
 import GenerationConfigBar from './generation_config/GenerationConfigBar.vue';
+import SettingsModal from '@/shared/SettingsModal.vue';
 import { useConversationStore } from './stores/conversation';
 import { useChatEngine } from './useChatEngine';
+import { useAuthStore } from '@/auth/stores/auth';
 
 const conversationStore = useConversationStore();
+const authStore = useAuthStore();
 
 const { 
     isPromptLibraryVisible,
     initialize, 
     navigate
 } = useChatEngine();
+
+const isSettingsVisible = ref(false);
+
+function handleLogout() {
+    isSettingsVisible.value = false;
+    authStore.logout();
+}
 
 onMounted(() => {
     initialize();
