@@ -52,7 +52,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import ChangePasswordModal from '@/auth/ChangePasswordModal.vue';
+import ChangePasswordModal from './ChangePasswordModal.vue';
 
 const props = defineProps<{ username: string }>();
 const emit = defineEmits(['close', 'logout']);
