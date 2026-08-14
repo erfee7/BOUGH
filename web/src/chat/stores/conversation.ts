@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { ConversationSummary } from '@/types';
+import { apiFetch } from '@/utils/api';
 
 export const useConversationStore = defineStore('conversation', () => {
     const conversations = ref<ConversationSummary[]>([]);
@@ -9,7 +10,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
     async function fetchAllConversations() {
         try {
-            const response = await fetch('/api/chat/conversations');
+            const response = await apiFetch('/api/chat/conversations');
             if (!response.ok) throw new Error('Failed to fetch conversations');
             conversations.value = await response.json();
         }
@@ -20,7 +21,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
     async function createConversation(title: string | null = null, systemPrompt: string | null = null): Promise<{ conversationId: string, rootMessageId: string } | null> {
         try {
-            const response = await fetch('/api/chat/conversations', {
+            const response = await apiFetch('/api/chat/conversations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, system_prompt: systemPrompt })
@@ -57,7 +58,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
     async function updateTitle(id: string, title: string) {
         try {
-            const response = await fetch(`/api/chat/conversations/${id}`, {
+            const response = await apiFetch(`/api/chat/conversations/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title })
@@ -81,7 +82,7 @@ export const useConversationStore = defineStore('conversation', () => {
         generatingTitleIds.value = [...generatingTitleIds.value, id];
         
         try {
-            const response = await fetch(`/api/chat/conversations/${id}/generate-title`, {
+            const response = await apiFetch(`/api/chat/conversations/${id}/generate-title`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ force })
@@ -102,7 +103,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
     async function updateActiveLeaf(conversationId: string, leafId: string) {
         try {
-            const response = await fetch(`/api/chat/conversations/${conversationId}`, {
+            const response = await apiFetch(`/api/chat/conversations/${conversationId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ active_leaf_id: leafId })
@@ -126,7 +127,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
     async function touchConversation(id: string) {
         try {
-            const response = await fetch(`/api/chat/conversations/${id}/touch`, { method: 'POST' });
+            const response = await apiFetch(`/api/chat/conversations/${id}/touch`, { method: 'POST' });
             if (!response.ok) throw new Error('Failed to touch conversation');
 
             // Update the local timestamp and re-sort to mimic backend behavior
@@ -138,7 +139,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
     async function deleteConversation(id: string) {
         try {
-            const response = await fetch(`/api/chat/conversations/${id}`, { method: 'DELETE' });
+            const response = await apiFetch(`/api/chat/conversations/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Failed to delete conversation');
             
             // If deleting the active conversation, switch to New Chat state
