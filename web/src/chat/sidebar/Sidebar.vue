@@ -43,12 +43,6 @@
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.book_open"></svg>
                 Prompt Library
             </button>
-        </div>
-        <div class="sidebar-footer">
-            <button class="btn-ghost library-btn" @click="emit('openPromptLibrary')">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.book_open"></svg>
-                Prompt Library
-            </button>
             
             <!-- Add Settings Menu Here -->
             <div class="settings-container">
