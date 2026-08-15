@@ -12,5 +12,8 @@ RUN uv sync --frozen --no-install-project
 # Copy application source code
 COPY app/ ./app/
 
+# Copy the management CLI script
+COPY manage.py ./manage.py
+
 # Run the API server
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

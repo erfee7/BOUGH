@@ -34,7 +34,7 @@ test:
 
 # Run account management script
 manage:
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml exec api uv run python manage.py $(filter-out $@,$(MAKECMDGOALS))
+	docker compose exec api uv run python manage.py $(filter-out $@,$(MAKECMDGOALS))
 
 # Silently ignore any extra targets passed as CLI arguments (e.g., `make manage help`)
 %:
