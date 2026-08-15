@@ -1,7 +1,7 @@
 <template>
     <div class="generation-config-bar">
-        <!-- Preset Group -->
-        <div class="config-group">
+        <!-- Preset Group (Always visible) -->
+        <div class="config-group preset-group">
             <select 
                 :value="generationConfigStore.loadedPresetId" 
                 @change="handlePresetChange" 
@@ -12,14 +12,12 @@
                     'is-dirty': generationConfigStore.loadedPresetId === 'custom' || generationConfigStore.isDirty
                 }"
             >
-                <!-- Hidden option for binding the dirty state, never shown in the dropdown list -->
                 <option v-if="generationConfigStore.loadedPresetId === 'custom'" value="custom" hidden>Custom</option>
                 <option value="default">Default</option>
                 <option v-for="p in presetStore.presets" :key="p.id" :value="p.id">
                     {{ p.name }}{{ generationConfigStore.loadedPresetId === p.id && generationConfigStore.isDirty ? ' *' : '' }}
                 </option>
             </select>
-            <!-- Revert button: only visible if the preset is dirty and is a saved preset -->
             <button 
                 :disabled="!generationConfigStore.isDirty || generationConfigStore.loadedPresetId === 'default' || generationConfigStore.loadedPresetId === 'custom'"
                 @click="handleRevert" 
@@ -43,42 +41,52 @@
 
         <div class="divider"></div>
 
-        <!-- Model Group -->
-        <div class="config-group">
-            <label class="config-label">Model</label>
-            <ModelSelector />
-        </div>
-        
-        <!-- Reasoning Group -->
-        <div class="config-group">
-            <label class="config-label">Reasoning</label>
-            <select v-model="generationConfigStore.reasoningEffort" class="config-select">
-                <option :value="null">Default</option>
-                <option value="minimal">Minimal</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="xhigh">Extra High</option>
-                <option value="max">Maximal</option>
-            </select>
-        </div>
-        
-        <!-- Params Group -->
-        <div class="config-group params-group">
-            <label class="config-label">Params</label>
-            <div class="params-container">
-                <div v-for="param in generationConfigStore.customParams" :key="param.id" class="param-chip">
-                    <input type="text" v-model="param.key" placeholder="key" class="param-input key-input">
-                    <span class="param-separator">:</span>
-                    <input type="text" v-model="param.rawValue" placeholder="value" class="param-input value-input">
-                    <button @click="generationConfigStore.removeParam(param.id)" class="param-remove-btn">
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.x"></svg>
+        <!-- Toggle Button (Right next to preset group) -->
+        <button @click="isExpanded = !isExpanded" class="btn-icon toggle-btn" :title="isExpanded ? 'Hide configs' : 'Show configs'">
+            <!-- Single icon that rotates via CSS -->
+            <svg class="toggle-icon" :class="{ 'expanded': isExpanded }" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevron_right"></svg>
+        </button>
+
+        <!-- Expandable Section (Hidden by default) -->
+        <div class="expandable-section" v-show="isExpanded">
+
+            <!-- Model Group -->
+            <div class="config-group">
+                <label class="config-label">Model</label>
+                <ModelSelector />
+            </div>
+            
+            <!-- Reasoning Group -->
+            <div class="config-group">
+                <label class="config-label">Reasoning</label>
+                <select v-model="generationConfigStore.reasoningEffort" class="config-select">
+                    <option :value="null">Default</option>
+                    <option value="minimal">Minimal</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="xhigh">Extra High</option>
+                    <option value="max">Maximal</option>
+                </select>
+            </div>
+            
+            <!-- Params Group -->
+            <div class="config-group params-group">
+                <label class="config-label">Params</label>
+                <div class="params-container">
+                    <div v-for="param in generationConfigStore.customParams" :key="param.id" class="param-chip">
+                        <input type="text" v-model="param.key" placeholder="key" class="param-input key-input">
+                        <span class="param-separator">:</span>
+                        <input type="text" v-model="param.rawValue" placeholder="value" class="param-input value-input">
+                        <button @click="generationConfigStore.removeParam(param.id)" class="param-remove-btn">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.x"></svg>
+                        </button>
+                    </div>
+                    <button @click="generationConfigStore.addParam" class="add-param-btn">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.plus"></svg>
+                        Add
                     </button>
                 </div>
-                <button @click="generationConfigStore.addParam" class="add-param-btn">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.plus"></svg>
-                    Add
-                </button>
             </div>
         </div>
 
@@ -90,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useGenerationConfigStore } from '../stores/generationConfig';
 import { usePresetStore } from '../stores/preset';
 import { ICONS } from '@/icons';
@@ -101,6 +109,7 @@ const generationConfigStore = useGenerationConfigStore();
 const presetStore = usePresetStore();
 
 const showPresetModal = ref(false);
+const isExpanded = ref(false);
 
 onMounted(() => {
     presetStore.fetchPresets();
@@ -156,7 +165,6 @@ function handleRevert() {
     padding: 12px 2%;
     border-bottom: 1px solid var(--border-default);
     background: var(--bg-primary);
-    overflow-x: auto;
     white-space: nowrap;
     flex-shrink: 0; /* Prevents the bar from being squashed by the message list */
 }
@@ -166,6 +174,26 @@ function handleRevert() {
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+}
+
+.expandable-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    overflow-x: auto;
+    flex: 1; /* Takes up remaining space if visible */
+    min-width: 0;
+    padding-right: 10px;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.expandable-section::-webkit-scrollbar {
+    display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.expandable-section {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 .config-label {
@@ -265,7 +293,7 @@ function handleRevert() {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-sm);
     padding: 2px 4px 2px 8px;
-    flex-shrink: 0; /* Prevent chips from squishing inside their container */
+    flex-shrink: 0;
 }
 
 .param-input {
@@ -328,5 +356,21 @@ function handleRevert() {
 .add-param-btn:hover {
     border-color: var(--accent-blue);
     color: var(--accent-blue);
+}
+
+/* Toggle Button */
+.toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Smooth rotation for the icon */
+.toggle-icon {
+    transition: transform 0.2s ease-in-out;
+}
+
+.toggle-icon.expanded {
+    transform: rotate(180deg);
 }
 </style>
