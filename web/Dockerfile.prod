@@ -16,17 +16,18 @@ COPY . .
 RUN npm run build
 
 # ==========================================
-# Stage 2: The Runner (Serves files with Nginx)
+# Stage 2: The Runner (Serves files with Caddy)
 # ==========================================
-FROM nginx:alpine
+FROM caddy:2-alpine
 
-# Remove default Nginx static files
-RUN rm -rf /usr/share/nginx/html/*
+# Remove default Caddy config
+RUN rm -rf /etc/caddy/Caddyfile
+
+# Copy our custom Caddyfile
+COPY Caddyfile /etc/caddy/Caddyfile
 
 # Copy the compiled static files from Stage 1
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /srv
 
-# Copy our custom Nginx configuration (now local to the web context)
-COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
+# Caddy listens on 80 (HTTP) and 443 (HTTPS) by default
+EXPOSE 80 443

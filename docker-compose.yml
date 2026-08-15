@@ -47,6 +47,10 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443" # Expose HTTPS port for production
+    environment:
+      # If DOMAIN is empty/unset, pass ":80" to Caddy for local HTTP mode
+      - DOMAIN=${DOMAIN:-:80}
     depends_on:
       - api
 

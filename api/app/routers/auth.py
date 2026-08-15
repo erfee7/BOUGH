@@ -2,7 +2,7 @@ import logging
 import os
 import uuid
 import asyncio
-from fastapi import APIRouter, HTTPException, Response, Depends, Cookie
+from fastapi import APIRouter, HTTPException, Response, Depends, Cookie, Request
 
 from app.security import verify_password, hash_password, get_current_user_id, create_user_session
 from app.db import users as db_users
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/login", response_model=UserResponse)
-async def login(payload: LoginRequest, response: Response):
+async def login(payload: LoginRequest, response: Response, request: Request):
     """Logs in a user and sets a session cookie."""
     # Lazy cleanup of expired sessions
     await db_users.delete_expired_sessions()
@@ -31,8 +31,9 @@ async def login(payload: LoginRequest, response: Response):
     
     session_id_str, expires_at = await create_user_session(user['id'])
     
-    # Determine if cookie should be Secure (HTTPS only)
-    secure_cookie = os.getenv("SESSION_COOKIE_SECURE", "False").lower() == "true"
+    # Determine if cookie should be Secure based on proxy protocol
+    # Caddy/Nginx sets this header to 'https' when terminating SSL
+    secure_cookie = request.headers.get("x-forwarded-proto") == "https"
     
     response.set_cookie(
         key="session_id",
