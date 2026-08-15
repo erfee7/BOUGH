@@ -6,7 +6,7 @@ A self-hosted personal AI agent platform. Currently in early development.
 - **Backend:** FastAPI
 - **Frontend:** Vue 3, TypeScript
 - **Database:** PostgreSQL (pgvector)
-- **Infra:** Docker, Docker Compose, Nginx
+- **Infra:** Docker, Docker Compose, Caddy
 
 ## Prerequisites
 - Docker & Docker Compose
@@ -23,4 +23,9 @@ A self-hosted personal AI agent platform. Currently in early development.
    ```bash
    make dev
    ```
-3. Open the app at `http://localhost:5173`
+3. In a new terminal window, create your initial admin account:
+   ```bash
+   make manage create-user admin
+   # (A secure password will be auto-generated and printed in the terminal)
+   ```
+4. Open the app at `http://localhost:5173` and log in with your new account.
