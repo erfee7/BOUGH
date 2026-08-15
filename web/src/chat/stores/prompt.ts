@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { Prompt } from '@/types';
+import { apiFetch } from '@/utils/api';
 
 export const usePromptStore = defineStore('prompt', () => {
     const prompts = ref<Prompt[]>([]);
@@ -14,7 +15,7 @@ export const usePromptStore = defineStore('prompt', () => {
         
         isLoading.value = true;
         try {
-            const response = await fetch('/api/chat/prompts');
+            const response = await apiFetch('/api/chat/prompts');
             if (!response.ok) throw new Error('Failed to fetch prompts');
             prompts.value = await response.json();
             isInitialized.value = true; // Mark as initialized only on success
@@ -27,7 +28,7 @@ export const usePromptStore = defineStore('prompt', () => {
 
     async function createPrompt(data: Omit<Prompt, 'id' | 'created_at' | 'updated_at'>) {
         try {
-            const response = await fetch('/api/chat/prompts', {
+            const response = await apiFetch('/api/chat/prompts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -41,7 +42,7 @@ export const usePromptStore = defineStore('prompt', () => {
 
     async function updatePrompt(id: string, data: Partial<Prompt>) {
         try {
-            const response = await fetch(`/api/chat/prompts/${id}`, {
+            const response = await apiFetch(`/api/chat/prompts/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -55,7 +56,7 @@ export const usePromptStore = defineStore('prompt', () => {
 
     async function deletePrompt(id: string) {
         try {
-            const response = await fetch(`/api/chat/prompts/${id}`, { method: 'DELETE' });
+            const response = await apiFetch(`/api/chat/prompts/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Failed to delete prompt');
             await fetchPrompts(true); // Force refresh
         } catch (error) {

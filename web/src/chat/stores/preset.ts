@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { GenerationPreset } from '@/types';
+import { apiFetch } from '@/utils/api';
 
 export const usePresetStore = defineStore('preset', () => {
     const presets = ref<GenerationPreset[]>([]);
@@ -12,7 +13,7 @@ export const usePresetStore = defineStore('preset', () => {
         
         isLoading.value = true;
         try {
-            const response = await fetch('/api/chat/presets');
+            const response = await apiFetch('/api/chat/presets');
             if (!response.ok) throw new Error('Failed to fetch presets');
             presets.value = await response.json();
             isInitialized.value = true;
@@ -25,7 +26,7 @@ export const usePresetStore = defineStore('preset', () => {
 
     async function createPreset(data: { name: string, model: string | null, parameters: Record<string, unknown> }): Promise<GenerationPreset | null> {
         try {
-            const response = await fetch('/api/chat/presets', {
+            const response = await apiFetch('/api/chat/presets', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -44,7 +45,7 @@ export const usePresetStore = defineStore('preset', () => {
 
     async function updatePreset(id: string, data: { name: string, model: string | null, parameters: Record<string, unknown> }) {
         try {
-            const response = await fetch(`/api/chat/presets/${id}`, {
+            const response = await apiFetch(`/api/chat/presets/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -58,7 +59,7 @@ export const usePresetStore = defineStore('preset', () => {
 
     async function deletePreset(id: string) {
         try {
-            const response = await fetch(`/api/chat/presets/${id}`, { method: 'DELETE' });
+            const response = await apiFetch(`/api/chat/presets/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Failed to delete preset');
             await fetchPresets(true);
         } catch (error) {

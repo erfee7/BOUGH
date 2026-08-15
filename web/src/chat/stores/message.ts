@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { Message } from '@/types';
+import { apiFetch } from '@/utils/api';
 import { useConversationStore } from './conversation';
 import { useGenerationConfigStore } from './generationConfig';
 import { getActivePath, getSiblingInfo, getMostRecentDescendantLeaf, compareMessages } from '../branchingUtils';
@@ -38,7 +39,7 @@ export const useMessageStore = defineStore('message', () => {
     // 1. Load an existing conversation and its history
     async function loadConversation(conversationId: string) {
         try {
-            const response = await fetch(`/api/chat/conversations/${conversationId}`);
+            const response = await apiFetch(`/api/chat/conversations/${conversationId}`);
             if (!response.ok) throw new Error('Failed to load conversation');
             
             const data = await response.json();
@@ -71,7 +72,7 @@ export const useMessageStore = defineStore('message', () => {
             
             // Step A: If developer prompt exists, append it first
             if (developerContent && developerContent.trim()) {
-                const devResponse = await fetch(`/api/chat/messages/${currentParentId}/append`, {
+                const devResponse = await apiFetch(`/api/chat/messages/${currentParentId}/append`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: developerContent, role: 'developer' })
@@ -98,7 +99,7 @@ export const useMessageStore = defineStore('message', () => {
             }
             
             // Step B: Append the user message
-            const response = await fetch(`/api/chat/messages/${currentParentId}/append`, {
+            const response = await apiFetch(`/api/chat/messages/${currentParentId}/append`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content, role: 'user' })
@@ -137,7 +138,7 @@ export const useMessageStore = defineStore('message', () => {
     async function generateMessage(parentId: string) {
         try {
             const payload = generationConfigStore.buildGeneratePayload();
-            const response = await fetch(`/api/chat/messages/${parentId}/generate`, {
+            const response = await apiFetch(`/api/chat/messages/${parentId}/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload) 
@@ -183,7 +184,7 @@ export const useMessageStore = defineStore('message', () => {
 
         abortController = new AbortController();
         
-        const response = await fetch(`/api/chat/messages/${messageId}/stream`, {
+        const response = await apiFetch(`/api/chat/messages/${messageId}/stream`, {
             signal: abortController.signal // Pass the signal to fetch
         });
         
@@ -334,7 +335,7 @@ export const useMessageStore = defineStore('message', () => {
     // 5. Append a new message (used for manual edits)
     async function appendMessage(parentId: string, content: string, role: 'user' | 'assistant'): Promise<string | null> {
         try {
-            const response = await fetch(`/api/chat/messages/${parentId}/append`, {
+            const response = await apiFetch(`/api/chat/messages/${parentId}/append`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content, role })
@@ -417,7 +418,7 @@ export const useMessageStore = defineStore('message', () => {
         
         // Tell the backend to stop the LLM and save partial content
         try {
-            await fetch(`/api/chat/messages/${messageId}/cancel`, { method: 'POST' });
+            await apiFetch(`/api/chat/messages/${messageId}/cancel`, { method: 'POST' });
         } catch (error) {
             console.error("Error canceling message:", error);
         }

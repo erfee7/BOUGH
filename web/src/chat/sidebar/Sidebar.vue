@@ -43,6 +43,11 @@
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.book_open"></svg>
                 Prompt Library
             </button>
+            
+            <button class="btn-ghost settings-btn" @click="emit('openSettings')">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.settings"></svg>
+                Settings
+            </button>
         </div>
     </aside>
 </template>
@@ -55,7 +60,8 @@ import { ICONS } from '@/icons';
 
 const emit = defineEmits<{ 
     (e: 'openPromptLibrary'): void,
-    (e: 'navigate', id: string | null): void 
+    (e: 'navigate', id: string | null): void,
+    (e: 'openSettings'): void
 }>();
 
 const conversationStore = useConversationStore();
@@ -190,13 +196,28 @@ async function handleDelete(id: string) {
 .sidebar-footer {
     padding: 16px;
     border-top: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.library-btn {
+.library-btn, .settings-btn {
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+}
+
+.settings-btn {
+    border-top: 1px solid var(--border-default);
+    padding-top: 16px;
+    margin-top: 8px;
+}
+
+.settings-container {
+    border-top: 1px solid var(--border-default);
+    padding-top: 8px;
+    margin-top: 8px;
 }
 </style>

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { ModelInfo } from '@/types';
+import { apiFetch } from '@/utils/api';
 
 export const useModelsStore = defineStore('models', () => {
     const models = ref<ModelInfo[]>([]);
@@ -15,7 +16,7 @@ export const useModelsStore = defineStore('models', () => {
         try {
             // Pass the force flag to the backend so it bypasses the 24h cache
             const url = force ? '/api/chat/models?force=true' : '/api/chat/models';
-            const response = await fetch(url);
+            const response = await apiFetch(url);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

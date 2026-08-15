@@ -1,0 +1,18 @@
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Proxy API requests to the FastAPI backend
+	handle /api/* {
+		reverse_proxy api:8000 {
+			# Flush immediately for SSE support
+			flush_interval -1
+		}
+	}
+
+	# Serve the Vue static files
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

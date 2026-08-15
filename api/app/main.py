@@ -1,10 +1,12 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 
 from app.db.connection import init_pool, close_pool
-from app.routers import conversations, messages, prompts, generation_presets, models
+from app.routers import conversations, messages, prompts, generation_presets, models, auth
+from app.security import get_current_user_id
+
 # Configure root logger for radical transparency
 logging.basicConfig(
     level=logging.INFO,
@@ -24,12 +26,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Register the router
-app.include_router(conversations.router)
-app.include_router(messages.router)
-app.include_router(prompts.router)
-app.include_router(generation_presets.router)
-app.include_router(models.router)
+# Register the auth router (public, no guard)
+app.include_router(auth.router)
+
+# Register the chat routers and apply the auth guard globally
+app.include_router(conversations.router, dependencies=[Depends(get_current_user_id)])
+app.include_router(messages.router, dependencies=[Depends(get_current_user_id)])
+app.include_router(prompts.router, dependencies=[Depends(get_current_user_id)])
+app.include_router(generation_presets.router, dependencies=[Depends(get_current_user_id)])
+app.include_router(models.router, dependencies=[Depends(get_current_user_id)])
 
 @app.get("/api/health")
 async def health_check():

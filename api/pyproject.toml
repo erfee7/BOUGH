@@ -8,6 +8,7 @@ dependencies = [
     "python-dotenv",
     "asyncpg>=0.31.0",
     "openai>=2.44.0",
+    "argon2-cffi>=25.1.0",
 ]
 
 [dependency-groups]

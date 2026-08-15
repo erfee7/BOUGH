@@ -45,8 +45,26 @@ CREATE TABLE IF NOT EXISTS generation_presets (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Users Table (Account System)
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Sessions Table (Stateful Cookie-based Auth)
+CREATE TABLE IF NOT EXISTS sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Indexes for fast traversal
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages (conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages (parent_id);
 CREATE INDEX IF NOT EXISTS idx_prompts_role ON prompts (role);
 CREATE INDEX IF NOT EXISTS idx_generation_presets_name ON generation_presets (name);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id);

@@ -11,7 +11,8 @@
   "dependencies": {
     "md-editor-v3": "^6.5.4",
     "pinia": "^4.0.2",
-    "vue": "^3.5.41"
+    "vue": "^3.5.41",
+    "vue-router": "^5.2.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

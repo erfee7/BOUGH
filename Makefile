@@ -1,4 +1,4 @@
-.PHONY: dev dev-d dev-down dev-purge prod prod-build prod-down test
+.PHONY: dev dev-d dev-down dev-purge prod prod-build prod-down test manage
 
 # Start dev environment
 dev:
@@ -31,3 +31,11 @@ prod-down:
 # Run automated tests (api)
 test:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm api uv run pytest -v
+
+# Run account management script
+manage:
+	docker compose exec api uv run python manage.py $(filter-out $@,$(MAKECMDGOALS))
+
+# Silently ignore any extra targets passed as CLI arguments (e.g., `make manage help`)
+%:
+	@:

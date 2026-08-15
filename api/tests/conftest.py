@@ -1,7 +1,10 @@
 import pytest_asyncio
 import pytest
 import asyncpg
+import uuid
 from app.db.connection import init_pool, close_pool, get_pool
+from app.main import app
+from app.security import get_current_user_id
 
 # --- Database Core Fixtures ---
 
@@ -51,3 +54,13 @@ def mock_pool(db_transaction):
     Use this to patch 'get_pool' in router modules.
     """
     return FakePool(db_transaction)
+
+# --- Auth Bypass Fixture ---
+
+@pytest.fixture(autouse=True)
+def mock_authentication():
+    """Automatically bypasses authentication for all tests by default."""
+    mock_user_id = uuid.uuid4()
+    app.dependency_overrides[get_current_user_id] = lambda: mock_user_id
+    yield
+    app.dependency_overrides.clear()
