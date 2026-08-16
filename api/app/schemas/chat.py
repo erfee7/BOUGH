@@ -107,3 +107,9 @@ class ConversationCreateRequestResponse(BaseModel):
 class ConversationDetailResponse(BaseModel):
     conversation: ConversationResponse
     messages: list[MessageResponse]
+
+class AttachmentResponse(BaseModel):
+    id: uuid.UUID
+    mime_type: str
+    filename: str
+    size: int

@@ -15,4 +15,8 @@
 		try_files {path} /index.html
 		file_server
 	}
+
+    request_body {
+		max_size 32MB
+	}
 }

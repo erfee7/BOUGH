@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 
 from app.db.connection import init_pool, close_pool
-from app.routers import conversations, messages, prompts, generation_presets, models, auth
+from app.routers import conversations, messages, prompts, generation_presets, models, auth, attachments
 from app.security import get_current_user_id
 
 # Configure root logger for radical transparency
@@ -35,6 +35,7 @@ app.include_router(messages.router, dependencies=[Depends(get_current_user_id)])
 app.include_router(prompts.router, dependencies=[Depends(get_current_user_id)])
 app.include_router(generation_presets.router, dependencies=[Depends(get_current_user_id)])
 app.include_router(models.router, dependencies=[Depends(get_current_user_id)])
+app.include_router(attachments.router, dependencies=[Depends(get_current_user_id)])
 
 @app.get("/api/health")
 async def health_check():
