@@ -1,11 +1,21 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import base64
+
 from app.llm.provider import generate_stream, generate_completion, list_models
 import app.llm.provider as provider_module
 
 _TEST_METADATA = {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12}
 TEET_PARAMETERS = {"temperature": 0.5, "reasoning": {"effort": "low"}}
+
+# --- Attachment assembly fixtures ---
+PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 10
+PDF_BYTES = b"%PDF-1.4\n" + b"\x00" * 10
+
+def _att(mime: str, filename: str, data: bytes) -> dict:
+    """An enriched attachment dict, as the stream manager hands them to the provider."""
+    return {"id": "att-1", "mime_type": mime, "filename": filename, "size": len(data), "data": data}
 
 # --- Helper Functions to Mock OpenAI SDK Chunks ---
 
@@ -261,3 +271,73 @@ async def test_list_models_force_refresh():
         
         # Assert against the mocked env var URL
         mock_client_instance.get.assert_called_once_with("http://mock-provider/api/v1/models")
+
+@pytest.mark.asyncio
+async def test_generate_stream_assembles_image_content():
+    """Attachment-bearing messages become multimodal arrays (text first); text-only siblings stay strings."""
+    mock_client = AsyncMock()
+    mock_client.chat.completions.create = AsyncMock(return_value=MockAsyncStream(mock_stream_no_usage()))
+
+    history = [
+        {"role": "system", "content": "You are a test."},
+        {"role": "user", "content": "What is in this picture?",
+         "attachments": [_att("image/png", "cat.png", PNG_BYTES)]},
+    ]
+
+    async for _ in generate_stream(messages_history=history, model="test-model", client=mock_client):
+        pass
+
+    sent = mock_client.chat.completions.create.call_args.kwargs["messages"]
+    assert sent[0]["content"] == "You are a test."  # no attachments -> plain string, unchanged
+    content = sent[1]["content"]
+    assert isinstance(content, list)
+    assert content[0] == {"type": "text", "text": "What is in this picture?"}  # text part first
+    b64 = base64.b64encode(PNG_BYTES).decode("utf-8")
+    assert content[1] == {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}
+
+
+@pytest.mark.asyncio
+async def test_generate_stream_assembles_pdf_content():
+    """PDFs use the file content type with filename and data-URI file_data."""
+    mock_client = AsyncMock()
+    mock_client.chat.completions.create = AsyncMock(return_value=MockAsyncStream(mock_stream_no_usage()))
+
+    history = [{"role": "user", "content": "Summarize this",
+                "attachments": [_att("application/pdf", "doc.pdf", PDF_BYTES)]}]
+
+    async for _ in generate_stream(messages_history=history, model="test-model", client=mock_client):
+        pass
+
+    content = mock_client.chat.completions.create.call_args.kwargs["messages"][0]["content"]
+    b64 = base64.b64encode(PDF_BYTES).decode("utf-8")
+    assert content[0] == {"type": "text", "text": "Summarize this"}
+    assert content[1] == {"type": "file", "file": {"filename": "doc.pdf", "file_data": f"data:application/pdf;base64,{b64}"}}
+
+
+@pytest.mark.asyncio
+async def test_generate_stream_attachment_only_omits_text_part():
+    """Messages with no text send attachment parts only — no empty-string text noise."""
+    mock_client = AsyncMock()
+    mock_client.chat.completions.create = AsyncMock(return_value=MockAsyncStream(mock_stream_no_usage()))
+
+    history = [{"role": "user", "content": "", "attachments": [_att("image/png", "cat.png", PNG_BYTES)]}]
+
+    async for _ in generate_stream(messages_history=history, model="test-model", client=mock_client):
+        pass
+
+    content = mock_client.chat.completions.create.call_args.kwargs["messages"][0]["content"]
+    assert len(content) == 1
+    assert all(part["type"] != "text" for part in content)
+
+
+@pytest.mark.asyncio
+async def test_generate_stream_unknown_mime_raises():
+    """Unknown MIME types are internal failures: ValueError escapes (no error event), provider never called."""
+    mock_client = AsyncMock()
+    history = [{"role": "user", "content": "hi", "attachments": [_att("video/mp4", "v.mp4", b"\x00\x00\x00\x00")]}]
+
+    with pytest.raises(ValueError):
+        async for _ in generate_stream(messages_history=history, model="test-model", client=mock_client):
+            pass
+
+    mock_client.chat.completions.create.assert_not_called()
