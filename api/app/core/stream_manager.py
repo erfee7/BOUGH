@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, AsyncGenerator
 
 from app.db import messages as db_messages
+from app.db import attachments as db_attachments
 from app.llm.provider import generate_stream
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,12 @@ class StreamState:
 
 # Module-level registry for active streams
 _active_streams: dict[uuid.UUID, StreamState] = {}
+
+# Total attachment byte budget per generation, summed over every attachment in the
+# history (a blob shared by forked messages counts once per referencing message —
+# that is its true payload cost). Hand-editable memory guard; provider-side limits
+# are discovered honestly via error events.
+MAX_GENERATION_ATTACHMENT_TOTAL = 50 * 1024 * 1024  # 50 MB
 
 def start_stream(message_id: uuid.UUID, messages_history: list, model: str | None = None, parameters: dict[str, Any] | None = None) -> None:
     """Spawns a background task to handle LLM generation and streaming."""
@@ -90,6 +97,45 @@ async def _run_generation(message_id: uuid.UUID, messages_history: list, state: 
     try:
         await db_messages.update_message(message_id, status='streaming')
         logger.info("Stream generation started for message %s", message_id)
+
+        # --- Load attachment blobs into the history (enrich metadata with raw bytes) ---
+        # Attachments are immutable and pinned by the committed message snapshot, so
+        # fetching here — after the router's transaction — is race-free. Doing it in the
+        # worker keeps multi-MB TOAST reads out of the request transaction and the
+        # provider layer free of DB knowledge.
+        unique_ids = list(dict.fromkeys(
+            att["id"]
+            for msg in messages_history
+            for att in msg.get("attachments") or []
+        ))
+        total_attachment_size = sum(
+            att["size"]
+            for msg in messages_history
+            for att in msg.get("attachments") or []
+        )
+
+        if unique_ids:
+            if total_attachment_size > MAX_GENERATION_ATTACHMENT_TOTAL:
+                raise ValueError(
+                    f"History attachments total {total_attachment_size} bytes, exceeding the "
+                    f"{MAX_GENERATION_ATTACHMENT_TOTAL}-byte generation budget."
+                )
+
+            blob_map = await db_attachments.fetch_attachment_data(
+                ids=[uuid.UUID(i) for i in unique_ids]
+            )
+            if len(blob_map) != len(unique_ids):
+                missing = [i for i in unique_ids if i not in blob_map]
+                raise ValueError(f"Attachment blobs missing from storage: {missing}")
+
+            for msg in messages_history:
+                for att in msg.get("attachments") or []:
+                    att["data"] = blob_map[att["id"]]
+
+            logger.info(
+                "Loaded %d attachment blobs (%d bytes total) for message %s",
+                len(unique_ids), total_attachment_size, message_id
+            )
         
         async for event in generate_stream(messages_history, model = model, parameters = parameters):
             # Check for cancellation before processing the chunk

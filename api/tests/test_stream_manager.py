@@ -232,3 +232,110 @@ async def test_cancel_stream_saves_partial():
             
             # Ensure state is cleaned up
             assert message_id not in _active_streams
+
+# --- Attachment loading tests ---
+
+@pytest.mark.asyncio
+async def test_run_generation_loads_and_enriches_attachment_blobs():
+    """Attachment ids are deduped, fetched once, and enriched with raw bytes before hitting the provider."""
+    message_id = uuid.uuid4()
+    att_id = str(uuid.uuid4())
+    blob = b"\x89PNG" + b"\x00" * 8
+
+    history = [
+        {"role": "user", "content": "first", "attachments": [
+            {"id": att_id, "mime_type": "image/png", "filename": "cat.png", "size": len(blob)}]},
+        {"role": "assistant", "content": "reply"},
+        {"role": "user", "content": "forked reuse", "attachments": [
+            {"id": att_id, "mime_type": "image/png", "filename": "cat.png", "size": len(blob)}]},
+    ]
+
+    captured = {}
+    async def capturing_mock(h, model=None, parameters=None):
+        captured['history'] = h
+        yield {"type": "done", "metadata": {}}
+
+    with patch('app.core.stream_manager.db_messages.update_message', new_callable=AsyncMock):
+        with patch('app.core.stream_manager.generate_stream', new=capturing_mock):
+            with patch('app.core.stream_manager.db_attachments.fetch_attachment_data',
+                       new_callable=AsyncMock, return_value={att_id: blob}) as mock_fetch:
+                start_stream(message_id, history)
+                await asyncio.sleep(0.1)
+
+                # One batched call, with the deduped id list as UUIDs
+                mock_fetch.assert_called_once()
+                assert mock_fetch.call_args.kwargs["ids"] == [uuid.UUID(att_id)]
+
+                # Both referencing messages' dicts now carry the raw bytes
+                assert captured['history'][0]['attachments'][0]['data'] == blob
+                assert captured['history'][2]['attachments'][0]['data'] == blob
+
+
+@pytest.mark.asyncio
+async def test_run_generation_missing_blob_fails_honest():
+    """A blob absent from storage fails the generation honestly; provider is never called."""
+    message_id = uuid.uuid4()
+    history = [{"role": "user", "content": "hi", "attachments": [
+        {"id": str(uuid.uuid4()), "mime_type": "image/png", "filename": "cat.png", "size": 4}]}]
+
+    provider_called = False
+    async def never_called_mock(h, model=None, parameters=None):
+        nonlocal provider_called
+        provider_called = True
+        yield {"type": "done", "metadata": {}}
+
+    with patch('app.core.stream_manager.db_messages.update_message', new_callable=AsyncMock) as mock_update:
+        with patch('app.core.stream_manager.generate_stream', new=never_called_mock):
+            with patch('app.core.stream_manager.db_attachments.fetch_attachment_data',
+                       new_callable=AsyncMock, return_value={}):
+                start_stream(message_id, history)
+                await asyncio.sleep(0.1)
+
+    assert provider_called is False
+    error_calls = [c for c in mock_update.call_args_list if c.kwargs.get('status') == 'error']
+    assert len(error_calls) == 1
+    assert "missing from storage" in error_calls[0].kwargs['error_data']['message']
+    assert error_calls[0].kwargs['error_data']['type'] == "ValueError"
+
+
+@pytest.mark.asyncio
+async def test_run_generation_attachment_budget_guard():
+    """Histories whose snapshot sizes exceed the total budget fail before any blob fetch."""
+    message_id = uuid.uuid4()
+    # The guard reads metadata size ints — no real bytes needed to trip a 50MB budget
+    history = [{"role": "user", "content": "hi", "attachments": [
+        {"id": str(uuid.uuid4()), "mime_type": "image/png", "filename": "big.png",
+         "size": 60 * 1024 * 1024}]}]
+
+    provider_called = False
+    async def never_called_mock(h, model=None, parameters=None):
+        nonlocal provider_called
+        provider_called = True
+        yield {"type": "done", "metadata": {}}
+
+    with patch('app.core.stream_manager.db_messages.update_message', new_callable=AsyncMock) as mock_update:
+        with patch('app.core.stream_manager.generate_stream', new=never_called_mock):
+            with patch('app.core.stream_manager.db_attachments.fetch_attachment_data',
+                       new_callable=AsyncMock) as mock_fetch:
+                start_stream(message_id, history)
+                await asyncio.sleep(0.1)
+
+    assert provider_called is False
+    mock_fetch.assert_not_called()
+    error_calls = [c for c in mock_update.call_args_list if c.kwargs.get('status') == 'error']
+    assert len(error_calls) == 1
+    assert "generation budget" in error_calls[0].kwargs['error_data']['message']
+
+
+@pytest.mark.asyncio
+async def test_run_generation_no_attachments_never_fetches():
+    """Regression: attachment-free histories never touch the blob store."""
+    message_id = uuid.uuid4()
+
+    with patch('app.core.stream_manager.db_messages.update_message', new_callable=AsyncMock):
+        with patch('app.core.stream_manager.generate_stream', new=mock_generate_stream_success):
+            with patch('app.core.stream_manager.db_attachments.fetch_attachment_data',
+                       new_callable=AsyncMock) as mock_fetch:
+                start_stream(message_id, [{"role": "user", "content": "Hi"}])
+                await asyncio.sleep(0.3)
+                mock_fetch.assert_not_called()
