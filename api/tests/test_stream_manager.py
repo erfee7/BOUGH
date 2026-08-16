@@ -302,10 +302,9 @@ async def test_run_generation_missing_blob_fails_honest():
 async def test_run_generation_attachment_budget_guard():
     """Histories whose snapshot sizes exceed the total budget fail before any blob fetch."""
     message_id = uuid.uuid4()
-    # The guard reads metadata size ints — no real bytes needed to trip a 50MB budget
+    # The guard reads metadata size ints, so a tiny patched budget + small fake size suffices
     history = [{"role": "user", "content": "hi", "attachments": [
-        {"id": str(uuid.uuid4()), "mime_type": "image/png", "filename": "big.png",
-         "size": 60 * 1024 * 1024}]}]
+        {"id": str(uuid.uuid4()), "mime_type": "image/png", "filename": "big.png", "size": 16}]}]
 
     provider_called = False
     async def never_called_mock(h, model=None, parameters=None):
@@ -317,8 +316,9 @@ async def test_run_generation_attachment_budget_guard():
         with patch('app.core.stream_manager.generate_stream', new=never_called_mock):
             with patch('app.core.stream_manager.db_attachments.fetch_attachment_data',
                        new_callable=AsyncMock) as mock_fetch:
-                start_stream(message_id, history)
-                await asyncio.sleep(0.1)
+                with patch('app.core.stream_manager.MAX_GENERATION_ATTACHMENT_TOTAL', 8):
+                    start_stream(message_id, history)
+                    await asyncio.sleep(0.1)
 
     assert provider_called is False
     mock_fetch.assert_not_called()
