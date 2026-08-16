@@ -29,8 +29,9 @@ class TitleGenerateRequest(BaseModel):
     force: bool = False
 
 class MessageAppendRequest(BaseModel):
-    content: str
+    content: str | None = None  # Optional: image-only messages. Router normalizes None -> "" before storage.
     role: Literal['user', 'developer', 'assistant'] = "user"
+    attachment_ids: list[uuid.UUID] = []  # User-chosen order is the display/sending order
 
 class MessageGenerateRequest(BaseModel):
     model: str | None = None
@@ -66,6 +67,7 @@ class MessageResponse(BaseModel):
     role: str
     content: str | None = None
     reasoning: str | None = None
+    attachments: list[dict] = []
     status: str
     error_data: dict | None = None
     creation_data: dict | None = None

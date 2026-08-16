@@ -2,7 +2,7 @@ import uuid
 import pytest
 import httpx
 from httpx import ASGITransport
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 
 from app.main import app
 from app.security import get_current_user_id
@@ -77,21 +77,18 @@ async def test_upload_rejects_unknown_magic(mock_pool):
 
 
 @pytest.mark.asyncio
-async def test_upload_rejects_oversize(mock_pool):
-    """Uploads over the size cap are rejected with 413 and nothing is stored."""
-    with patch('app.db.connection.get_pool', return_value=mock_pool):
+async def test_upload_rejects_oversize():
+    """Uploads over the size cap are rejected with 413 before anything is stored."""
+    with patch('app.routers.attachments.db_attachments.create_attachment', new_callable=AsyncMock) as mock_create:
         with patch.object(attachments_router, "MAX_ATTACHMENT_SIZE", 8):
             async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                count_before = await mock_pool.conn.fetchval("SELECT COUNT(*) FROM attachments")
-
                 response = await client.post(
                     "/api/chat/attachments",
                     files={"file": ("big.png", PNG_BYTES, "image/png")},
                 )
 
                 assert response.status_code == 413
-                count_after = await mock_pool.conn.fetchval("SELECT COUNT(*) FROM attachments")
-                assert count_after == count_before
+                mock_create.assert_not_called()  # Rejected before the write path is ever reached
 
 
 @pytest.mark.asyncio

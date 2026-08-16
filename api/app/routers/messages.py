@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from app.db.connection import get_pool
 from app.db import conversations as db_conversations
 from app.db import messages as db_messages
+from app.db import attachments as db_attachments
 from app.core import stream_manager
 from app.schemas.chat import (
     MessageAppendRequest,
@@ -22,6 +23,9 @@ router = APIRouter(prefix = "/api/chat", tags = ["messages"])
 # Request fields controlled by server; clients cannot override them via the parameters bag
 RESERVED_PARAMETERS = {"model", "messages", "stream", "stream_options"}
 
+# Maximum number of attachments a single message may reference
+MAX_MESSAGE_ATTACHMENTS = 8
+
 def _format_sse(data: dict) -> str:
     """Formats a dictionary into a standard Server-Sent Event string."""
     return f"data: {json.dumps(data)}\n\n"
@@ -29,6 +33,22 @@ def _format_sse(data: dict) -> str:
 @router.post("/messages/{parent_id}/append", response_model = MessageResponse)
 async def append_message(parent_id: uuid.UUID, payload: MessageAppendRequest):
     """Appends a new message (e.g., user message) to a parent node."""
+    # --- In-memory request validation (rejects before acquiring a connection) ---
+    role = payload.role
+    attachment_ids = payload.attachment_ids
+    
+    if len(attachment_ids) > MAX_MESSAGE_ATTACHMENTS:
+        raise HTTPException(status_code = 400, detail = f"A message may reference at most {MAX_MESSAGE_ATTACHMENTS} attachments.")
+    if len(set(attachment_ids)) != len(attachment_ids):
+        raise HTTPException(status_code = 400, detail = "Duplicate attachment IDs are not allowed.")
+    if attachment_ids and role != "user":
+        raise HTTPException(status_code = 400, detail = "Attachments are only allowed on user messages.")
+    
+    # Safety policy: appended messages always store a string, never NULL ("" = user typed no text)
+    content = payload.content or ""
+    if not content and not attachment_ids:
+        raise HTTPException(status_code = 400, detail = "Message must contain text or attachments.")
+    
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -37,15 +57,33 @@ async def append_message(parent_id: uuid.UUID, payload: MessageAppendRequest):
                 raise HTTPException(status_code = 404, detail = "Parent message not found")
                 
             conversation_id = p_msg_record['conversation_id']
-
-            role = payload.role
+            
+            # --- Attachment existence check + immutable metadata snapshot ---
+            attachments_metadata = []
+            if attachment_ids:
+                records = await db_attachments.fetch_attachment_metadata(ids = attachment_ids, conn = conn)
+                if len(records) != len(attachment_ids):
+                    raise HTTPException(status_code = 400, detail = "One or more attachments not found")
+                # ANY() returns unordered; restore the user's order and normalize ids to strings
+                by_id = {rec['id']: rec for rec in records}
+                attachments_metadata = [
+                    {
+                        "id": str(rec['id']),
+                        "mime_type": rec['mime_type'],
+                        "filename": rec['filename'],
+                        "size": rec['size'],
+                    }
+                    for rec in (by_id[i] for i in attachment_ids)
+                ]
+            
             creation_data = {"source": "user"}
             
             new_msg_id = await db_messages.create_message(
                 conversation_id = conversation_id,
                 role = role,
                 parent_id = parent_id,
-                content = payload.content,
+                content = content,
+                attachments = attachments_metadata,
                 status = "complete",
                 creation_data = creation_data,
                 conn = conn
