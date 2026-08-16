@@ -11,6 +11,7 @@ export interface Message {
     role: 'system' | 'developer' | 'user' | 'assistant';
     content: string | null;
     reasoning?: string | null;
+    attachments?: AttachmentMeta[];
     status: 'pending' | 'streaming' | 'complete' | 'error' | 'canceled';
     creation_data?: any;
     error_data?: any;
@@ -58,4 +59,19 @@ export interface User {
     username: string;
     is_active: boolean;
     created_at: string;
+}
+
+export interface AttachmentMeta {
+    id: string;
+    mime_type: string;
+    filename: string;
+    size: number;
+}
+
+export interface AttachmentDraft {
+    localId: string;
+    file: File;
+    status: 'uploading' | 'done' | 'error';
+    meta?: AttachmentMeta;
+    error?: string;
 }

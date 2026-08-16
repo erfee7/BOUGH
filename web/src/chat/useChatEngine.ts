@@ -1,10 +1,12 @@
 import { ref } from 'vue';
 import { useConversationStore } from './stores/conversation';
 import { useMessageStore } from './stores/message';
+import { useAttachmentStore } from './stores/attachment';
 
 export function useChatEngine() {
     const conversationStore = useConversationStore();
     const messageStore = useMessageStore();
+    const attachmentStore = useAttachmentStore();
 
     const inputText = ref('');
     const systemPrompt = ref('');
@@ -30,10 +32,12 @@ export function useChatEngine() {
     }
 
     async function send() {
-        if (!inputText.value.trim() || messageStore.isStreaming) return;
+        const attachmentIds = [...attachmentStore.readyAttachmentIds];
+        if ((!inputText.value.trim() && attachmentIds.length === 0) || messageStore.isStreaming || attachmentStore.hasBlockingDrafts) return;
         const text = inputText.value;
         inputText.value = '';
         
+        let sentOk = false;
         if (!conversationStore.currentConversationId) {
             // Use the selected/written system prompt (empty string if null)
             const sysPrompt = systemPrompt.value.trim() || null;
@@ -45,18 +49,19 @@ export function useChatEngine() {
             await navigate(result.conversationId);
             
             const devPrompt = developerPrompt.value.trim() || null;
-            const userMsgId = await messageStore.sendMessage(text, devPrompt);
+            const userMsgId = await messageStore.sendMessage(text, devPrompt, attachmentIds);
             
             if (userMsgId && conversationStore.currentConversationId) {
                 conversationStore.generateTitle(conversationStore.currentConversationId, false);
             }
+            sentOk = !!userMsgId;
         } else {
             const devPrompt = developerPrompt.value.trim() || null;
-            await messageStore.sendMessage(text, devPrompt);
+            sentOk = !!(await messageStore.sendMessage(text, devPrompt, attachmentIds));
         }
-        
-        // Clear developer prompt after sending
-        developerPrompt.value = '';
+
+        if (sentOk) attachmentStore.clearDrafts(); // On failure: keep drafts for a retry send
+        developerPrompt.value = ''; // Clear developer prompt after sending
     }
 
     async function cancel() {

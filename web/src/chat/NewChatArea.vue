@@ -14,6 +14,10 @@
             @update:modelValue="inputText = $event"
             :developerPrompt="developerPrompt"
             @update:developerPrompt="developerPrompt = $event"
+            :drafts="attachmentStore.drafts"
+            @files-added="attachmentStore.addFiles"
+            @remove-draft="attachmentStore.removeDraft"
+            @retry-draft="attachmentStore.retryDraft"
             @send="send"
             @openLibrary="emit('openLibrary')"
             :isStreaming="messageStore.isStreaming"
@@ -26,6 +30,9 @@ import InputArea from './InputArea.vue';
 import PromptSelector from './prompts/PromptSelector.vue';
 import { useMessageStore } from './stores/message';
 import { useChatEngine } from './useChatEngine';
+import { useAttachmentStore } from './stores/attachment';
+
+const attachmentStore = useAttachmentStore();
 
 const emit = defineEmits<{ 
     (e: 'openLibrary'): void

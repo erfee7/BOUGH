@@ -6,6 +6,10 @@
             @update:modelValue="inputText = $event"
             :developerPrompt="developerPrompt"
             @update:developerPrompt="developerPrompt = $event"
+            :drafts="attachmentStore.drafts"
+            @files-added="attachmentStore.addFiles"
+            @remove-draft="attachmentStore.removeDraft"
+            @retry-draft="attachmentStore.retryDraft"
             @send="send"
             @cancel="cancel"
             @openLibrary="emit('openLibrary')"
@@ -19,6 +23,9 @@ import MessageList from './MessageList.vue';
 import InputArea from './InputArea.vue';
 import { useMessageStore } from './stores/message';
 import { useChatEngine } from './useChatEngine';
+import { useAttachmentStore } from './stores/attachment';
+
+const attachmentStore = useAttachmentStore();
 
 const emit = defineEmits<{ 
     (e: 'openLibrary'): void

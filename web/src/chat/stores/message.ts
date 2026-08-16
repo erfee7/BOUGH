@@ -64,7 +64,7 @@ export const useMessageStore = defineStore('message', () => {
     }
 
     // 2. User sends a new message
-    async function sendMessage(content: string, developerContent: string | null = null): Promise<string | null> {
+    async function sendMessage(content: string, developerContent: string | null = null, attachmentIds: string[] = []): Promise<string | null> {
         if (!activeLeafId.value || isStreaming.value) return null;
         
         try {
@@ -86,6 +86,7 @@ export const useMessageStore = defineStore('message', () => {
                     role: devData.role,
                     content: devData.content,
                     reasoning: devData.reasoning ?? null,
+                    attachments: devData.attachments ?? [],
                     status: devData.status,
                     creation_data: devData.creation_data,
                     error_data: devData.error_data,
@@ -102,7 +103,7 @@ export const useMessageStore = defineStore('message', () => {
             const response = await apiFetch(`/api/chat/messages/${currentParentId}/append`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content, role: 'user' })
+                body: JSON.stringify({ content, role: "user", attachment_ids: attachmentIds })
             });
             if (!response.ok) throw new Error('Failed to append message');
             const data = await response.json();
@@ -113,6 +114,7 @@ export const useMessageStore = defineStore('message', () => {
                 role: data.role,
                 content: data.content,
                 reasoning: data.reasoning ?? null,
+                attachments: data.attachments ?? [],
                 status: data.status,
                 creation_data: data.creation_data,
                 error_data: data.error_data,
@@ -153,6 +155,7 @@ export const useMessageStore = defineStore('message', () => {
                 role: data.role,
                 content: data.content,
                 reasoning: data.reasoning ?? null,
+                attachments: data.attachments ?? [],
                 status: data.status,
                 creation_data: data.creation_data,
                 error_data: data.error_data,
@@ -333,12 +336,12 @@ export const useMessageStore = defineStore('message', () => {
     }
 
     // 5. Append a new message (used for manual edits)
-    async function appendMessage(parentId: string, content: string, role: 'user' | 'assistant'): Promise<string | null> {
+    async function appendMessage(parentId: string, content: string, role: 'user' | 'assistant', attachmentIds: string[] = []): Promise<string | null> {
         try {
             const response = await apiFetch(`/api/chat/messages/${parentId}/append`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content, role })
+                body: JSON.stringify({ content, role, attachment_ids: attachmentIds })
             });
             if (!response.ok) throw new Error('Failed to append message');
             const data = await response.json();
@@ -349,6 +352,7 @@ export const useMessageStore = defineStore('message', () => {
                 role: data.role,
                 content: data.content,
                 reasoning: data.reasoning ?? null,
+                attachments: data.attachments ?? [],
                 status: data.status,
                 creation_data: data.creation_data,
                 error_data: data.error_data,
