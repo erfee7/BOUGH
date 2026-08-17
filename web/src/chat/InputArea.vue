@@ -39,17 +39,18 @@
                     v-for="d in drafts"
                     :key="d.localId"
                     class="draft-chip"
-                    :class="{ 'error': d.status === 'error' }"
+                    :class="{ 'error': d.status === 'error', 'clickable': d.status === 'done' }"
+                    @click="openDraftPreview(d)"
                 >
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="d.file.type === 'application/pdf' ? ICONS.file_text : ICONS.image"></svg>
                     <span class="chip-name" :title="d.file.name">{{ d.file.name }}</span>
                     <span v-if="d.status === 'uploading'" class="spinner chip-spinner"></span>
                     <span v-else-if="d.status === 'error'" class="chip-sub error-text">{{ d.error }}</span>
                     <span v-else class="chip-sub">{{ d.file.type }} · {{ d.meta ? formatFileSize(d.meta.size) : formatFileSize(d.file.size) }}</span>
-                    <button v-if="d.status === 'error'" class="chip-btn" title="Retry upload" @click="emit('retry-draft', d.localId)">
+                    <button v-if="d.status === 'error'" class="chip-btn" title="Retry upload" @click.stop="emit('retry-draft', d.localId)">
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.rotate_cw"></svg>
                     </button>
-                    <button class="chip-btn" title="Remove" @click="emit('remove-draft', d.localId)">
+                    <button class="chip-btn" title="Remove" @click.stop="emit('remove-draft', d.localId)">
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.x"></svg>
                     </button>
                 </div>
@@ -72,15 +73,17 @@
                 </button>
             </div>
         </div>
+        <AttachmentPreview v-if="previewing" :attachment="previewing" @close="previewing = null" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import PromptSelector from './prompts/PromptSelector.vue';
+import AttachmentPreview from './message/AttachmentPreview.vue';
 import { useAutoResizeTextarea } from './useAutoResizeTextarea';
 import { formatFileSize } from '@/utils/format';
-import { AttachmentDraft } from '@/types';
+import { AttachmentDraft, AttachmentMeta } from '@/types';
 import { ICONS } from '@/icons';
 
 const props = defineProps<{ 
@@ -112,6 +115,13 @@ const anyUploading = computed(() => props.drafts.some(d => d.status === 'uploadi
 const canSend = computed(() => (props.modelValue.trim().length > 0 || hasReadyAttachment.value) && !anyUploading.value);
 
 const { textareaRef, adjustHeight } = useAutoResizeTextarea(() => props.modelValue);
+
+const previewing = ref<AttachmentMeta | null>(null);
+
+// Only completed drafts have a server blob to preview; uploading/error chips stay inert
+function openDraftPreview(draft: AttachmentDraft) {
+    if (draft.status === 'done' && draft.meta) previewing.value = draft.meta;
+}
 
 function handleInput(event: Event) {
     const target = event.target as HTMLTextAreaElement;
@@ -338,5 +348,13 @@ function handlePaste(event: ClipboardEvent) {
 .stop-btn:hover {
     background: var(--accent-red-hover);
     transform: translateY(-1px);
+}
+
+.draft-chip.clickable {
+    cursor: pointer;
+}
+
+.draft-chip.clickable:hover {
+    border-color: var(--accent-blue);
 }
 </style>

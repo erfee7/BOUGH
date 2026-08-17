@@ -1,35 +1,37 @@
 <template>
     <div v-if="attachments.length" class="attachment-list">
         <template v-for="att in attachments" :key="att.id">
-            <a
+            <button
                 v-if="att.mime_type.startsWith('image/')"
                 class="image-link"
-                :href="attachmentUrl(att.id)"
-                target="_blank"
-                rel="noopener"
                 :title="att.filename"
+                @click="previewing = att"
             >
                 <img class="attachment-image" :src="attachmentUrl(att.id)" :alt="att.filename" />
-            </a>
-            <a
+            </button>
+            <button
                 v-else
                 class="file-chip"
-                :href="attachmentUrl(att.id)"
-                target="_blank"
-                rel="noopener"
+                :title="att.filename"
+                @click="previewing = att"
             >
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.file_text"></svg>
                 <span class="file-name">{{ att.filename }}</span>
                 <span class="file-size">{{ formatFileSize(att.size) }}</span>
-            </a>
+            </button>
         </template>
     </div>
+    <AttachmentPreview v-if="previewing" :attachment="previewing" @close="previewing = null" />
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import AttachmentPreview from './AttachmentPreview.vue';
 import { AttachmentMeta } from '@/types';
 import { ICONS } from '@/icons';
 import { formatFileSize } from '@/utils/format';
+
+const previewing = ref<AttachmentMeta | null>(null);
 
 defineProps<{
     attachments: AttachmentMeta[]
@@ -50,9 +52,12 @@ function attachmentUrl(id: string): string {
 
 .image-link {
     display: inline-block;
+    background: none;
+    padding: 0;
+    border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
     overflow: hidden;
-    border: 1px solid var(--border-default);
+    cursor: zoom-in;
 }
 
 .attachment-image {
@@ -72,8 +77,9 @@ function attachmentUrl(id: string): string {
     border: 1px solid var(--border-default);
     border-radius: var(--radius-md);
     color: var(--text-primary);
-    text-decoration: none;
     font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
 }
 
 .file-chip:hover {
