@@ -37,6 +37,7 @@ const {
 <style scoped>
 .messages-container {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 0 2% 24px;
     scrollbar-width: thin;

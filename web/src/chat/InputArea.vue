@@ -183,6 +183,7 @@ function handlePaste(event: ClipboardEvent) {
 
 <style scoped>
 .input-area {
+    flex-shrink: 0;
     padding: 20px 2% 32px;
 }
 

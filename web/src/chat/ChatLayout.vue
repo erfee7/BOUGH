@@ -7,13 +7,26 @@
         />
         <main class="main-area">
             <GenerationConfigBar />
-            <NewChatArea 
-                v-if="!conversationStore.currentConversationId" 
+            <NewChatArea
+                v-if="!conversationStore.currentConversationId"
+                :systemPrompt="systemPrompt"
+                @update:systemPrompt="systemPrompt = $event"
                 @openLibrary="isPromptLibraryVisible = true"
             />
-            <ChatArea 
-                v-else 
+            <MessageList v-else />
+            <InputArea 
+                :modelValue="inputText" 
+                @update:modelValue="inputText = $event"
+                :developerPrompt="developerPrompt"
+                @update:developerPrompt="developerPrompt = $event"
+                :drafts="attachmentStore.drafts"
+                @files-added="attachmentStore.addFiles"
+                @remove-draft="attachmentStore.removeDraft"
+                @retry-draft="attachmentStore.retryDraft"
+                @send="send"
+                @cancel="cancel"
                 @openLibrary="isPromptLibraryVisible = true"
+                :isStreaming="messageStore.isStreaming"
             />
         </main>
         <PromptLibraryModal 
@@ -33,21 +46,33 @@
 import { ref, onMounted } from 'vue';
 import Sidebar from './sidebar/Sidebar.vue';
 import NewChatArea from './NewChatArea.vue';
-import ChatArea from './ChatArea.vue';
+import MessageList from './MessageList.vue';
+import InputArea from './InputArea.vue';
 import PromptLibraryModal from './prompts/PromptLibraryModal.vue';
 import GenerationConfigBar from './generation_config/GenerationConfigBar.vue';
 import SettingsModal from '@/shared/SettingsModal.vue';
 import { useConversationStore } from './stores/conversation';
+import { useMessageStore } from './stores/message';
+import { useAttachmentStore } from './stores/attachment';
 import { useChatEngine } from './useChatEngine';
 import { useAuthStore } from '@/auth/stores/auth';
 
 const conversationStore = useConversationStore();
+const messageStore = useMessageStore();
+const attachmentStore = useAttachmentStore();
 const authStore = useAuthStore();
 
+// The single engine instance: the composer is shell-level chrome, so its
+// orchestrator lives here — never unmounted, shared by every view.
 const { 
     isPromptLibraryVisible,
+    inputText,
+    systemPrompt,
+    developerPrompt,
     initialize, 
-    navigate
+    navigate,
+    send,
+    cancel
 } = useChatEngine();
 
 const isSettingsVisible = ref(false);
