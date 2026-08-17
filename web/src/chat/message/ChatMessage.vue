@@ -71,6 +71,7 @@
                         <span v-else-if="!isPrompt && (message.status === 'pending' || message.status === 'streaming')" class="placeholder">Thinking...</span>
                         <span v-else-if="isPrompt" class="empty-prompt">Empty prompt</span>
                     </div>
+                    <AttachmentList :attachments="message.attachments ?? []" />
                     <ErrorBlock 
                         v-if="!isPrompt && message.status === 'error'" 
                         :errorData="message.error_data" 
@@ -112,6 +113,7 @@ import ReasoningBlock from './ReasoningBlock.vue';
 import MessageActions from './MessageActions.vue';
 import MessageDetails from './MessageDetails.vue';
 import ErrorBlock from './ErrorBlock.vue';
+import AttachmentList from './AttachmentList.vue';
 import { ICONS } from '@/icons';
 import { handleMarkdownDblClick, handleMarkdownCopy } from '@/chat/markdownInteractions';
 import { formatRelativeTime, formatAbsoluteTime } from '@/utils/time';

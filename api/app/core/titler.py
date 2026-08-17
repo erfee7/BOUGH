@@ -9,6 +9,19 @@ logger = logging.getLogger(__name__)
 TITLER_PROMPT = "Provide a concise, 3-6 word title for the chat conversation based on the opening exchange, using title case conventions. Respond with only the title: no quotes, no trailing punctuation, no explanation."
 MAX_TITLER_CONTENT_CHARS = 1729
 
+def _attachment_hint(msg: dict) -> str:
+    """
+    Builds a short pure-text indicator of the files a message carries.
+    The titler only ever sees text; attachments are summarized as filename + type.
+    The mime type comes from upload-time magic-number detection, so it reflects
+    the file's real type even when the filename extension lies.
+    """
+    attachments = msg.get("attachments") or []
+    if not attachments:
+        return ""
+    names = [f"{att['filename']} ({att['mime_type']})" for att in attachments]
+    return f" [attachments: {', '.join(names)}]"
+
 async def generate_title(conversation_id: uuid.UUID, force: bool = False) -> str | None:
     """
     Generates and saves a title for a conversation.
@@ -34,7 +47,10 @@ async def generate_title(conversation_id: uuid.UUID, force: bool = False) -> str
     first_user_msg = next((m for m in history if m['role'] == 'user'), None)
     first_assistant_msg = next((m for m in history if m['role'] == 'assistant'), None)
     
-    user_content = first_user_msg['content'][:MAX_TITLER_CONTENT_CHARS] if first_user_msg and first_user_msg['content'] else ""
+    user_content = ""
+    if first_user_msg:
+        raw_content = first_user_msg['content'] or ""
+        user_content = raw_content[:MAX_TITLER_CONTENT_CHARS] + _attachment_hint(first_user_msg)
     assistant_content = first_assistant_msg['content'][:MAX_TITLER_CONTENT_CHARS] if first_assistant_msg and first_assistant_msg['content'] else ""
     
     # Refuse if both are missing/empty

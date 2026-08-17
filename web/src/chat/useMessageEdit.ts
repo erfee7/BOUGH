@@ -24,7 +24,12 @@ export function useMessageEdit() {
             return;
         }
 
-        const newMsgId = await messageStore.appendMessage(message.parent_id!, editingText.value, message.role as 'user' | 'assistant');
+        const newMsgId = await messageStore.appendMessage(
+            message.parent_id!,
+            editingText.value,
+            message.role as 'user' | 'assistant',
+            message.attachments?.map(a => a.id) ?? [] // Files carry through edits unchanged
+        );
         cancelEdit();
 
         if (newMsgId && shouldGenerate) {

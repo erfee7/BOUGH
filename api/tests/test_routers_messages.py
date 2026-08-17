@@ -8,6 +8,7 @@ from unittest.mock import patch, AsyncMock
 from app.main import app
 from app.db import conversations as db_conversations
 from app.db import messages as db_messages
+from app.db import attachments as db_attachments
 
 _TEST_CONVERSATION_TITLE = "Msg API Test"
 _TEST_SYSTEM_PROMPT = "You are a test assistant."
@@ -380,3 +381,176 @@ async def test_stream_message_endpoint_error():
             assert len(lines) == 2
             assert lines[0] == f'data: {json.dumps({"type": "error", "content": "Partial gen", "reasoning": "Partial think", "error_data": _TEST_ERROR_DATA})}'
             assert lines[1] == "data: [DONE]"
+
+@pytest.mark.asyncio
+async def test_append_message_with_attachments_preserves_order(mock_pool):
+    """Attachment metadata is snapshotted onto the message in the user's chosen order."""
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT,
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    att_a = await db_attachments.create_attachment(filename="a.png", mime_type="image/png", data=b"\x89PNGaaa", conn=mock_pool.conn)
+    att_b = await db_attachments.create_attachment(filename="b.pdf", mime_type="application/pdf", data=b"%PDF-bbb", conn=mock_pool.conn)
+
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            # Deliberately NOT in creation order
+            payload = {"content": "Compare these", "role": "user", "attachment_ids": [str(att_b), str(att_a)]}
+            response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
+
+            assert response.status_code == 200
+            data = response.json()
+            assert len(data["attachments"]) == 2
+            assert data["attachments"][0]["id"] == str(att_b)
+            assert data["attachments"][0]["filename"] == "b.pdf"
+            assert data["attachments"][1]["id"] == str(att_a)
+
+            # DB row matches the response exactly; ids stay strings through the JSONB round-trip
+            msg = await db_messages.fetch_message(uuid.UUID(data["id"]), conn=mock_pool.conn)
+            assert msg["attachments"] == data["attachments"]
+            assert all(isinstance(a["id"], str) for a in msg["attachments"])
+
+
+@pytest.mark.asyncio
+async def test_append_message_missing_attachment_persists_nothing(mock_pool):
+    """A bogus attachment ID yields 400 and no message is persisted (leaf untouched)."""
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT,
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    real_att = await db_attachments.create_attachment(filename="real.png", mime_type="image/png", data=b"\x89PNGrrr", conn=mock_pool.conn)
+    leaf_before = (await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn))["active_leaf_id"]
+
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"content": "test", "role": "user", "attachment_ids": [str(real_att), str(uuid.uuid4())]}
+            response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
+
+            assert response.status_code == 400
+            assert response.json()["detail"] == "One or more attachments not found"
+
+    # Layer-based persistence check: still exactly the root message, leaf unchanged
+    messages = await db_messages.fetch_conversation_messages(conv_id, conn=mock_pool.conn)
+    assert len(messages) == 1
+    conv = await db_conversations.fetch_conversation(conv_id, conn=mock_pool.conn)
+    assert conv["active_leaf_id"] == leaf_before
+
+@pytest.mark.asyncio
+async def test_append_message_rejects_duplicate_attachments(mock_pool):
+    """Duplicate attachment IDs are rejected."""
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT,
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    att = await db_attachments.create_attachment(filename="dup.png", mime_type="image/png", data=b"\x89PNGddd", conn=mock_pool.conn)
+
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"content": "test", "role": "user", "attachment_ids": [str(att), str(att)]}
+            response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
+
+            assert response.status_code == 400
+            assert response.json()["detail"] == "Duplicate attachment IDs are not allowed."
+
+
+@pytest.mark.asyncio
+async def test_append_message_rejects_over_cap(mock_pool):
+    """More attachment IDs than MAX_MESSAGE_ATTACHMENTS is rejected before any DB access."""
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        with patch('app.routers.messages.MAX_MESSAGE_ATTACHMENTS', 2):
+            async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                ids = [str(uuid.uuid4()) for _ in range(3)]
+                response = await client.post(
+                    f"/api/chat/messages/{uuid.uuid4()}/append",
+                    json={"content": "test", "role": "user", "attachment_ids": ids},
+                )
+                assert response.status_code == 400
+                assert "at most 2" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_append_message_image_only_stores_empty_string(mock_pool):
+    """A message with attachments but no text stores content as '' (never NULL)."""
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT,
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    att = await db_attachments.create_attachment(filename="cat.png", mime_type="image/png", data=b"\x89PNGcat", conn=mock_pool.conn)
+
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"role": "user", "attachment_ids": [str(att)]}  # no content key at all
+            response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["content"] == ""
+            assert len(data["attachments"]) == 1
+
+            msg = await db_messages.fetch_message(uuid.UUID(data["id"]), conn=mock_pool.conn)
+            assert msg["content"] == ""
+
+
+@pytest.mark.asyncio
+async def test_append_message_rejects_empty(mock_pool):
+    """Neither text nor attachments is not a message."""
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                f"/api/chat/messages/{uuid.uuid4()}/append",
+                json={"content": "", "role": "user"},
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "Message must contain text or attachments."
+
+            # Same for a fully omitted content (None normalized to "" by the router)
+            response = await client.post(
+                f"/api/chat/messages/{uuid.uuid4()}/append",
+                json={"role": "user"},
+            )
+            assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_append_message_attachments_only_for_user_role(mock_pool):
+    """Attachments are rejected on developer/assistant messages but work for user."""
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT,
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+    att = await db_attachments.create_attachment(filename="x.png", mime_type="image/png", data=b"\x89PNGxxx", conn=mock_pool.conn)
+
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"content": "dev text", "role": "developer", "attachment_ids": [str(att)]}
+            response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
+            assert response.status_code == 400
+            assert response.json()["detail"] == "Attachments are only allowed on user messages."
+
+            # The same ID with role=user proves the ID itself is fine
+            payload["role"] = "user"
+            response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
+            assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_append_message_without_attachments_defaults_empty(mock_pool):
+    """Plain text messages carry attachments: [] in the response."""
+    conv_id = await db_conversations.create_conversation(title=_TEST_CONVERSATION_TITLE, conn=mock_pool.conn)
+    root_id = await db_messages.create_message(
+        conversation_id=conv_id, role="system", content=_TEST_SYSTEM_PROMPT,
+        status="complete", creation_data={"source": "user"}, conn=mock_pool.conn
+    )
+
+    with patch('app.routers.messages.get_pool', return_value=mock_pool):
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            payload = {"content": _TEST_USER_MESSAGE, "role": "user"}
+            response = await client.post(f"/api/chat/messages/{root_id}/append", json=payload)
+
+            assert response.status_code == 200
+            assert response.json()["attachments"] == []

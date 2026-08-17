@@ -1,63 +1,42 @@
 <template>
-    <div class="welcome-container">
+    <div class="welcome-overlay">
         <div class="welcome-content">
             <h2>Start a new chat</h2>
             <PromptSelector 
                 role="system" 
                 :modelValue="systemPrompt" 
-                @update:modelValue="systemPrompt = $event"
+                @update:modelValue="emit('update:systemPrompt', $event)"
                 @openLibrary="emit('openLibrary')"
             />
         </div>
-        <InputArea 
-            :modelValue="inputText" 
-            @update:modelValue="inputText = $event"
-            :developerPrompt="developerPrompt"
-            @update:developerPrompt="developerPrompt = $event"
-            @send="send"
-            @openLibrary="emit('openLibrary')"
-            :isStreaming="messageStore.isStreaming"
-        />
     </div>
 </template>
 
 <script setup lang="ts">
-import InputArea from './InputArea.vue';
 import PromptSelector from './prompts/PromptSelector.vue';
-import { useMessageStore } from './stores/message';
-import { useChatEngine } from './useChatEngine';
 
-const emit = defineEmits<{ 
-    (e: 'openLibrary'): void
+defineProps<{ 
+    systemPrompt: string 
 }>();
 
-const messageStore = useMessageStore();
-
-const { 
-    inputText, 
-    systemPrompt, 
-    developerPrompt, 
-    send 
-} = useChatEngine();
+const emit = defineEmits<{ 
+    (e: 'update:systemPrompt', value: string): void,
+    (e: 'openLibrary'): void
+}>();
 </script>
 
 <style scoped>
-.welcome-container {
-    position: relative;
-    flex: 1; /* Take remaining space instead of 100% */
-    min-height: 0; /* Allow shrinking for internal scroll */
-    width: 100%;
-    margin: 0 auto;
+.welcome-overlay {
+    position: absolute;
+    inset: 0;                /* Full region below the config bar, including behind the composer */
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end; /* Keeps InputArea at the bottom */
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;    /* Never blocks the composer, even where it spans behind it */
 }
 
 .welcome-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    pointer-events: auto;    /* Re-enables interaction for the selector itself */
     width: calc(90% - 48px); /* Matches input area responsive padding roughly */
     max-width: 800px;
     text-align: center;

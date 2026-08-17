@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS messages (
     parent_id UUID REFERENCES messages(id) ON DELETE CASCADE, -- Nullable, null means it's a root message
     content TEXT,
     reasoning TEXT, -- Stores the reasoning/thinking process from LLMs
+    attachments JSONB NOT NULL DEFAULT '[]', -- Metadata array referencing standalone blobs: [{"id", "mime_type", "filename", "size"}]
     status TEXT NOT NULL CHECK (status IN ('pending', 'streaming', 'complete', 'error', 'canceled')),
     error_data JSONB,   -- Stores raw provider error if status = 'error'
     metadata JSONB,     -- Stores generation stats/costs if status = 'complete'
@@ -59,6 +60,16 @@ CREATE TABLE IF NOT EXISTS sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Attachments Table (Blob Vault)
+CREATE TABLE IF NOT EXISTS attachments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    mime_type TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    size INTEGER NOT NULL, -- In bytes, measured server-side from actual data
+    data BYTEA NOT NULL,  -- TOASTed; only read by explicit SELECTs on this column
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

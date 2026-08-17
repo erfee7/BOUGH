@@ -4,6 +4,7 @@ import asyncpg
 
 from app.db.conversations import create_conversation, delete_conversation, fetch_conversation
 from app.db.messages import create_message, fetch_message, update_message, delete_message, fetch_message_history, fetch_conversation_messages
+from app.db.attachments import create_attachment
 
 @pytest.mark.asyncio
 async def test_create_and_fetch_message(db_transaction: asyncpg.Connection):
@@ -143,3 +144,35 @@ async def test_delete_conversation_cascade(db_transaction: asyncpg.Connection):
     assert await fetch_message(root_id, conn=db_transaction) is None
     assert await fetch_message(user_id, conn=db_transaction) is None
     assert await fetch_message(assistant_id, conn=db_transaction) is None
+
+@pytest.mark.asyncio
+async def test_message_attachments_roundtrip(db_transaction: asyncpg.Connection):
+    """Attachments metadata array survives create -> fetch -> history traversal, ids staying strings."""
+    conversation_id = await create_conversation(title="Test", conn=db_transaction)
+    attachment_id = await create_attachment(filename="cat.png", mime_type="image/png", data=b"\x89PNG", conn=db_transaction)
+    attachments = [{"id": str(attachment_id), "mime_type": "image/png", "filename": "cat.png", "size": 4}]
+
+    message_id = await create_message(
+        conversation_id=conversation_id,
+        role="user",
+        content="What is this?",
+        attachments=attachments,
+        conn=db_transaction,
+    )
+
+    result = await fetch_message(message_id=message_id, conn=db_transaction)
+    assert result['attachments'] == attachments
+    assert result['attachments'][0]['id'] == str(attachment_id)  # Stays a string through the JSONB round-trip
+
+    history = await fetch_message_history(message_id=message_id, conn=db_transaction)
+    assert history[0]['attachments'] == attachments
+
+
+@pytest.mark.asyncio
+async def test_message_attachments_default_empty(db_transaction: asyncpg.Connection):
+    """Messages created without attachments default to an empty list."""
+    conversation_id = await create_conversation(title="Test", conn=db_transaction)
+    message_id = await create_message(conversation_id=conversation_id, role="user", content="No files", conn=db_transaction)
+
+    result = await fetch_message(message_id=message_id, conn=db_transaction)
+    assert result['attachments'] == []

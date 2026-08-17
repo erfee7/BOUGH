@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+import base64
 from typing import Any, AsyncGenerator
 
 import httpx
@@ -38,18 +39,64 @@ def _get_client() -> AsyncOpenAI:
     logger.info("AsyncOpenAI client initialized.")
     return _client
 
-def _format_history(messages_history: list[dict[str, Any]]) -> list[dict[str, str]]:
+def _build_content_parts(content: str | None, attachments: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Strips database metadata and formats the history into the strict 
-    [{"role": "...", "content": "..."}] format required by the OpenAI SDK.
+    Assembles the multimodal content array from a message's text and its enriched
+    attachment dicts (raw bytes under the "data" key, injected by the stream manager).
+    Text first (OpenRouter's recommendation), then attachments in the user's chosen
+    order. The text part is omitted entirely for attachment-only messages.
+    """
+    parts: list[dict[str, Any]] = []
+
+    text = content or ""
+    if text:
+        parts.append({"type": "text", "text": text})
+
+    for att in attachments:
+        mime_type = att["mime_type"]
+        b64 = base64.b64encode(att["data"]).decode("utf-8")
+
+        if mime_type in ("image/png", "image/jpeg", "image/webp", "image/gif"):
+            parts.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime_type};base64,{b64}"}
+            })
+        elif mime_type == "application/pdf":
+            parts.append({
+                "type": "file",
+                "file": {
+                    "filename": att["filename"],
+                    "file_data": f"data:application/pdf;base64,{b64}"
+                }
+            })
+        else:
+            # Internal failure, not a provider failure: unknown types must
+            # never be silently dropped. Escapes the generator (before the try block)
+            # and lands in the stream manager's outer except -> honest error status.
+            raise ValueError(f"Cannot assemble provider content for unsupported MIME type: {mime_type}")
+
+    return parts
+
+def _format_history(messages_history: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Strips database metadata and formats the history for the OpenAI SDK.
+    Text-only messages (the common case) stay plain strings; messages carrying
+    attachments become multimodal content arrays, text part first.
     """
     formatted = []
     for msg in messages_history:
-        # Only include role and content. We also ensure content is a string (handles None)
-        formatted.append({
-            "role": msg["role"],
-            "content": msg["content"] or ""
-        })
+        # .get(): titler-built payloads lack the "attachments" key entirely
+        attachments = msg.get("attachments") or []
+        if attachments:
+            formatted.append({
+                "role": msg["role"],
+                "content": _build_content_parts(msg["content"], attachments)
+            })
+        else:
+            formatted.append({
+                "role": msg["role"],
+                "content": msg["content"] or ""
+            })
     return formatted
 
 async def generate_stream(
