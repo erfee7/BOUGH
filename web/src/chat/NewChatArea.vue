@@ -1,5 +1,5 @@
 <template>
-    <div class="welcome-container">
+    <div class="welcome-overlay">
         <div class="welcome-content">
             <h2>Start a new chat</h2>
             <PromptSelector 
@@ -26,15 +26,17 @@ const emit = defineEmits<{
 </script>
 
 <style scoped>
-.welcome-container {
-    flex: 1;
-    min-height: 0;
+.welcome-overlay {
+    position: absolute;
+    inset: 0;                /* Full region below the config bar, including behind the composer */
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;    /* Never blocks the composer, even where it spans behind it */
 }
 
 .welcome-content {
+    pointer-events: auto;    /* Re-enables interaction for the selector itself */
     width: calc(90% - 48px); /* Matches input area responsive padding roughly */
     max-width: 800px;
     text-align: center;

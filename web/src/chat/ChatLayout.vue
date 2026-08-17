@@ -7,27 +7,29 @@
         />
         <main class="main-area">
             <GenerationConfigBar />
-            <NewChatArea
-                v-if="!conversationStore.currentConversationId"
-                :systemPrompt="systemPrompt"
-                @update:systemPrompt="systemPrompt = $event"
-                @openLibrary="isPromptLibraryVisible = true"
-            />
-            <MessageList v-else />
-            <InputArea 
-                :modelValue="inputText" 
-                @update:modelValue="inputText = $event"
-                :developerPrompt="developerPrompt"
-                @update:developerPrompt="developerPrompt = $event"
-                :drafts="attachmentStore.drafts"
-                @files-added="attachmentStore.addFiles"
-                @remove-draft="attachmentStore.removeDraft"
-                @retry-draft="attachmentStore.retryDraft"
-                @send="send"
-                @cancel="cancel"
-                @openLibrary="isPromptLibraryVisible = true"
-                :isStreaming="messageStore.isStreaming"
-            />
+            <div class="content-region">
+                <NewChatArea
+                    v-if="!conversationStore.currentConversationId"
+                    :systemPrompt="systemPrompt"
+                    @update:systemPrompt="systemPrompt = $event"
+                    @openLibrary="isPromptLibraryVisible = true"
+                />
+                <MessageList v-else />
+                <InputArea 
+                    :modelValue="inputText" 
+                    @update:modelValue="inputText = $event"
+                    :developerPrompt="developerPrompt"
+                    @update:developerPrompt="developerPrompt = $event"
+                    :drafts="attachmentStore.drafts"
+                    @files-added="attachmentStore.addFiles"
+                    @remove-draft="attachmentStore.removeDraft"
+                    @retry-draft="attachmentStore.retryDraft"
+                    @send="send"
+                    @cancel="cancel"
+                    @openLibrary="isPromptLibraryVisible = true"
+                    :isStreaming="messageStore.isStreaming"
+                />
+            </div>
         </main>
         <PromptLibraryModal 
             :isVisible="isPromptLibraryVisible" 
@@ -102,5 +104,14 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     position: relative;
+}
+
+.content-region {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Composer alone in flow (welcome case) -> pinned to bottom */
+    position: relative;        /* Reference frame for the welcome overlay */
 }
 </style>
