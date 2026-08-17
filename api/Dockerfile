@@ -2,6 +2,10 @@ FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim
 
 WORKDIR /app
 
+# Receive the build arg from Compose and bake it into the image env
+ARG BOUGH_VERSION=unknown
+ENV BOUGH_VERSION=${BOUGH_VERSION}
+
 # Enable bytecode compilation for faster startup
 ENV UV_COMPILE_BYTECODE=1
 

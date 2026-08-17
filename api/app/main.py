@@ -1,3 +1,4 @@
+import os
 import logging
 from contextlib import asynccontextmanager
 
@@ -6,6 +7,8 @@ from fastapi import FastAPI, Depends
 from app.db.connection import init_pool, close_pool
 from app.routers import conversations, messages, prompts, generation_presets, models, auth, attachments
 from app.security import get_current_user_id
+
+BOUGH_VERSION = os.getenv("BOUGH_VERSION", "unknown")
 
 # Configure root logger for radical transparency
 logging.basicConfig(
@@ -17,7 +20,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Runs before the server starts accepting requests
-    logger.info("Application starting up...")
+    logger.info(f"BOUGH {BOUGH_VERSION} starting up...")
     await init_pool()
     yield
     # Runs after the server stops accepting requests
@@ -39,4 +42,4 @@ app.include_router(attachments.router, dependencies=[Depends(get_current_user_id
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "version": BOUGH_VERSION}

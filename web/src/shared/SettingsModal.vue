@@ -16,6 +16,8 @@
                         Account
                     </button>
                     <!-- Future tabs will go here -->
+
+                    <span class="version-text">BOUGH {{ systemStore.version }}</span>
                 </nav>
 
                 <!-- Right Content Area -->
@@ -55,15 +57,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import ChangePasswordModal from './ChangePasswordModal.vue';
 import { ICONS } from '@/icons';
+import { useSystemStore } from '@/shared/stores/system';
 
 const props = defineProps<{ username: string }>();
 const emit = defineEmits(['close', 'logout']);
 
 const activeTab = ref<'account'>('account');
 const isChangePasswordVisible = ref(false);
+
+const systemStore = useSystemStore();
+onMounted(() => systemStore.fetchVersion());
 </script>
 
 <style scoped>
@@ -122,12 +128,22 @@ const isChangePasswordVisible = ref(false);
     overflow: hidden;
 }
 
+.version-text {
+    margin-top: auto;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
 .settings-nav {
     width: 160px;
     border-right: 1px solid var(--border-default);
     padding: 12px 8px;
     flex-shrink: 0;
     background: var(--bg-primary);
+    display: flex;
+    flex-direction: column;
 }
 .nav-item {
     display: block;
