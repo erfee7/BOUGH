@@ -1,5 +1,9 @@
 <template>
     <div class="generation-config-bar">
+        <!-- Sidebar Toggle (Mobile only) -->
+        <button @click="emit('toggle-sidebar')" class="btn-icon menu-btn" title="Toggle sidebar">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.menu"></svg>
+        </button>
         <!-- Preset Group (Always visible) -->
         <div class="config-group preset-group">
             <select 
@@ -110,6 +114,10 @@ const presetStore = usePresetStore();
 
 const showPresetModal = ref(false);
 const isExpanded = ref(false);
+
+const emit = defineEmits<{
+    (e: 'toggle-sidebar'): void
+}>();
 
 onMounted(() => {
     presetStore.fetchPresets();
@@ -372,5 +380,68 @@ function handleRevert() {
 
 .toggle-icon.expanded {
     transform: rotate(180deg);
+}
+
+/* Hamburger: hidden on desktop, shown via the mobile block below */
+.menu-btn {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .generation-config-bar {
+        position: relative; /* Anchor for the dropdown panel */
+        gap: 8px;
+        padding: 8px 12px;
+    }
+    .preset-group {
+        flex: 1;
+        min-width: 0;
+    }
+    .preset-select {
+        width: auto;
+        min-width: 0;
+        max-width: none;
+        flex: 1;
+    }
+    .divider {
+        display: none;
+    }
+    /* Expanded section becomes a stacked dropdown panel under the bar */
+    .expandable-section {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 12px;
+        background: var(--bg-primary);
+        border-bottom: 1px solid var(--border-default);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        overflow: visible;
+        z-index: 100;
+    }
+    .expandable-section .config-group {
+        width: 100%;
+    }
+    .expandable-section .config-select {
+        flex: 1;
+    }
+    .expandable-section .params-group {
+        align-items: flex-start;
+    }
+    .expandable-section .params-container {
+        flex-wrap: wrap;
+        flex: 1;
+        min-width: 0;
+    }
+    .menu-btn {
+        display: flex;
+    }
+
+    .toggle-icon.expanded {
+        transform: rotate(90deg); /* Panel expands downward on mobile */
+    }
 }
 </style>

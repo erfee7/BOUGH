@@ -243,4 +243,11 @@ const {
     padding: 6px 10px;
     font-size: 12px;
 }
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: calc(100% - 32px);
+        max-height: calc(100dvh - 64px);
+    }
+}
 </style>

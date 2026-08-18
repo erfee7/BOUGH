@@ -176,3 +176,10 @@ button {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+/* Touch devices: no hover — larger icon-button hit area */
+@media (hover: none) {
+    .btn-icon {
+        padding: 8px;
+    }
+}

@@ -44,12 +44,6 @@ const {
     scrollbar-color: var(--bg-tertiary) transparent;
 }
 
-@media (max-width: 1024px) {
-    .messages-container {
-        padding: 24px 16px; /* Tighter on small screens */
-    }
-}
-
 .messages-container::-webkit-scrollbar {
     width: 6px;
 }

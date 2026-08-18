@@ -15,19 +15,19 @@
                     @dblclick="startEditing(conv)"
                     :class="{ 'active': conv.id === conversationStore.currentConversationId }"
                 >
-                    <input 
-                        v-if="editingId === conv.id"
-                        v-model="editText"
-                        v-focus
-                        @keydown.enter.exact.prevent="saveEdit"
-                        @keydown.esc.exact="cancelEdit"
-                        @blur="saveEdit"
-                        class="edit-input"
-                    />
-                    <div v-else class="conv-item-content">
-                        <span class="conv-title">{{ conv.title || 'Untitled' }}</span>
-                        
+                    <div class="conv-item-content">
+                        <input 
+                            v-if="editingId === conv.id"
+                            v-model="editText"
+                            v-focus
+                            @keydown.enter.exact.prevent="saveEdit"
+                            @keydown.esc.exact="cancelEdit"
+                            @blur="saveEdit"
+                            class="edit-input"
+                        />
+                        <span v-else class="conv-title">{{ conv.title || 'Untitled' }}</span>    
                         <ConversationMenu 
+                            :class="{ 'menu-hidden': editingId === conv.id }"
                             :isGenerating="isGenerating(conv.id)"
                             @rename="startEditing(conv)"
                             @generate-title="handleGenerateTitle(conv.id)"
@@ -165,7 +165,6 @@ async function handleDelete(id: string) {
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    min-height: 26px; /* Prevents layout shift when menu/spinner toggles */
 }
 
 .conv-title {
@@ -176,7 +175,8 @@ async function handleDelete(id: string) {
 }
 
 .edit-input {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     background: var(--bg-primary);
     color: var(--text-primary);
     border: 1px solid var(--accent-blue);
@@ -186,6 +186,12 @@ async function handleDelete(id: string) {
     padding: 4px 8px;
     outline: none;
     box-sizing: border-box;
+}
+
+/* During rename the menu slot keeps its box: row height is identical
+   in view / generating / editing states by construction */
+.menu-hidden {
+    visibility: hidden;
 }
 
 /* Reveal kebab menu on row hover */
@@ -219,5 +225,28 @@ async function handleDelete(id: string) {
     border-top: 1px solid var(--border-default);
     padding-top: 8px;
     margin-top: 8px;
+}
+
+/* Touch devices: kebab is never hover-revealed */
+@media (hover: none) {
+    .conversation-list li :deep(.kebab-btn) {
+        opacity: 1;
+    }
+}
+
+/* Mobile: overlay drawer, hidden off-canvas until .open */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 900;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease;
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
 }
 </style>

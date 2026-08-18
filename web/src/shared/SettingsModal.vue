@@ -236,4 +236,36 @@ onMounted(() => systemStore.fetchVersion());
 .action-btn.danger:hover {
     background: rgba(227, 76, 76, 0.1);
 }
+
+@media (max-width: 768px) {
+    .modal-content {
+        position: relative; /* Anchor for the floating version text */
+        max-height: 80dvh;
+    }
+    .settings-body {
+        flex-direction: column;
+    }
+    .settings-nav {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-default);
+        flex-direction: row;
+        align-items: center;
+        padding: 8px 12px;
+    }
+    .nav-item {
+        width: auto;
+    }
+    /* Out of the tab row's flow; pinned to the card corner instead */
+    .version-text {
+        position: absolute;
+        right: 12px;
+        bottom: 6px;
+        margin: 0;
+        padding: 0;
+    }
+    .settings-pane {
+        padding: 16px 16px 28px; /* Extra bottom clears the floating version text */
+    }
+}
 </style>

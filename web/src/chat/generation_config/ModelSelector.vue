@@ -93,11 +93,13 @@ function togglePopover() {
         nextTick(() => {
             if (wrapperRef.value) {
                 const rect = wrapperRef.value.getBoundingClientRect();
+                const width = Math.min(Math.max(rect.width, 360), window.innerWidth - 24);
+                // Clamp the anchor too: popover must end 12px inside the right edge
+                const left = Math.min(Math.max(rect.left, 12), window.innerWidth - width - 12);
                 popoverStyle.value = {
                     top: `${rect.bottom + 4}px`,
-                    left: `${rect.left}px`,
-                    // Give the popover a minimum width so the search box isn't cramped
-                    width: `${Math.max(rect.width, 360)}px`
+                    left: `${left}px`,
+                    width: `${width}px`
                 };
             }
             searchInputRef.value?.focus();
@@ -249,5 +251,16 @@ onUnmounted(() => {
     font-size: 13px;
     color: var(--text-muted);
     text-align: center;
+}
+
+@media (max-width: 768px) {
+    .model-selector-wrapper {
+        display: block;
+        flex: 1;
+        min-width: 0;
+    }
+    .model-trigger {
+        width: 100%;
+    }
 }
 </style>

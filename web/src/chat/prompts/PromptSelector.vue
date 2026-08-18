@@ -118,4 +118,15 @@ const { filteredPrompts, selectedMode, placeholderText, onSelectChange, handleIn
     box-sizing: border-box;
     text-align: left;
 }
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        max-height: none;
+        border-radius: 0;
+        border: none;
+    }
+}
 </style>
