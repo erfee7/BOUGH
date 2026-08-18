@@ -191,4 +191,13 @@ const throughput = computed(() => {
     font-size: 11px;
     margin-left: 4px;
 }
+
+@media (max-width: 768px) {
+    .message-details {
+        left: 0;
+        min-width: 0;
+        width: max-content;
+        max-width: 100%; /* Of .actions-container = tile body width */
+    }
+}
 </style>

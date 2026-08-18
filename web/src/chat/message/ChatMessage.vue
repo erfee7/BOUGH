@@ -456,4 +456,11 @@ function toggleExpand() {
     width: 100%;
     height: 100%;
 }
+
+/* Touch devices: timestamps are never hover-revealed */
+@media (hover: none) {
+    .msg-time {
+        opacity: 1;
+    }
+}
 </style>

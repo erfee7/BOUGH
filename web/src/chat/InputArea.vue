@@ -61,7 +61,7 @@
                     ref="textareaRef"
                     :value="modelValue" 
                     @input="handleInput"
-                    @keydown.enter.exact.prevent="handleSend"
+                    @keydown.enter="handleEnterKey"
                     @paste="handlePaste"
                     placeholder="Type a message... (Enter to send)"
                 ></textarea>
@@ -114,6 +114,9 @@ const hasReadyAttachment = computed(() => props.drafts.some(d => d.status === 'd
 const anyUploading = computed(() => props.drafts.some(d => d.status === 'uploading'));
 const canSend = computed(() => (props.modelValue.trim().length > 0 || hasReadyAttachment.value) && !anyUploading.value);
 
+// Soft keyboards have no Shift: on touch devices Enter inserts a newline, send is button-only
+const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+
 const { textareaRef, adjustHeight } = useAutoResizeTextarea(() => props.modelValue);
 
 const previewing = ref<AttachmentMeta | null>(null);
@@ -141,6 +144,13 @@ function handleSend() {
     if (!canSend.value) return;
     emit('send');
     showDevPrompt.value = false;
+}
+
+function handleEnterKey(event: KeyboardEvent) {
+    if (isCoarsePointer) return; // Let the newline through
+    if (event.shiftKey) return;
+    event.preventDefault();
+    handleSend();
 }
 
 // --- File intake: picker, drag & drop, paste ---
@@ -359,5 +369,11 @@ function handlePaste(event: ClipboardEvent) {
 
 .draft-chip.clickable:hover {
     border-color: var(--accent-blue);
+}
+
+@media (max-width: 768px) {
+    .input-row textarea {
+        font-size: 16px; /* Prevent focus auto-zoom */
+    }
 }
 </style>

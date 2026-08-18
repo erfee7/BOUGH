@@ -243,4 +243,15 @@ const {
     padding: 6px 10px;
     font-size: 12px;
 }
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        max-height: none;
+        border-radius: 0;
+        border: none;
+    }
+}
 </style>

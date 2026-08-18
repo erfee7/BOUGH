@@ -1,12 +1,14 @@
 <template>
     <div class="app-layout">
         <Sidebar 
-            @openPromptLibrary="isPromptLibraryVisible = true" 
-            @navigate="navigate"
-            @openSettings="isSettingsVisible = true"
+            :class="{ open: isSidebarOpen }"
+            @openPromptLibrary="openPromptLibrary" 
+            @navigate="onNavigate"
+            @openSettings="openSettings"
         />
+        <div v-if="isSidebarOpen" class="sidebar-backdrop" @click="isSidebarOpen = false"></div>
         <main class="main-area">
-            <GenerationConfigBar />
+            <GenerationConfigBar @toggle-sidebar="isSidebarOpen = !isSidebarOpen" />
             <div class="content-region">
                 <NewChatArea
                     v-if="!conversationStore.currentConversationId"
@@ -79,6 +81,23 @@ const {
 
 const isSettingsVisible = ref(false);
 
+const isSidebarOpen = ref(false);
+
+function onNavigate(id: string | null) {
+    isSidebarOpen.value = false; // Auto-close the drawer after any navigation
+    navigate(id);
+}
+
+function openSettings() {
+    isSidebarOpen.value = false;
+    isSettingsVisible.value = true;
+}
+
+function openPromptLibrary() {
+    isSidebarOpen.value = false;
+    isPromptLibraryVisible.value = true;
+}
+
 function handleLogout() {
     isSettingsVisible.value = false;
     authStore.logout();
@@ -93,6 +112,7 @@ onMounted(() => {
 .app-layout {
     display: flex;
     height: 100vh;
+    height: 100dvh;
     width: 100%;
     background: var(--bg-primary);
     color: var(--text-primary);
@@ -101,6 +121,7 @@ onMounted(() => {
 
 .main-area {
     flex: 1;
+    min-width: 0; /* Allow shrinking below the config bar's intrinsic width — kills the ~740px page floor */
     display: flex;
     flex-direction: column;
     position: relative;
@@ -113,5 +134,19 @@ onMounted(() => {
     flex-direction: column;
     justify-content: flex-end; /* Composer alone in flow (welcome case) -> pinned to bottom */
     position: relative;        /* Reference frame for the welcome overlay */
+}
+
+.sidebar-backdrop {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 800;
+    }
 }
 </style>

@@ -236,4 +236,37 @@ onMounted(() => systemStore.fetchVersion());
 .action-btn.danger:hover {
     background: rgba(227, 76, 76, 0.1);
 }
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        max-height: none;
+        border-radius: 0;
+        border: none;
+    }
+    .settings-body {
+        flex-direction: column;
+    }
+    .settings-nav {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-default);
+        flex-direction: row;
+        align-items: center;
+        padding: 8px 12px;
+    }
+    .nav-item {
+        width: auto;
+    }
+    .version-text {
+        margin-top: 0;
+        margin-left: auto;
+        padding: 0;
+    }
+    .settings-pane {
+        padding: 16px;
+    }
+}
 </style>

@@ -102,4 +102,11 @@ async function copyToClipboard() {
     color: var(--accent-blue);
     border-color: var(--accent-blue);
 }
+
+/* Touch devices: action row is never hover-revealed */
+@media (hover: none) {
+    .message-footer {
+        opacity: 1;
+    }
+}
 </style>

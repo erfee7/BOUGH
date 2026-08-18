@@ -84,6 +84,7 @@ onUnmounted(() => {
 .preview-image {
     max-width: 90vw;
     max-height: 85vh;
+    max-height: 85dvh;
     object-fit: contain;
     border-radius: var(--radius-md);
 }
@@ -91,6 +92,7 @@ onUnmounted(() => {
 .preview-frame {
     width: 85vw;
     height: 85vh;
+    height: 85dvh;
     border: none;
     border-radius: var(--radius-md);
     background: var(--bg-primary);

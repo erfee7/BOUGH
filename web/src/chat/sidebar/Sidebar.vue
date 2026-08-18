@@ -220,4 +220,27 @@ async function handleDelete(id: string) {
     padding-top: 8px;
     margin-top: 8px;
 }
+
+/* Touch devices: kebab is never hover-revealed */
+@media (hover: none) {
+    .conversation-list li :deep(.kebab-btn) {
+        opacity: 1;
+    }
+}
+
+/* Mobile: overlay drawer, hidden off-canvas until .open */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 900;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease;
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+}
 </style>

@@ -250,4 +250,15 @@ onUnmounted(() => {
     color: var(--text-muted);
     text-align: center;
 }
+
+@media (max-width: 768px) {
+    .model-selector-wrapper {
+        display: block;
+        flex: 1;
+        min-width: 0;
+    }
+    .model-trigger {
+        width: 100%;
+    }
+}
 </style>

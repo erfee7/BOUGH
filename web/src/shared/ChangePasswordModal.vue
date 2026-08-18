@@ -163,4 +163,12 @@ button {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: calc(100% - 32px);
+        max-width: 400px;
+        box-sizing: border-box;
+    }
+}
 </style>
