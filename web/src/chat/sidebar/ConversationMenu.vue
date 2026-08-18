@@ -1,41 +1,44 @@
 <template>
-    <div class="menu-container" v-if="!isGenerating">
-        <button @click.stop="toggleMenu" class="btn-icon kebab-btn" :class="{ 'is-open': menuOpen }" title="More actions">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.ellipsis_vertical"></svg>
-        </button>
-        
-        <div v-if="menuOpen" class="dropdown-menu">
-            <template v-if="!confirmingDelete">
-                <button @click.stop="handleRename" class="menu-item">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.pencil"></svg>
-                    Rename
-                </button>
-                <button @click.stop="handleGenerateTitle" class="menu-item">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.sparkles"></svg>
-                    Auto Title
-                </button>
-                <button @click.stop="handleTouch" class="menu-item">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevrons_up"></svg>
-                    Bump
-                </button>
-                <button @click.stop="askForDeleteConfirm" class="menu-item danger-text">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.trash_2"></svg>
-                    Delete
-                </button>
-            </template>
-            
-            <template v-else>
-                <div class="confirm-box">
-                    <span class="confirm-text">Delete this chat?</span>
-                    <div class="confirm-actions">
-                        <button @click.stop="cancelDelete" class="btn-ghost confirm-btn-small">Cancel</button>
-                        <button @click.stop="confirmDelete" class="btn-danger confirm-btn-small">Delete</button>
-                    </div>
-                </div>
-            </template>
+   <div class="menu-container">
+        <div v-if="isGenerating" class="btn-icon kebab-btn is-generating" title="Generating title...">
+            <span class="spinner"></span>
         </div>
+        <template v-else>
+            <button @click.stop="toggleMenu" class="btn-icon kebab-btn" :class="{ 'is-open': menuOpen }" title="More actions">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.ellipsis_vertical"></svg>
+            </button>
+        
+            <div v-if="menuOpen" class="dropdown-menu">
+                <template v-if="!confirmingDelete">
+                    <button @click.stop="handleRename" class="menu-item">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.pencil"></svg>
+                        Rename
+                    </button>
+                    <button @click.stop="handleGenerateTitle" class="menu-item">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.sparkles"></svg>
+                        Auto Title
+                    </button>
+                    <button @click.stop="handleTouch" class="menu-item">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.chevrons_up"></svg>
+                        Bump
+                    </button>
+                    <button @click.stop="askForDeleteConfirm" class="menu-item danger-text">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.trash_2"></svg>
+                        Delete
+                    </button>
+                </template>
+                <template v-else>
+                    <div class="confirm-box">
+                        <span class="confirm-text">Delete this chat?</span>
+                        <div class="confirm-actions">
+                            <button @click.stop="cancelDelete" class="btn-ghost confirm-btn-small">Cancel</button>
+                            <button @click.stop="confirmDelete" class="btn-danger confirm-btn-small">Delete</button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
     </div>
-    <div v-else class="spinner"></div>
 </template>
 
 <script setup lang="ts">
@@ -206,5 +209,24 @@ onBeforeUnmount(() => {
 .confirm-btn-small {
     padding: 4px 8px;
     font-size: 12px;
+}
+
+/* Generating state: spinner occupies the kebab button's exact box,
+   so the slot height is identical in both states by construction */
+.kebab-btn.is-generating {
+    opacity: 1; /* Always visible feedback, even without row hover */
+    cursor: default;
+}
+
+.kebab-btn.is-generating:hover {
+    background: none;
+    border-color: transparent;
+    color: var(--text-muted); /* Suppress the clickable-button hover look */
+}
+
+.kebab-btn.is-generating .spinner {
+    box-sizing: border-box;
+    width: 18px;  /* Same box as the 18px icon it replaces */
+    height: 18px;
 }
 </style>
