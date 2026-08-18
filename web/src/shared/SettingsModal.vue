@@ -295,9 +295,9 @@ function onIntervalInput(raw: string) {
 /* Display settings */
 .setting-row {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 24px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
     padding: 16px 0;
     border-bottom: 1px solid var(--border-default);
 }
@@ -305,7 +305,6 @@ function onIntervalInput(raw: string) {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    flex: 1;
 }
 .setting-label {
     font-size: 14px;
@@ -320,10 +319,11 @@ function onIntervalInput(raw: string) {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-shrink: 0;
+    max-width: 360px; /* keeps the row from stretching absurdly on wide screens */
 }
 .interval-slider {
-    width: 180px;
+    flex: 1;
+    min-width: 120px;
     accent-color: var(--accent-blue);
 }
 .interval-input {
@@ -336,6 +336,7 @@ function onIntervalInput(raw: string) {
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
     outline: none;
+    flex-shrink: 0;
 }
 .interval-input:focus {
     border-color: var(--accent-blue);
@@ -344,6 +345,7 @@ function onIntervalInput(raw: string) {
     font-size: 13px;
     color: var(--text-secondary);
     font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
@@ -375,16 +377,6 @@ function onIntervalInput(raw: string) {
     }
     .settings-pane {
         padding: 16px 16px 28px; /* Extra bottom clears the floating version text */
-    }
-    .setting-row {
-    flex-direction: column;
-        gap: 12px;
-    }
-    .setting-control {
-        width: 100%;
-    }
-    .interval-slider {
-        flex: 1;
     }
 }
 </style>
