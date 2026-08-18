@@ -246,12 +246,8 @@ const {
 
 @media (max-width: 768px) {
     .modal-content {
-        width: 100%;
-        max-width: none;
-        height: 100%;
-        max-height: none;
-        border-radius: 0;
-        border: none;
+        width: calc(100% - 32px);
+        max-height: calc(100dvh - 64px);
     }
 }
 </style>

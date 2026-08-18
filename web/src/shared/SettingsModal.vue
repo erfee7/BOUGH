@@ -239,12 +239,8 @@ onMounted(() => systemStore.fetchVersion());
 
 @media (max-width: 768px) {
     .modal-content {
-        width: 100%;
-        max-width: none;
-        height: 100%;
-        max-height: none;
-        border-radius: 0;
-        border: none;
+        position: relative; /* Anchor for the floating version text */
+        max-height: 80dvh;
     }
     .settings-body {
         flex-direction: column;
@@ -260,13 +256,16 @@ onMounted(() => systemStore.fetchVersion());
     .nav-item {
         width: auto;
     }
+    /* Out of the tab row's flow; pinned to the card corner instead */
     .version-text {
-        margin-top: 0;
-        margin-left: auto;
+        position: absolute;
+        right: 12px;
+        bottom: 6px;
+        margin: 0;
         padding: 0;
     }
     .settings-pane {
-        padding: 16px;
+        padding: 16px 16px 28px; /* Extra bottom clears the floating version text */
     }
 }
 </style>

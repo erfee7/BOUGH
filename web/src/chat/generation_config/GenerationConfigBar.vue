@@ -439,5 +439,9 @@ function handleRevert() {
     .menu-btn {
         display: flex;
     }
+
+    .toggle-icon.expanded {
+        transform: rotate(90deg); /* Panel expands downward on mobile */
+    }
 }
 </style>
