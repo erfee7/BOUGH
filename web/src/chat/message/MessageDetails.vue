@@ -139,12 +139,14 @@ const throughput = computed(() => {
     
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
     z-index: 10;
+    display: grid;
+    grid-template-columns: auto 1fr; /* Label column hugs the longest label; values share one edge */
+    align-items: center;
+    gap: 8px 12px; /* row column */
 }
 
 .detail-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    display: contents;
 }
 
 .detail-label {
@@ -152,8 +154,6 @@ const throughput = computed(() => {
     color: var(--text-muted);
     font-size: 12px;
     letter-spacing: normal;
-    width: 80px;
-    flex-shrink: 0;
 }
 
 .detail-value {
@@ -162,6 +162,10 @@ const throughput = computed(() => {
     /* Ensure long model names wrap properly instead of overflowing */
     overflow-wrap: anywhere;
     word-break: break-all;
+}
+
+.empty-details {
+    grid-column: 1 / -1;
 }
 
 .param-chips {
@@ -179,11 +183,21 @@ const throughput = computed(() => {
     color: var(--accent-blue);
 }
 
+/* Hang the reasoning token as a visual sub-detail of "Out:" */
+.token-breakdown {
+    padding-left: 1.2em; /* Roughly matches "In: " / "Out: " prefix width */
+    text-indent: -1.2em;
+}
+
 .token-breakdown, .speed-breakdown {
-    display: flex;
-    gap: 16px;
+    display: inline; /* Continuous text: wraps as one piece instead of flex items */
     color: var(--text-primary);
     font-family: monospace;
+}
+
+.token-breakdown span + span,
+.speed-breakdown span + span {
+    margin-left: 16px; /* Replaces the former flex gap */
 }
 
 .sub-token {
@@ -195,9 +209,10 @@ const throughput = computed(() => {
 @media (max-width: 768px) {
     .message-details {
         left: 0;
+        right: auto;         /* Let it size to content instead of stretching */
         min-width: 0;
-        width: max-content;
-        max-width: 100%; /* Of .actions-container = tile body width */
+        max-width: 100%;     /* Hard cap at tile width */
+        width: fit-content;  /* Hug content up to the max-width cap */
     }
 }
 </style>
