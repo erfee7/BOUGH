@@ -1,6 +1,7 @@
 import { ref, computed, onMounted, watch, type Ref } from 'vue';
 import { usePromptStore } from '@/chat/stores/prompt';
 import { Prompt } from '@/types';
+import { loadLocalConfig, updateLocalConfig } from '../persistence';
 
 export function usePromptSelection(
     role: 'system' | 'developer', 
@@ -9,9 +10,24 @@ export function usePromptSelection(
 ) {
     const promptStore = usePromptStore();
 
-    // Ask the store to load data if it hasn't yet
-    onMounted(() => {
-        promptStore.fetchPrompts();
+    onMounted(async () => {
+        await promptStore.fetchPrompts();
+
+        if (modelValue.value) {
+            // Content already present (e.g., view remounted): honest display
+            selectedMode.value = 'custom';
+            return;
+        }
+
+        // Boot-apply is a system-prompt preference only; developer panel stays ephemeral
+        if (role !== 'system') return;
+        const savedId = loadLocalConfig().promptId;
+        const prompt = savedId ? filteredPrompts.value.find(p => p.id === savedId) : undefined;
+        if (prompt) {
+            selectedMode.value = prompt.id;
+            updateModelValue(prompt.content);
+        }
+        // Unknown id or fetch failure: leave at 'none', record untouched
     });
 
     const filteredPrompts = computed(() => {
@@ -37,12 +53,16 @@ export function usePromptSelection(
         if (selectedMode.value === 'none') {
             updateModelValue('');
         } else if (selectedMode.value === 'custom') {
-            return; 
+            return; // Content stays as-is; user types into the textarea
         } else {
             const selected = filteredPrompts.value.find(p => p.id === selectedMode.value);
             if (selected) {
                 updateModelValue(selected.content);
             }
+        }
+        if (role === 'system') {
+            const isPromptId = selectedMode.value !== 'none' && selectedMode.value !== 'custom';
+            updateLocalConfig({ promptId: isPromptId ? selectedMode.value : null });
         }
     }
 
