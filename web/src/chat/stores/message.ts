@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Message } from '@/types';
 import { apiFetch } from '@/utils/api';
 import { useConversationStore } from './conversation';
 import { useGenerationConfigStore } from './generationConfig';
 import { getActivePath, getSiblingInfo, getMostRecentDescendantLeaf, compareMessages } from '../branchingUtils';
+import { loadLocalConfig, updateLocalConfig } from '../persistence';
 
 export const useMessageStore = defineStore('message', () => {
     const conversationStore = useConversationStore();
@@ -17,6 +18,17 @@ export const useMessageStore = defineStore('message', () => {
 
     // Adjustable UI refresh rate in milliseconds (0 = update on every token, 50 = 20fps)
     const streamRefreshInterval = ref(50);
+
+    // Hydrate from local-config; invalid/missing leaves the store default (50) untouched
+    const savedInterval = loadLocalConfig().streamRefreshInterval;
+    if (savedInterval !== null) {
+        streamRefreshInterval.value = savedInterval;
+    }
+
+    // Persist user changes (mirror, not navigation logic)
+    watch(streamRefreshInterval, (value) => {
+        updateLocalConfig({ streamRefreshInterval: value });
+    });
 
     let abortController: AbortController | null = null;
 

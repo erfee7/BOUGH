@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, watch, nextTick } from 'vue';
 import { CustomParam, GenerationPayload, GenerationPreset } from '@/types';
+import { updateLocalConfig } from '../persistence';
 
 export const useGenerationConfigStore = defineStore('generationConfig', () => {
     // Module-level singleton state (in-memory only for now)
@@ -23,6 +24,11 @@ export const useGenerationConfigStore = defineStore('generationConfig', () => {
             }
         }
     }, { deep: true });
+
+    // Record the preset pointer; sentinels normalize to null. Boot-apply lives in GenerationConfigBar.
+    watch(loadedPresetId, (id) => {
+        updateLocalConfig({ presetId: (id === 'default' || id === 'custom') ? null : id });
+    });
 
     function parseParamValue(raw: string): unknown {
         if (raw === '') return '';

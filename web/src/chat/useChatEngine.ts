@@ -1,7 +1,8 @@
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useConversationStore } from './stores/conversation';
 import { useMessageStore } from './stores/message';
 import { useAttachmentStore } from './stores/attachment';
+import { loadLocalConfig, updateLocalConfig } from './persistence';
 
 export function useChatEngine() {
     const conversationStore = useConversationStore();
@@ -13,9 +14,19 @@ export function useChatEngine() {
     const developerPrompt = ref('');
     const isPromptLibraryVisible = ref(false);
 
-    function initialize() {
-        conversationStore.fetchAllConversations();
+    async function initialize() {
+        await conversationStore.fetchAllConversations();
+        // Read after the fetch: a click-to-new-chat during boot must not be overridden
+        const savedId = loadLocalConfig().conversationId;
+        if (savedId && conversationStore.conversations.some(c => c.id === savedId)) {
+            await navigate(savedId);
+        }
     }
+
+    // Persist mirror: also covers deleteConversation's direct null assignment
+    watch(() => conversationStore.currentConversationId, (id) => {
+        updateLocalConfig({ conversationId: id });
+    });
 
     // Explicit navigation function replaces the implicit watcher
     async function navigate(id: string | null) {

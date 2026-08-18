@@ -15,6 +15,12 @@
                     >
                         Account
                     </button>
+                    <button 
+                        :class="['nav-item', { active: activeTab === 'display' }]"
+                        @click="activeTab = 'display'"
+                    >
+                        Display
+                    </button>
                     <!-- Future tabs will go here -->
 
                     <span class="version-text">BOUGH {{ systemStore.version }}</span>
@@ -44,6 +50,44 @@
                             </button>
                         </div>
                     </div>
+                    <div v-if="activeTab === 'display'" class="display-section">
+                        <div class="section-header">
+                            <h3 class="section-title">Display</h3>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="label-group">
+                                    <label class="setting-label">Stream refresh interval</label>
+                                    <svg class="help-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.circle_question_mark"></svg>
+                                    <div class="help-tooltip">
+                                        <p>Stream update interval. 0 = every token.</p>
+                                        <p class="warning">Warning: very low intervals may cause lag.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="setting-control">
+                                <input 
+                                    type="range" 
+                                    min="0" 
+                                    max="1000" 
+                                    step="1" 
+                                    :value="props.streamRefreshInterval"
+                                    @input="onIntervalInput(($event.target as HTMLInputElement).value)"
+                                    class="interval-slider"
+                                />
+                                <input 
+                                    type="number" 
+                                    min="0" 
+                                    max="1000" 
+                                    step="1" 
+                                    :value="props.streamRefreshInterval"
+                                    @input="onIntervalInput(($event.target as HTMLInputElement).value)"
+                                    class="interval-input"
+                                />
+                                <span class="unit">ms</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -62,14 +106,31 @@ import ChangePasswordModal from './ChangePasswordModal.vue';
 import { ICONS } from '@/icons';
 import { useSystemStore } from '@/shared/stores/system';
 
-const props = defineProps<{ username: string }>();
-const emit = defineEmits(['close', 'logout']);
+const props = defineProps<{
+    username: string;
+    streamRefreshInterval: number;
+}>();
 
-const activeTab = ref<'account'>('account');
+const emit = defineEmits<{
+    (e: 'close'): void;
+    (e: 'logout'): void;
+    (e: 'update:streamRefreshInterval', value: number): void;
+}>();
+
+const activeTab = ref<'account' | 'display'>('account');
 const isChangePasswordVisible = ref(false);
 
 const systemStore = useSystemStore();
 onMounted(() => systemStore.fetchVersion());
+
+function onIntervalInput(raw: string) {
+    const trimmed = raw.trim();
+    if (trimmed === '') return;          // User cleared the box: do nothing
+    const n = Number(trimmed);
+    if (Number.isNaN(n)) return;         // Not a number: ignore until valid
+    const clamped = Math.min(1000, Math.max(0, Math.round(n)));
+    emit('update:streamRefreshInterval', clamped);
+}
 </script>
 
 <style scoped>
@@ -235,6 +296,98 @@ onMounted(() => systemStore.fetchVersion());
 }
 .action-btn.danger:hover {
     background: rgba(227, 76, 76, 0.1);
+}
+
+/* Display settings */
+.setting-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-default);
+}
+.setting-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.label-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    width: fit-content;
+}
+.setting-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.help-icon {
+    color: var(--text-muted);
+    cursor: help;
+}
+.help-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: -8px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 100;
+    width: 280px;
+    pointer-events: none; /* Prevents flicker when moving cursor */
+    width: auto;
+    white-space: nowrap;
+}
+.help-tooltip p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+.help-tooltip p.warning {
+    margin-top: 4px;
+    color: var(--accent-yellow);
+}
+.label-group:hover .help-tooltip {
+    display: block;
+}
+.setting-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 360px; /* keeps the row from stretching absurdly on wide screens */
+}
+.interval-slider {
+    flex: 1;
+    min-width: 120px;
+    accent-color: var(--accent-blue);
+}
+.interval-input {
+    width: 50px;   /* Fixed width perfectly sized for '1000' + spinner arrows */
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    flex-shrink: 0;
+}
+.interval-input:focus {
+    border-color: var(--accent-blue);
+}
+.unit {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
 }
 
 @media (max-width: 768px) {

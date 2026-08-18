@@ -108,6 +108,7 @@ import { usePresetStore } from '../stores/preset';
 import { ICONS } from '@/icons';
 import PresetModal from './PresetModal.vue';
 import ModelSelector from './ModelSelector.vue';
+import { loadLocalConfig } from '../persistence';
 
 const generationConfigStore = useGenerationConfigStore();
 const presetStore = usePresetStore();
@@ -119,12 +120,12 @@ const emit = defineEmits<{
     (e: 'toggle-sidebar'): void
 }>();
 
-onMounted(() => {
-    presetStore.fetchPresets();
-    // Initialize to default if nothing is loaded
-    if (!generationConfigStore.loadedPresetId) {
-        generationConfigStore.loadedPresetId = 'default';
-    }
+onMounted(async () => {
+    await presetStore.fetchPresets();
+    // Boot-apply the remembered preset pointer; unknown id or fetch failure -> default state
+    const savedId = loadLocalConfig().presetId;
+    const preset = savedId ? presetStore.presets.find(p => p.id === savedId) : undefined;
+    if (preset) generationConfigStore.loadPreset(preset);
 });
 
 function handlePresetChange(event: Event) {
