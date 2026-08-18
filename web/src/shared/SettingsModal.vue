@@ -369,7 +369,7 @@ function onIntervalInput(raw: string) {
     accent-color: var(--accent-blue);
 }
 .interval-input {
-    width: 70px;
+    width: 50px;   /* Fixed width perfectly sized for '1000' + spinner arrows */
     background: var(--bg-tertiary);
     color: var(--text-primary);
     border: 1px solid var(--border-default);
