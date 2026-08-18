@@ -40,6 +40,8 @@
         <SettingsModal 
             v-if="isSettingsVisible && authStore.user" 
             :username="authStore.user.username" 
+            :stream-refresh-interval="messageStore.streamRefreshInterval"
+            @update:streamRefreshInterval="messageStore.streamRefreshInterval = $event"
             @close="isSettingsVisible = false" 
             @logout="handleLogout"
         />
