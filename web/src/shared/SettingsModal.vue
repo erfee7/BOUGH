@@ -56,8 +56,14 @@
                         </div>
                         <div class="setting-row">
                             <div class="setting-info">
-                                <label class="setting-label">Stream refresh interval</label>
-                                <span class="setting-help">How often streamed tokens update on screen. 0 = every token.</span>
+                                <div class="label-group">
+                                    <label class="setting-label">Stream refresh interval</label>
+                                    <svg class="help-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.circle_question_mark"></svg>
+                                    <div class="help-tooltip">
+                                        <p>Stream update interval. 0 = every token.</p>
+                                        <p class="warning">Warning: very low intervals may cause lag.</p>
+                                    </div>
+                                </div>
                             </div>
                             <div class="setting-control">
                                 <input 
@@ -306,14 +312,50 @@ function onIntervalInput(raw: string) {
     flex-direction: column;
     gap: 4px;
 }
+.label-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    width: fit-content;
+}
 .setting-label {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
 }
-.setting-help {
+.help-icon {
+    color: var(--text-muted);
+    cursor: help;
+}
+.help-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: -8px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 100;
+    width: 280px;
+    pointer-events: none; /* Prevents flicker when moving cursor */
+    width: auto;
+    white-space: nowrap;
+}
+.help-tooltip p {
+    margin: 0;
     font-size: 12px;
     color: var(--text-secondary);
+    line-height: 1.4;
+}
+.help-tooltip p.warning {
+    margin-top: 4px;
+    color: var(--accent-yellow);
+}
+.label-group:hover .help-tooltip {
+    display: block;
 }
 .setting-control {
     display: flex;
