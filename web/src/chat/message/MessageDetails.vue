@@ -52,7 +52,13 @@
             <!-- Cost -->
             <div class="detail-row" v-if="cost !== null">
                 <span class="detail-label">Cost</span>
-                <span class="detail-value">${{ formattedCost }}</span>
+                <span class="detail-value">
+                    ${{ formattedCost }}
+                    <span v-if="isByok" class="byok-badge"
+                          title="Billed directly by the upstream provider via your own API key">
+                        BYOK
+                    </span>
+                </span>
             </div>
         </template>
     </div>
@@ -99,7 +105,16 @@ const promptTokens = computed(() => props.metadata?.prompt_tokens ?? null);
 const completionTokens = computed(() => props.metadata?.completion_tokens ?? null);
 const reasoningTokens = computed(() => props.metadata?.completion_tokens_details?.reasoning_tokens ?? 0);
 
-const cost = computed(() => props.metadata?.cost ?? null);
+const isByok = computed(() => props.metadata?.is_byok === true);
+const cost = computed(() => {
+    // BYOK: real spend is the upstream charge (paid directly via user's key).
+    // OR's `cost` is 0 here. Fall back to `cost` if cost_details is unexpectedly missing.
+    if (isByok.value) {
+        return props.metadata?.cost_details?.upstream_inference_cost ?? props.metadata?.cost ?? null;
+    }
+    // Non-BYOK: OR's `cost` is the post-discount amount the user actually paid OR.
+    return props.metadata?.cost ?? null;
+});
 const formattedCost = computed(() => {
     if (cost.value === null) return '0';
     // Show 6 decimal places for precise LLM costs
@@ -181,6 +196,20 @@ const throughput = computed(() => {
     padding: 2px 8px;
     font-size: 12px;
     color: var(--accent-blue);
+}
+
+.byok-badge {
+    display: inline-block;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    color: var(--accent-blue);
+    border-radius: var(--radius-sm);
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 6px;
+    vertical-align: middle;
+    cursor: help;
 }
 
 /* Hang the reasoning token as a visual sub-detail of "Out:" */
