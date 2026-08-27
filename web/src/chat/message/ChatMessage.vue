@@ -357,7 +357,7 @@ function toggleExpand() {
     font-size: 14px;
 }
 
-.markdown-content.streaming :deep(p:last-child)::after {
+.markdown-content.streaming :deep(.md-editor-preview > p:last-child)::after {
     content: '';
     display: inline-block;
     width: 8px;
