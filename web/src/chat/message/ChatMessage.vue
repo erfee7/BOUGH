@@ -393,6 +393,14 @@ function toggleExpand() {
     background: transparent !important;
 }
 
+/* KaTeX \tag: katex.css abs-positions it, escaping the scroll container and
+   pinning to the screen edge (overlaps the formula, doesn't scroll with it).
+   In-flow: same nowrap line, right after the formula. */
+.markdown-content :deep(.katex-html > .tag) {
+    position: static !important;
+    margin-left: 1em;
+}
+
 /* Markdown Color Rules */
 .markdown-content:not(.prompt-markdown) :deep(p),
 .markdown-content:not(.prompt-markdown) :deep(li),
