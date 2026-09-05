@@ -14,7 +14,12 @@ export const useMessageStore = defineStore('message', () => {
     
     const messages = ref<Message[]>([]);
     const activeLeafId = ref<string | null>(null);
-    const isStreaming = ref(false);
+    // Derived: the composer is streaming iff the visible leaf is still being
+    // generated. Listeners never write this — they only update message records.
+    const isStreaming = computed(() => {
+        const leaf = messages.value.find(m => m.id === activeLeafId.value);
+        return !!leaf && (leaf.status === 'pending' || leaf.status === 'streaming');
+    });
 
     // Adjustable UI refresh rate in milliseconds (0 = update on every token, 50 = 20fps)
     const streamRefreshInterval = ref(50);
@@ -39,13 +44,24 @@ export const useMessageStore = defineStore('message', () => {
 
     // --- Actions ---
 
-    // 0. Stop the ongoing streaming for switching conversations or canceling a generation
+    // 0a. Detach the browser's SSE listener (aborts the HTTP request only —
+    // the server-side generation keeps running)
     function stopStreaming() {
         if (abortController) {
             abortController.abort();
             abortController = null;
         }
-        isStreaming.value = false;
+    }
+
+    // 0b. The centralized helper to change activeLeafId, with proper related operations
+    function activateLeaf(messageId: string | null) {
+        stopStreaming();
+        activeLeafId.value = messageId;
+        if (!messageId) return;
+        const msg = messages.value.find(m => m.id === messageId);
+        if (msg && (msg.status === 'pending' || msg.status === 'streaming')) {
+            startStreaming(messageId);
+        }
     }
 
     // 1. Load an existing conversation and its history
@@ -56,14 +72,7 @@ export const useMessageStore = defineStore('message', () => {
             
             const data = await response.json();
             messages.value = data.messages;
-            activeLeafId.value = data.conversation.active_leaf_id;
-            
-            // Check if the active message is still streaming (e.g., user refreshed page mid-stream)
-            const activeMsg = messages.value.find(m => m.id === activeLeafId.value);
-            if (activeMsg && (activeMsg.status === 'pending' || activeMsg.status === 'streaming')) {
-                // Resume the stream
-                startStreaming(activeMsg.id);
-            }
+            activateLeaf(data.conversation.active_leaf_id);
         }
         catch (error) {
             console.error("Error loading conversation:", error);
@@ -71,8 +80,8 @@ export const useMessageStore = defineStore('message', () => {
     }
 
     function clearMessages() {
+        activateLeaf(null);
         messages.value = [];
-        activeLeafId.value = null;
     }
 
     // 2. User sends a new message
@@ -108,7 +117,7 @@ export const useMessageStore = defineStore('message', () => {
                 
                 messages.value.push(devMsg);
                 currentParentId = devMsg.id;
-                activeLeafId.value = devMsg.id;
+                activateLeaf(devMsg.id);
             }
             
             // Step B: Append the user message
@@ -135,7 +144,7 @@ export const useMessageStore = defineStore('message', () => {
             };
             
             messages.value.push(userMsg);
-            activeLeafId.value = userMsg.id;
+            activateLeaf(userMsg.id);
             
             // Step C: Trigger generation
             await generateMessage(userMsg.id);
@@ -176,36 +185,22 @@ export const useMessageStore = defineStore('message', () => {
             };
             
             messages.value.push(assistantMsg);
-            activeLeafId.value = assistantMsg.id;
+            activateLeaf(assistantMsg.id);
 
             // Bump the conversation to the top of the sidebar
             if (conversationStore.currentConversationId) {
                 conversationStore.bumpLocalConversation(conversationStore.currentConversationId);
             }
-            
-            // Start listening to the SSE stream
-            startStreaming(assistantMsg.id);
-            
         }
         catch (error) {
             console.error("Error generating message:", error);
         }
     }
 
-    // 4. The SSE Engine: Read the stream
+    // 4. Attach the single SSE listener to read the stream
     async function startStreaming(messageId: string) {
-        stopStreaming(); // Kill any existing stream before starting a new one
-        isStreaming.value = true;
-
         abortController = new AbortController();
         
-        const response = await apiFetch(`/api/chat/messages/${messageId}/stream`, {
-            signal: abortController.signal // Pass the signal to fetch
-        });
-        
-        if (!response.body) throw new Error('No response body');
-        
-        const reader = response.body.getReader();
         const decoder = new TextDecoder();
         
         let chunksBuffer = '';
@@ -236,13 +231,21 @@ export const useMessageStore = defineStore('message', () => {
             }
         };
 
-        // Start the throttled flusher if interval > 0
-        if (streamRefreshInterval.value > 0) {
-            // Sets a background timer to flush accumulated buffers periodically, reducing DOM updates
-            flushTimer = window.setInterval(flushBuffers, streamRefreshInterval.value);
-        }
-        
         try {
+            const response = await apiFetch(`/api/chat/messages/${messageId}/stream`, {
+                signal: abortController.signal // Pass the signal to fetch
+            });
+            
+            if (!response.body) throw new Error('No response body');
+            
+            const reader = response.body.getReader();
+            
+            // Start the throttled flusher if interval > 0
+            if (streamRefreshInterval.value > 0) {
+                // Sets a background timer to flush accumulated buffers periodically, reducing DOM updates
+                flushTimer = window.setInterval(flushBuffers, streamRefreshInterval.value);
+            }
+
             while (true) {
                 // Read bytes from the TCP stream
                 const { done, value } = await reader.read();
@@ -265,11 +268,10 @@ export const useMessageStore = defineStore('message', () => {
                     const jsonStr = chunk.replace('data: ', '');
                     
                     if (jsonStr === '[DONE]') {
-                        // Flush any remaining buffered content before exiting
-                        flushBuffers();
-                        if (flushTimer) clearInterval(flushTimer);
-                        flushTimer = null;
-                        isStreaming.value = false;
+                        // // Flush any remaining buffered content before exiting
+                        // flushBuffers();
+                        // if (flushTimer) clearInterval(flushTimer);
+                        // flushTimer = null;
                         return;
                     }
                     
@@ -343,7 +345,6 @@ export const useMessageStore = defineStore('message', () => {
             // Clean up timer and flush stragglers if loop breaks unexpectedly
             if (flushTimer) clearInterval(flushTimer);
             flushBuffers();
-            isStreaming.value = false;
         }
     }
 
@@ -373,7 +374,7 @@ export const useMessageStore = defineStore('message', () => {
             };
             
             messages.value.push(newMsg);
-            activeLeafId.value = newMsg.id;
+            activateLeaf(newMsg.id);
 
             // Bump the conversation to the top of the sidebar
             if (conversationStore.currentConversationId) {
@@ -405,16 +406,10 @@ export const useMessageStore = defineStore('message', () => {
         const targetSibling = siblings[targetIndex];
         const targetLeafId = getMostRecentDescendantLeaf(targetSibling.id, messages.value);
 
-        stopStreaming();
-        activeLeafId.value = targetLeafId;
+        activateLeaf(targetLeafId);
         
         if (conversationStore.currentConversationId) {
             conversationStore.updateActiveLeaf(conversationStore.currentConversationId, targetLeafId);
-        }
-
-        const targetLeafMsg = messages.value.find(m => m.id === targetLeafId);
-        if (targetLeafMsg && (targetLeafMsg.status === 'pending' || targetLeafMsg.status === 'streaming')) {
-            startStreaming(targetLeafId);
         }
     }
 
@@ -450,8 +445,6 @@ export const useMessageStore = defineStore('message', () => {
         sendMessage,
         generateMessage,
         clearMessages,
-        startStreaming,
-        stopStreaming,
         appendMessage,
         switchSibling,
         cancelGeneration

@@ -30,8 +30,6 @@ export function useChatEngine() {
 
     // Explicit navigation function replaces the implicit watcher
     async function navigate(id: string | null) {
-        messageStore.stopStreaming();
-        
         if (id) {
             conversationStore.selectConversation(id);
             await messageStore.loadConversation(id);
