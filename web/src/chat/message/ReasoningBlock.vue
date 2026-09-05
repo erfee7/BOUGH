@@ -125,11 +125,9 @@ defineProps<{
     margin-bottom: 0;
 }
 
-.reasoning-content :deep(p),
-.reasoning-content :deep(li),
-.reasoning-content :deep(.md-editor-preview) {
+/* Fix md-editor-v3's aggressive word-breaking */
+.markdown-content :deep(.md-editor-preview *) {
     word-break: normal !important;
-    overflow-wrap: anywhere !important;
 }
 
 .reasoning-content :deep(.md-editor-code-head) {

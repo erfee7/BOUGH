@@ -434,11 +434,8 @@ function toggleExpand() {
 }
 
 /* Fix md-editor-v3's aggressive word-breaking */
-.markdown-content :deep(p),
-.markdown-content :deep(li),
-.markdown-content :deep(.md-editor-preview) {
+.markdown-content :deep(.md-editor-preview *) {
     word-break: normal !important;
-    overflow-wrap: anywhere !important;
 }
 
 /* Disable sticky code headers and fix z-index conflict with modals */
