@@ -36,6 +36,7 @@
             </div>
             
             <!-- Content Area -->
+            <AttachmentList :attachments="message.attachments ?? []" />
             <div 
                 v-if="!isPrompt || isExpanded || isEditing" 
                 class="content-wrapper" 
@@ -72,7 +73,6 @@
                         <span v-else-if="!isPrompt && (message.status === 'pending' || message.status === 'streaming')" class="placeholder">Thinking...</span>
                         <span v-else-if="isPrompt" class="empty-prompt">Empty prompt</span>
                     </div>
-                    <AttachmentList :attachments="message.attachments ?? []" />
                     <ErrorBlock 
                         v-if="!isPrompt && message.status === 'error'" 
                         :errorData="message.error_data" 
