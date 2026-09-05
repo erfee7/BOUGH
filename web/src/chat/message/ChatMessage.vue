@@ -64,6 +64,7 @@
                             :previewTheme="'github'" 
                             :codeTheme="'github'" 
                             :language="'en-US'"
+                            :autoFoldThreshold="Infinity"
                             :class="`markdown-content ${!isPrompt && message.status === 'streaming' && message.content ? 'streaming' : ''}`"
                             @dblclick="handleMarkdownDblClick"
                             @copy="handleMarkdownCopy"

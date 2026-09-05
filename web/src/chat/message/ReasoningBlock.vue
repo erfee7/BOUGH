@@ -14,6 +14,7 @@
             :previewTheme="'github'" 
             :codeTheme="'github'" 
             :language="'en-US'"
+            :autoFoldThreshold="Infinity"
             class="markdown-content reasoning-content"
             @dblclick="handleMarkdownDblClick"
             @copy="handleMarkdownCopy"
