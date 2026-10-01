@@ -77,24 +77,11 @@ const parameterChips = computed(() => {
     if (!params || typeof params !== 'object' || Object.keys(params).length === 0) {
         return [];
     }
-    return Object.entries(params).map(([key, value]) => {
-        // Prettify label (e.g., "top_p" -> "Top P", "temperature" -> "Temperature")
-        let label = key.replace(/_/g, ' ');
-        label = label.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        
-        // Format value (trim trailing zeros for numbers)
-        let val: string;
-        if (value === null) {
-            val = 'null';
-        } else if (typeof value === 'number' && !Number.isInteger(value)) {
-            val = String(parseFloat(value.toFixed(2)));
-        } else if (typeof value === 'object') {
-            val = JSON.stringify(value);
-        } else {
-            val = String(value);
-        }
-        return { label, value: val };
-    });
+    return Object.entries(params).map(([key, value]) => ({
+        // JSON objects stay exactly as-is to avoid confusion
+        label: key,
+        value: JSON.stringify(value)
+    }));
 });
 
 const promptTokens = computed(() => props.metadata?.prompt_tokens ?? null);
