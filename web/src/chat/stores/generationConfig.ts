@@ -136,6 +136,12 @@ export const useGenerationConfigStore = defineStore('generationConfig', () => {
         };
     }
 
+    function handlePresetDeleted(id: string) {
+        if (loadedPresetId.value === id) {
+            loadedPresetId.value = 'custom';
+        }
+    }
+
     return {
         model,
         reasoningEffort,
@@ -148,6 +154,7 @@ export const useGenerationConfigStore = defineStore('generationConfig', () => {
         removeParam,
         clearConfig,
         loadPreset,
-        buildPresetData
+        buildPresetData,
+        handlePresetDeleted
     };
 });

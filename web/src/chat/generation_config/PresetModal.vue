@@ -80,6 +80,7 @@ function handleLoad(preset: GenerationPreset) {
 
 async function handleDelete(id: string) {
     await presetStore.deletePreset(id);
+    generationConfigStore.handlePresetDeleted(id);
 }
 </script>
 
