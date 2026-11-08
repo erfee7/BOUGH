@@ -23,7 +23,17 @@
                     <ul class="preset-list">
                         <li v-for="p in presetStore.presets" :key="p.id" class="preset-item">
                             <div class="preset-info">
-                                <strong>{{ p.name }}</strong>
+                                <input
+                                    v-if="renamingPresetId === p.id"
+                                    v-model="renameDraft"
+                                    v-focus
+                                    class="rename-input"
+                                    aria-label="Rename preset"
+                                    @keydown.enter.exact.prevent="commitRename"
+                                    @keydown.esc.exact="cancelRename"
+                                    @blur="commitRename"
+                                />
+                                <strong v-else>{{ p.name }}</strong>
                                 <span class="preset-meta">{{ p.model || 'Server Default' }}</span>
                                 <span class="preset-params" v-if="Object.keys(p.parameters).length > 0">
                                     {{ JSON.stringify(p.parameters) }}
@@ -32,6 +42,15 @@
                             <div class="preset-actions">
                                 <button @click="handleLoad(p)" class="btn-secondary action-btn">
                                     Load
+                                </button>
+                                <button
+                                    v-if="renamingPresetId !== p.id"
+                                    @click="startRename(p)"
+                                    class="btn-secondary action-btn"
+                                    title="Rename preset"
+                                    aria-label="Rename preset"
+                                >
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.pencil"></svg>
                                 </button>
                                 <button @click="handleDelete(p.id)" class="btn-danger action-btn">
                                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.trash_2"></svg>
@@ -46,19 +65,67 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { usePresetStore } from '../stores/preset';
 import { useGenerationConfigStore } from '../stores/generationConfig';
 import { GenerationPreset } from '@/types';
 import { ICONS } from '@/icons';
 
-defineProps<{ isVisible: boolean }>();
+const props = defineProps<{ isVisible: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void }>();
 
 const presetStore = usePresetStore();
 const generationConfigStore = useGenerationConfigStore();
 
 const newPresetName = ref('');
+
+const renamingPresetId = ref<string | null>(null);
+const renameDraft = ref('');
+
+// Prefill from the active saved preset every time the modal opens.
+watch(
+    () => props.isVisible,
+    (visible) => {
+        if (!visible) return;
+
+        const activePreset = presetStore.presets.find(p => p.id === generationConfigStore.loadedPresetId);
+        newPresetName.value = activePreset?.name ?? '';
+        renamingPresetId.value = null;
+    },
+    { immediate: true }
+);
+
+// Focus and select the name when the inline input is mounted.
+const vFocus = {
+    mounted: (el: HTMLInputElement) => {
+        el.focus();
+        el.select();
+    }
+};
+
+function startRename(preset: GenerationPreset) {
+    renamingPresetId.value = preset.id;
+    renameDraft.value = preset.name;
+}
+
+function commitRename() {
+    const id = renamingPresetId.value;
+    if (!id) return;
+
+    const preset = presetStore.presets.find(p => p.id === id);
+    const name = renameDraft.value.trim();
+
+    if (preset && name && name !== preset.name) {
+        presetStore.updatePreset(id, { name });
+    }
+
+    renamingPresetId.value = null;
+}
+
+function cancelRename() {
+    renamingPresetId.value = null;
+    renameDraft.value = '';
+}
 
 async function handleCreate() {
     if (!newPresetName.value.trim()) return;
@@ -191,6 +258,22 @@ async function handleDelete(id: string) {
     font-size: 14px;
 }
 
+.rename-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 4px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: none;
+    outline: 1px solid var(--accent-blue);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: inherit;
+}
 .preset-meta {
     font-size: 12px;
     color: var(--text-muted);

@@ -40,7 +40,7 @@ export const usePromptStore = defineStore('prompt', () => {
         }
     }
 
-    async function updatePrompt(id: string, data: Partial<Prompt>) {
+    async function updatePrompt(id: string, data: Partial<Pick<Prompt, 'name' | 'content' | 'role' | 'description'>>) {
         try {
             const response = await apiFetch(`/api/chat/prompts/${id}`, {
                 method: 'PATCH',

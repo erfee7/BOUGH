@@ -43,7 +43,7 @@ export const usePresetStore = defineStore('preset', () => {
         }
     }
 
-    async function updatePreset(id: string, data: { name: string, model: string | null, parameters: Record<string, unknown> }) {
+    async function updatePreset(id: string, data: Partial<Pick<GenerationPreset, 'name' | 'model' | 'parameters'>>) {
         try {
             const response = await apiFetch(`/api/chat/presets/${id}`, {
                 method: 'PATCH',
