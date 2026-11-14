@@ -1,8 +1,9 @@
 import { ref, onMounted, onUnmounted, type Ref } from 'vue';
 
-const UP_THRESHOLD = 56;
-const DOWN_TOLERANCE = 8;
-const BOUNDARY_TOLERANCE = 2;
+const UP_THRESHOLD = 56;        // Past this far into a message, Up returns to its top first
+const DOWN_TOLERANCE = 8;      // Skips sub-pixel rounding on Down
+const BOUNDARY_TOLERANCE = 2;  // Dead zone for the boundary flags
+const STICKY_THRESHOLD = 100;   // How far up the user may drift while still following the tail
 
 export function useMessageScroll(
     containerRef: Ref<HTMLElement | null>,
@@ -11,7 +12,13 @@ export function useMessageScroll(
     const canScrollUp = ref(false);
     const canScrollDown = ref(false);
 
-    function updateScrollState() {
+    // Tail-following flag. Released only from real scroll events
+    let nearBottom = false;
+
+    let resizeObserver: ResizeObserver | null = null;
+
+    // State updates
+    function updateBoundaryFlags() {
         const container = containerRef.value;
         if (!container) {
             canScrollUp.value = false;
@@ -23,6 +30,31 @@ export function useMessageScroll(
         canScrollDown.value = container.scrollTop < maxScrollTop - BOUNDARY_TOLERANCE;
     }
 
+    function handleScroll() {
+        updateBoundaryFlags();
+        const container = containerRef.value;
+        if (!container) {
+            nearBottom = false;
+            return;
+        }
+        const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+        nearBottom = container.scrollTop >= maxScrollTop - STICKY_THRESHOLD;
+    }
+
+    // Content grew/shrank. Instant scroll when following
+    function handleContentResize() {
+        const container = containerRef.value;
+        if (!container) return;
+        if (nearBottom) {
+            container.scrollTo({
+                top: container.scrollHeight - container.clientHeight,
+                behavior: 'auto'
+            });
+        }
+        updateBoundaryFlags();
+    }
+
+    // Measure the top offsets of all message tiles
     function getMessageOffsets(container: HTMLElement): number[] {
         const containerRect = container.getBoundingClientRect();
         const tiles = container.querySelectorAll<HTMLElement>('.message-tile');
@@ -31,19 +63,22 @@ export function useMessageScroll(
         );
     }
 
-    function scrollToY(top: number) {
-        containerRef.value?.scrollTo({ top, behavior: 'smooth' });
+    function scrollToY(top: number, smooth: boolean = true) {
+        containerRef.value?.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' });
     }
 
+    // Button actions
     function scrollToTop() {
         if (!canScrollUp.value) return;
         scrollToY(0);
     }
 
-    function scrollToBottom() {
+    function scrollToBottom(smooth: boolean = true) {
         const container = containerRef.value;
-        if (!container || !canScrollDown.value) return;
-        scrollToY(container.scrollHeight - container.clientHeight);
+        if (!container) return;
+        const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+        if (maxScrollTop <= 0) return;
+        scrollToY(maxScrollTop, smooth);
     }
 
     function scrollPrevMessage() {
@@ -76,25 +111,41 @@ export function useMessageScroll(
         scrollToY(target ?? maxScrollTop);
     }
 
-    let resizeObserver: ResizeObserver | null = null;
+    // Bring a tile fully into view
+    function scrollMessageIntoView(messageId: string) {
+        const container = containerRef.value;
+        if (!container) return;
+        const tile = container.querySelector<HTMLElement>(`[data-message-id="${messageId}"]`);
+        if (!tile) return;
+
+        const containerTop = container.getBoundingClientRect().top;
+        const tileTop = tile.getBoundingClientRect().top - containerTop;
+        const tileBottom = tile.getBoundingClientRect().bottom - containerTop;
+
+        if (tileTop < 0) {
+            scrollToY(container.scrollTop + tileTop);
+        } else if (tileBottom > container.clientHeight) {
+            scrollToY(container.scrollTop + tileBottom - container.clientHeight);
+        }
+    }
 
     onMounted(() => {
         const container = containerRef.value;
         if (!container) return;
 
-        container.addEventListener('scroll', updateScrollState, { passive: true });
+        container.addEventListener('scroll', handleScroll, { passive: true });
 
-        resizeObserver = new ResizeObserver(updateScrollState);
+        resizeObserver = new ResizeObserver(handleContentResize);
         resizeObserver.observe(container);
         if (contentRef.value) {
             resizeObserver.observe(contentRef.value);
         }
 
-        updateScrollState();
+        handleScroll();
     });
 
     onUnmounted(() => {
-        containerRef.value?.removeEventListener('scroll', updateScrollState);
+        containerRef.value?.removeEventListener('scroll', handleScroll);
         resizeObserver?.disconnect();
     });
 
@@ -104,6 +155,7 @@ export function useMessageScroll(
         scrollToTop,
         scrollToBottom,
         scrollPrevMessage,
-        scrollNextMessage
+        scrollNextMessage,
+        scrollMessageIntoView
     };
 }

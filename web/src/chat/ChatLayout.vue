@@ -16,7 +16,8 @@
                     @update:systemPrompt="systemPrompt = $event"
                     @openLibrary="isPromptLibraryVisible = true"
                 />
-                <MessageList v-else ref="messageListRef" @scroll-state="scrollState = $event" />
+                <!-- Set a key so the instance is recreated when the conversation changes -->
+                <MessageList v-else :key="conversationStore.currentConversationId ?? 'none'" ref="messageListRef" @scroll-state="scrollState = $event" />
                 <InputArea 
                     :modelValue="inputText" 
                     @update:modelValue="inputText = $event"
