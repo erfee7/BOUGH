@@ -10,20 +10,37 @@
         </div>
         
         <div class="action-bar">
-            <button @click="toggleDevPrompt" class="btn-icon toggle-dev-btn" :class="{ 'active': showDevPrompt }" title="Toggle Developer Prompt">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.terminal"></svg>
-            </button>
-            <button @click="fileInputRef?.click()" class="btn-icon" title="Attach files">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.paperclip"></svg>
-            </button>
-            <input
-                ref="fileInputRef"
-                type="file"
-                multiple
-                accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
-                class="hidden-file-input"
-                @change="onFilesChosen"
-            />
+            <div class="action-group">
+                <button @click="toggleDevPrompt" class="btn-icon toggle-dev-btn" :class="{ 'active': showDevPrompt }" title="Toggle Developer Prompt">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.terminal"></svg>
+                </button>
+                <button @click="fileInputRef?.click()" class="btn-icon" title="Attach files">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.paperclip"></svg>
+                </button>
+                <input
+                    ref="fileInputRef"
+                    type="file"
+                    multiple
+                    accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
+                    class="hidden-file-input"
+                    @change="onFilesChosen"
+                />
+            </div>
+
+            <div v-if="showScrollNav" class="action-group">
+                <button @click="emit('scroll-top')" :disabled="!canScrollUp" class="btn-icon" title="Scroll to top">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevrons_up"></svg>
+                </button>
+                <button @click="emit('scroll-prev')" :disabled="!canScrollUp" class="btn-icon" title="Previous message">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevron_up"></svg>
+                </button>
+                <button @click="emit('scroll-next')" :disabled="!canScrollDown" class="btn-icon" title="Next message">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevron_down"></svg>
+                </button>
+                <button @click="emit('scroll-bottom')" :disabled="!canScrollDown" class="btn-icon" title="Scroll to bottom">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevrons_down"></svg>
+                </button>
+            </div>
         </div>
 
         <div
@@ -90,7 +107,10 @@ const props = defineProps<{
     modelValue: string, 
     isStreaming: boolean,
     developerPrompt: string,
-    drafts: AttachmentDraft[]
+    drafts: AttachmentDraft[],
+    showScrollNav: boolean,
+    canScrollUp: boolean,
+    canScrollDown: boolean
 }>();
 
 const emit = defineEmits<{ 
@@ -101,7 +121,11 @@ const emit = defineEmits<{
     (e: 'openLibrary'): void,
     (e: 'files-added', files: File[]): void,
     (e: 'remove-draft', localId: string): void,
-    (e: 'retry-draft', localId: string): void
+    (e: 'retry-draft', localId: string): void,
+    (e: 'scroll-top'): void,
+    (e: 'scroll-prev'): void,
+    (e: 'scroll-next'): void,
+    (e: 'scroll-bottom'): void
 }>();
 
 const showDevPrompt = ref(false);
@@ -211,8 +235,14 @@ function handlePaste(event: ClipboardEvent) {
 
 .action-bar {
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 8px;
+}
+
+.action-group {
+    display: flex;
+    align-items: center;
 }
 
 .toggle-dev-btn.active {

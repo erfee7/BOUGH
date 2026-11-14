@@ -16,7 +16,7 @@
                     @update:systemPrompt="systemPrompt = $event"
                     @openLibrary="isPromptLibraryVisible = true"
                 />
-                <MessageList v-else />
+                <MessageList v-else ref="messageListRef" @scroll-state="scrollState = $event" />
                 <InputArea 
                     :modelValue="inputText" 
                     @update:modelValue="inputText = $event"
@@ -30,6 +30,13 @@
                     @cancel="cancel"
                     @openLibrary="isPromptLibraryVisible = true"
                     :isStreaming="messageStore.isStreaming"
+                    :showScrollNav="!!conversationStore.currentConversationId"
+                    :canScrollUp="scrollState.canScrollUp"
+                    :canScrollDown="scrollState.canScrollDown"
+                    @scroll-top="messageListRef?.scrollToTop()"
+                    @scroll-prev="messageListRef?.scrollPrevMessage()"
+                    @scroll-next="messageListRef?.scrollNextMessage()"
+                    @scroll-bottom="messageListRef?.scrollToBottom()"
                 />
             </div>
         </main>
@@ -84,6 +91,9 @@ const {
 const isSettingsVisible = ref(false);
 
 const isSidebarOpen = ref(false);
+
+const messageListRef = ref<InstanceType<typeof MessageList> | null>(null);
+const scrollState = ref({ canScrollUp: false, canScrollDown: false });
 
 function onNavigate(id: string | null) {
     isSidebarOpen.value = false; // Auto-close the drawer after any navigation
