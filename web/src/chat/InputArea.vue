@@ -12,10 +12,10 @@
         <div class="action-bar">
             <div class="action-group">
                 <button @click="toggleDevPrompt" class="btn-icon toggle-dev-btn" :class="{ 'active': showDevPrompt }" title="Toggle Developer Prompt">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.terminal"></svg>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.terminal"></svg>
                 </button>
                 <button @click="fileInputRef?.click()" class="btn-icon" title="Attach files">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.paperclip"></svg>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.paperclip"></svg>
                 </button>
                 <input
                     ref="fileInputRef"
@@ -29,16 +29,16 @@
 
             <div v-if="showScrollNav" class="action-group">
                 <button @click="emit('scroll-top')" :disabled="!canScrollUp" class="btn-icon" title="Scroll to top">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevrons_up"></svg>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevrons_up"></svg>
                 </button>
                 <button @click="emit('scroll-prev')" :disabled="!canScrollUp" class="btn-icon" title="Previous message">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevron_up"></svg>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevron_up"></svg>
                 </button>
                 <button @click="emit('scroll-next')" :disabled="!canScrollDown" class="btn-icon" title="Next message">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevron_down"></svg>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevron_down"></svg>
                 </button>
                 <button @click="emit('scroll-bottom')" :disabled="!canScrollDown" class="btn-icon" title="Scroll to bottom">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevrons_down"></svg>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS.square_chevrons_down"></svg>
                 </button>
             </div>
         </div>
@@ -220,12 +220,12 @@ function handlePaste(event: ClipboardEvent) {
     position: relative;
     z-index: 1;
     flex-shrink: 0;
-    padding: 20px 2% 32px;
+    padding: 10px 2% 28px;
 }
 
 @media (max-width: 1024px) {
     .input-area {
-        padding: 20px 16px 32px;
+        padding: 10px 16px 28px;
     }
 }
 
@@ -243,6 +243,7 @@ function handlePaste(event: ClipboardEvent) {
 .action-group {
     display: flex;
     align-items: center;
+    gap: 4px;
 }
 
 .toggle-dev-btn.active {
