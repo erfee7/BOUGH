@@ -13,6 +13,7 @@
             @start-edit="startEdit(msg)"
             @cancel-edit="cancelEdit()"
             @save-edit="(shouldGenerate: boolean) => saveEdit(msg, shouldGenerate)"
+            @load-config="generationConfigStore.loadFromCreationData(msg.creation_data, presetStore.presets)"
         />
     </div>
 </template>
@@ -21,9 +22,13 @@
 import ChatMessage from './message/ChatMessage.vue';
 import { useMessageStore } from './stores/message';
 import { useMessageEdit } from './useMessageEdit';
+import { useGenerationConfigStore } from './stores/generationConfig';
+import { usePresetStore } from './stores/preset';
 import { getSiblingInfo as getSiblingInfoUtil } from './branchingUtils.js';
 
 const messageStore = useMessageStore();
+const generationConfigStore = useGenerationConfigStore();
+const presetStore = usePresetStore();
 
 const { 
     editingMessageId, 

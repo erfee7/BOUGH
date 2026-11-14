@@ -24,6 +24,18 @@
                 </div>
             </div>
 
+            <!-- Load config action -->
+            <div v-if="creationData?.source === 'model' && (model || parameterChips.length > 0)" class="detail-actions">
+                <button
+                    @click="handleUseConfig"
+                    class="btn-secondary use-config-btn"
+                    :class="{ 'is-used': isUsed }"
+                    title="Load this message's model and parameters into generation config"
+                >
+                    {{ isUsed ? 'Used' : 'Use' }}
+                </button>
+            </div>
+
             <!-- Tokens -->
             <div class="detail-row" v-if="promptTokens !== null || completionTokens !== null">
                 <span class="detail-label">Tokens</span>
@@ -61,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onUnmounted } from 'vue';
 
 const props = defineProps<{
     creationData?: any,
@@ -70,6 +82,27 @@ const props = defineProps<{
 }>();
 
 const model = computed(() => props.creationData?.model);
+
+const emit = defineEmits<{
+    (e: 'load-config'): void
+}>();
+
+const isUsed = ref(false);
+let usedTimer: ReturnType<typeof setTimeout> | null = null;
+
+function handleUseConfig() {
+    emit('load-config');
+    isUsed.value = true;
+    if (usedTimer) clearTimeout(usedTimer);
+    usedTimer = setTimeout(() => {
+        isUsed.value = false;
+        usedTimer = null;
+    }, 2000);
+}
+
+onUnmounted(() => {
+    if (usedTimer) clearTimeout(usedTimer);
+});
 
 // Smart GUI for arbitrary parameters
 const parameterChips = computed(() => {
@@ -216,6 +249,26 @@ const throughput = computed(() => {
     color: var(--text-muted);
     font-size: 11px;
     margin-left: 4px;
+}
+
+.detail-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 6px;
+    margin-top: 2px;
+    border-top: 1px solid var(--border-default);
+}
+
+.use-config-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+    min-width: 54px;
+}
+
+.use-config-btn.is-used {
+    color: var(--accent-green);
+    border-color: var(--accent-green);
 }
 
 @media (max-width: 768px) {

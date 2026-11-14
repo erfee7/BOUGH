@@ -96,6 +96,7 @@
                                 :creationData="message.creation_data" 
                                 :metadata="message.metadata" 
                                 :status="message.status"
+                                @load-config="emit('load-config')"
                             />
                         </Transition>
                     </div>
@@ -132,7 +133,8 @@ const emit = defineEmits<{
     (e: 'start-edit'): void,
     (e: 'cancel-edit'): void,
     (e: 'save-edit', shouldGenerate: boolean): void,
-    (e: 'update:editingText', value: string): void
+    (e: 'update:editingText', value: string): void,
+    (e: 'load-config'): void
 }>();
 
 const isPrompt = computed(() => props.message.role === 'system' || props.message.role === 'developer');
