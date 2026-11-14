@@ -11,7 +11,18 @@
             <!-- Model -->
             <div class="detail-row" v-if="model">
                 <span class="detail-label">Model</span>
-                <span class="detail-value">{{ model }}</span>
+                <div class="model-value-row">
+                    <span class="detail-value">{{ model }}</span>
+                    <button
+                        v-if="creationData?.source === 'model'"
+                        @click="handleUseConfig"
+                        class="use-config-btn"
+                        :class="{ 'is-used': isUsed }"
+                        title="Load this message's model and parameters into generation config"
+                    >
+                        {{ isUsed ? 'Used' : 'Use' }}
+                    </button>
+                </div>
             </div>
 
             <!-- Parameters (Smart GUI) -->
@@ -22,18 +33,6 @@
                         {{ chip.label }}: {{ chip.value }}
                     </span>
                 </div>
-            </div>
-
-            <!-- Load config action -->
-            <div v-if="creationData?.source === 'model' && (model || parameterChips.length > 0)" class="detail-actions">
-                <button
-                    @click="handleUseConfig"
-                    class="btn-secondary use-config-btn"
-                    :class="{ 'is-used': isUsed }"
-                    title="Load this message's model and parameters into generation config"
-                >
-                    {{ isUsed ? 'Used' : 'Use' }}
-                </button>
             </div>
 
             <!-- Tokens -->
@@ -251,19 +250,37 @@ const throughput = computed(() => {
     margin-left: 4px;
 }
 
-.detail-actions {
-    grid-column: 1 / -1;
+.model-value-row {
     display: flex;
-    justify-content: flex-end;
-    padding-top: 6px;
-    margin-top: 2px;
-    border-top: 1px solid var(--border-default);
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+}
+
+.model-value-row .detail-value {
+    min-width: 0;
 }
 
 .use-config-btn {
-    padding: 4px 10px;
-    font-size: 12px;
-    min-width: 54px;
+    flex-shrink: 0;
+    min-width: 48px;
+    text-align: center;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.use-config-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border-color: var(--accent-blue);
 }
 
 .use-config-btn.is-used {
