@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, type Ref } from 'vue';
 const UP_THRESHOLD = 56;        // Past this far into a message, Up returns to its top first
 const DOWN_TOLERANCE = 8;      // Skips sub-pixel rounding on Down
 const BOUNDARY_TOLERANCE = 2;  // Dead zone for the boundary flags
-const STICKY_THRESHOLD = 100;   // How far up the user may drift while still following the tail
+const STICKY_EPSILON = 1;   // Drifting distance to release the following
 
 export function useMessageScroll(
     containerRef: Ref<HTMLElement | null>,
@@ -13,7 +13,7 @@ export function useMessageScroll(
     const canScrollDown = ref(false);
 
     // Tail-following flag. Released only from real scroll events
-    let nearBottom = false;
+    let following = false;
 
     let resizeObserver: ResizeObserver | null = null;
 
@@ -31,21 +31,18 @@ export function useMessageScroll(
     }
 
     function handleScroll() {
-        updateBoundaryFlags();
         const container = containerRef.value;
-        if (!container) {
-            nearBottom = false;
-            return;
-        }
+        if (!container) return;
         const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
-        nearBottom = container.scrollTop >= maxScrollTop - STICKY_THRESHOLD;
+        following = container.scrollTop >= maxScrollTop - STICKY_EPSILON;
+        updateBoundaryFlags();
     }
 
     // Content grew/shrank. Instant scroll when following
     function handleContentResize() {
         const container = containerRef.value;
         if (!container) return;
-        if (nearBottom) {
+        if (following) {
             container.scrollTo({
                 top: container.scrollHeight - container.clientHeight,
                 behavior: 'auto'
@@ -76,6 +73,7 @@ export function useMessageScroll(
     function scrollToBottom(smooth: boolean = true) {
         const container = containerRef.value;
         if (!container) return;
+        following = true;
         const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
         if (maxScrollTop <= 0) return;
         scrollToY(maxScrollTop, smooth);
@@ -140,8 +138,7 @@ export function useMessageScroll(
         if (contentRef.value) {
             resizeObserver.observe(contentRef.value);
         }
-
-        handleScroll();
+        updateBoundaryFlags(); // No acquire at mount: fresh views start un-followed
     });
 
     onUnmounted(() => {

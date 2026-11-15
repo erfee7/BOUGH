@@ -69,14 +69,6 @@ onUnmounted(() => {
     emit('scroll-state', { canScrollUp: false, canScrollDown: false });
 });
 
-// --- Auto-scroll ---
-
-// Appends during this conversation: SAME array reference (pushed, not
-// replaced) + grown length -> glide to the new tail. Covers send, generate,
-// fork-save and Save & Send. Array replacement (conversation load/reload)
-// and branch switches (no growth) are excluded by construction: fresh mounts
-// start at the top, and sibling switches anchor separately below.
-
 // Judge whether the active leaf changing is due to an append
 let prevMessages: Message[] = messageStore.messages;
 let prevLength = messageStore.messages.length;
