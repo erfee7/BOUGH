@@ -25,7 +25,7 @@
                             @blur="saveEdit"
                             class="edit-input"
                         />
-                        <span v-else class="conv-title">{{ conv.title || 'Untitled' }}</span>    
+                        <span v-else class="conv-title" :title="`${conv.title || 'Untitled'}\nUpdated ${formatRelativeTime(conv.updated_at)}`">{{ conv.title || 'Untitled' }}</span>    
                         <ConversationMenu 
                             :class="{ 'menu-hidden': editingId === conv.id }"
                             :isGenerating="isGenerating(conv.id)"
@@ -56,6 +56,7 @@
 import { useConversationStore } from '@/chat/stores/conversation';
 import { useTitleEdit } from './useTitleEdit';
 import ConversationMenu from './ConversationMenu.vue';
+import { formatRelativeTime } from '@/utils/time';
 import { ICONS } from '@/icons';
 
 const emit = defineEmits<{ 
